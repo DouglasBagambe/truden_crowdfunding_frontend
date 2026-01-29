@@ -31,65 +31,84 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="pt-24 bg-white min-h-screen">
+    <div className="pt-24 bg-background min-h-screen text-foreground selection:bg-indigo-100 dark:selection:bg-indigo-900/40">
       <Navbar />
       
-      <main className="max-w-7xl mx-auto px-6 pb-20">
+      <main className="max-w-7xl mx-auto px-6 pb-24">
         <div className="flex flex-col lg:flex-row gap-12">
           
-          <div className="flex-1 space-y-12">
+          <div className="flex-1 space-y-16">
             {/* Hero Section */}
-            <div className="relative h-[400px] rounded-[3rem] overflow-hidden bg-gray-900 group">
-              <div className="absolute inset-0 bg-gradient-to-r from-gray-900/90 to-transparent z-10" />
-              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center group-hover:scale-105 transition-transform duration-700" />
+            <div className="relative h-[480px] rounded-[3.5rem] overflow-hidden premium-shadow group border border-gray-100 dark:border-slate-800">
+              <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-900/60 to-transparent z-10" />
+              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center group-hover:scale-105 transition-transform duration-1000" />
               
-              <div className="relative z-20 h-full flex flex-col justify-center px-12 max-w-2xl space-y-6 text-white">
-                <h1 className="text-5xl font-bold leading-tight">
-                  Invest in the Future, Today
-                </h1>
-                <p className="text-gray-300 text-lg">
-                  Truden is a platform for investing in real-world projects and people. 
-                  Join a community of innovators and investors shaping tomorrow's landscape.
-                </p>
-                <div className="flex gap-4">
-                  <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-2xl transition-all">
+              <div className="relative z-20 h-full flex flex-col justify-center px-16 max-w-3xl space-y-8">
+                <motion.h1 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="text-6xl font-bold leading-tight text-white tracking-tight"
+                >
+                  Invest in the Future, <span className="text-indigo-400">Today</span>
+                </motion.h1>
+                <motion.p 
+                   initial={{ opacity: 0, x: -20 }}
+                   animate={{ opacity: 1, x: 0 }}
+                   transition={{ delay: 0.1 }}
+                  className="text-slate-300 text-xl leading-relaxed font-medium"
+                >
+                  Truden connects bold innovators with visionary investors. 
+                  Build more than just projects—build lasting legacies.
+                </motion.p>
+                <motion.div 
+                   initial={{ opacity: 0, y: 20 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   transition={{ delay: 0.2 }}
+                  className="flex gap-5"
+                >
+                  <button className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-10 rounded-[1.5rem] transition-all shadow-xl shadow-indigo-600/20 active:scale-95">
                     Explore Projects
                   </button>
                   <button 
                     onClick={() => setIsCreateModalOpen(true)}
-                    className="bg-white/10 hover:bg-white/20 backdrop-blur-md text-white font-bold py-3 px-8 rounded-2xl transition-all flex items-center gap-2"
+                    className="bg-white/10 hover:bg-white/20 backdrop-blur-xl text-white font-bold py-4 px-10 rounded-[1.5rem] border border-white/20 transition-all flex items-center gap-2.5 active:scale-95"
                   >
                     <PlusCircle className="w-5 h-5" />
-                    Create a Project
+                    Launch Project
                   </button>
-                </div>
+                </motion.div>
               </div>
             </div>
 
             {/* Stats Section */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <StatCard label="Total Funds Raised" value="$12.5M" />
-              <StatCard label="Projects Funded" value="350+" />
-              <StatCard label="Active Investors" value="15,000+" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <StatCard label="Total Raised" value="$12.5M" />
+              <StatCard label="Success Rate" value="94%" />
+              <StatCard label="Investors" value="15k+" />
             </div>
 
             {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-4">
-                <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
-                <p className="text-gray-500 font-medium">Fetching the latest projects...</p>
+              <div className="flex flex-col items-center justify-center py-24 gap-6">
+                <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-full">
+                  <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
+                </div>
+                <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Synchronizing Ecosystem...</p>
               </div>
             ) : error ? (
-              <div className="p-8 bg-red-50 border border-red-100 rounded-3xl text-center">
-                <p className="text-red-600 font-bold mb-2">Failed to load projects</p>
-                <p className="text-red-400 text-sm italic">Please check if the backend server is running.</p>
+              <div className="p-12 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 rounded-[3rem] text-center space-y-4">
+                <p className="text-rose-600 dark:text-rose-400 font-bold text-xl">Service Temporarily Unavailable</p>
+                <p className="text-rose-400 dark:text-rose-500/60 text-sm font-medium italic">Our neural links to the backend are down. Please stand by.</p>
               </div>
             ) : (
               <>
                 {/* Featured Projects */}
                 {featuredProjects.length > 0 && (
-                  <section className="space-y-6">
-                    <h2 className="text-2xl font-bold text-gray-900">Featured Projects</h2>
-                    <div className="flex overflow-x-auto gap-6 pb-4 scrollbar-hide">
+                  <section className="space-y-8">
+                    <div className="flex items-center gap-4">
+                      <h2 className="text-3xl font-bold tracking-tight">Featured</h2>
+                      <div className="h-px flex-1 bg-gray-100 dark:bg-slate-800" />
+                    </div>
+                    <div className="flex overflow-x-auto gap-8 pb-8 scrollbar-hide -mx-2 px-2">
                       {featuredProjects.map((project: any) => (
                         <ProjectCard 
                           key={project.id} 
@@ -109,19 +128,19 @@ export default function DashboardPage() {
                 )}
 
                 {/* All Projects */}
-                <section className="space-y-8">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <h2 className="text-2xl font-bold text-gray-900">All Projects</h2>
-                    <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-2xl border border-gray-100">
+                <section className="space-y-10">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <h2 className="text-3xl font-bold tracking-tight">Discover</h2>
+                    <div className="flex items-center gap-2 bg-gray-100/50 dark:bg-slate-800/50 p-1.5 rounded-2xl border border-gray-100 dark:border-slate-800">
                       <FilterTab label="All" active />
-                      <FilterTab label="Technology" />
-                      <FilterTab label="Sustainability" />
-                      <FilterTab label="Community" />
+                      <FilterTab label="Fintech" />
+                      <FilterTab label="Sustainable" />
+                      <FilterTab label="AI & Tech" />
                     </div>
                   </div>
 
                   {regularProjects.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
                       {regularProjects.map((project: any) => (
                         <ProjectCard 
                           key={project.id} 
@@ -137,21 +156,22 @@ export default function DashboardPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="py-20 text-center bg-gray-50 rounded-[3rem] border-2 border-dashed border-gray-200">
-                      <p className="text-gray-400 font-medium italic">No projects found. Be the first to create one!</p>
+                    <div className="py-24 text-center bg-gray-50 dark:bg-slate-900/50 rounded-[4rem] border-2 border-dashed border-gray-200 dark:border-slate-800 space-y-6">
+                      <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">Quiet on the front...</p>
                       <button 
                         onClick={() => setIsCreateModalOpen(true)}
-                        className="mt-6 text-blue-600 font-bold hover:underline"
+                        className="text-indigo-600 dark:text-indigo-400 font-bold hover:opacity-80 transition-opacity"
                       >
-                        Launch your project now
+                        Be the first to innovate +
                       </button>
                     </div>
                   )}
 
-                  {/* Pagination Placeholder */}
+                  {/* Pagination */}
                   {regularProjects.length > 0 && (
-                    <div className="flex items-center justify-center gap-2 pt-10">
-                      <button className="w-10 h-10 rounded-xl bg-blue-600 text-white font-bold text-sm shadow-lg shadow-blue-100 italic">1</button>
+                    <div className="flex items-center justify-center gap-3 pt-12">
+                      <button className="w-12 h-12 rounded-2xl bg-indigo-600 text-white font-bold text-lg shadow-xl shadow-indigo-600/20 active:scale-90 transition-transform">1</button>
+                      <button className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 text-gray-400 font-bold text-lg border border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">2</button>
                     </div>
                   )}
                 </section>
@@ -159,7 +179,7 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <aside className="lg:w-[350px]">
+          <aside className="lg:w-[380px]">
             <RightSidebar onTriggerCreate={() => setIsCreateModalOpen(true)} />
           </aside>
 
@@ -183,14 +203,14 @@ export default function DashboardPage() {
 }
 
 const StatCard = ({ label, value }: { label: string; value: string }) => (
-  <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm text-center space-y-2">
-    <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">{label}</p>
-    <p className="text-3xl font-bold text-gray-900 leading-none">{value}</p>
+  <div className="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow space-y-3">
+    <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">{label}</p>
+    <p className="text-4xl font-bold text-gray-900 dark:text-white tracking-tight">{value}</p>
   </div>
 );
 
 const FilterTab = ({ label, active }: { label: string; active?: boolean }) => (
-  <button className={`px-5 py-2 rounded-xl text-sm font-bold transition-all ${active ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100/50'}`}>
+  <button className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${active ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm border border-gray-100 dark:border-slate-800' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>
     {label}
   </button>
 );
