@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import AuthSidebar from './AuthSidebar';
 import { motion } from 'framer-motion';
@@ -8,16 +10,17 @@ interface AuthCardProps {
 
 const AuthCard = ({ children }: AuthCardProps) => {
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[var(--background)] transition-colors duration-300">
       <motion.div 
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="flex w-full max-w-[1100px] h-[720px] bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl shadow-indigo-500/10 overflow-hidden border border-gray-100 dark:border-slate-800"
+        className="flex w-full max-w-[1000px] min-h-[640px] bg-[var(--card)] rounded-3xl shadow-2xl overflow-hidden border border-[var(--border)]"
       >
         <AuthSidebar />
-        <div className="flex-1 p-12 lg:p-20 flex flex-col justify-center overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900">
-          {children}
+        <div className="flex-1 p-8 lg:p-14 flex flex-col justify-center">
+            <div className="w-full max-w-sm mx-auto">
+                {children}
+            </div>
         </div>
       </motion.div>
     </div>

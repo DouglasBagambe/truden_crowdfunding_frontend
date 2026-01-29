@@ -17,7 +17,7 @@ interface InvestModalProps {
 
 const InvestModal = ({ isOpen, onClose, project }: InvestModalProps) => {
   const queryClient = useQueryClient();
-  const { isConnected, address } = useAccount();
+  const { isConnected } = useAccount();
   const [amount, setAmount] = useState('');
   const [isApiLoading, setIsApiLoading] = useState(false);
   const [error, setError] = useState('');
@@ -52,7 +52,6 @@ const InvestModal = ({ isOpen, onClose, project }: InvestModalProps) => {
     }
   };
 
-  // Effect to handle backend sync after TX confirmation
   React.useEffect(() => {
     if (isTxConfirmed && hash) {
       const syncWithBackend = async () => {
@@ -68,7 +67,7 @@ const InvestModal = ({ isOpen, onClose, project }: InvestModalProps) => {
             onClose();
             setSuccess(false);
             setAmount('');
-          }, 3000);
+          }, 4000);
         } catch (err: any) {
           setError('Blockchain success, but backend sync failed. Please contact support.');
         } finally {
@@ -96,39 +95,38 @@ const InvestModal = ({ isOpen, onClose, project }: InvestModalProps) => {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl z-[101] overflow-hidden"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white dark:bg-[#111] rounded-[2.5rem] shadow-2xl z-[101] overflow-hidden border border-gray-100 dark:border-[#262626]"
           >
-            {/* Header ... */}
-            <div className="p-8 border-b border-gray-100 flex items-center justify-between">
+            <div className="p-8 border-b border-gray-100 dark:border-[#262626] flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Invest in Project</h2>
-                <p className="text-sm text-gray-500 truncate w-64">{project.title}</p>
+                <h2 className="text-2xl font-bold text-[var(--text-main)]">Support Innovation</h2>
+                <p className="text-sm text-[var(--text-muted)] truncate w-64 font-medium">{project.name || project.title}</p>
               </div>
-              <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
-                <X className="w-6 h-6 text-gray-400" />
+              <button onClick={onClose} className="p-2 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] rounded-xl transition-colors">
+                <X className="w-6 h-6 text-[var(--text-muted)]" />
               </button>
             </div>
 
             <div className="p-8 space-y-6">
               {success ? (
                 <div className="flex flex-col items-center justify-center py-10 space-y-4 text-center">
-                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
-                    <CheckCircle className="w-10 h-10 text-green-600" />
+                  <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-950/20 rounded-full flex items-center justify-center border border-emerald-100 dark:border-emerald-900/30">
+                    <CheckCircle className="w-10 h-10 text-emerald-500" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900">Investment Successful!</h3>
-                  <p className="text-gray-500 max-w-xs">Your contribution has been recorded on Celo and synced with our platform.</p>
+                  <h3 className="text-2xl font-bold text-[var(--text-main)]">Investment Successful!</h3>
+                  <p className="text-[var(--text-muted)] font-medium max-w-xs">Your contribution is now held in the TruFund escrow and will be released upon milestone verification.</p>
                 </div>
               ) : (
                 <form onSubmit={handleInvest} className="space-y-6">
                   {(error || contractError) && (
-                    <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 text-sm font-medium">
+                    <div className="p-4 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 rounded-2xl flex items-center gap-3 text-rose-600 dark:text-rose-400 text-sm font-bold">
                       <AlertCircle className="w-5 h-5 shrink-0" />
-                      {error || (contractError as any)?.shortMessage || 'Transaction failed'}
+                      <span className="line-clamp-2">{error || (contractError as any)?.shortMessage || 'Transaction failed'}</span>
                     </div>
                   )}
 
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-700 ml-1">Investment Amount (ETH)</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-1">Contribution Amount</label>
                     <div className="relative">
                       <input
                         type="number"
@@ -136,34 +134,37 @@ const InvestModal = ({ isOpen, onClose, project }: InvestModalProps) => {
                         required
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
-                        className="w-full bg-gray-50 border-none rounded-2xl py-5 px-6 pr-16 text-2xl font-bold text-gray-900 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                        className="input_field text-3xl font-bold py-6 px-8 pr-20"
                         placeholder="0.00"
                       />
-                      <span className="absolute right-6 top-1/2 -translate-y-1/2 font-bold text-gray-400">ETH</span>
+                      <span className="absolute right-8 top-1/2 -translate-y-1/2 font-black text-[var(--text-muted)] tracking-widest text-xs">ETH</span>
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 rounded-2xl p-6 space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Platform Fee (1%)</span>
-                      <span className="text-gray-900 font-bold">{(Number(amount) * 0.01).toFixed(4)} ETH</span>
+                  <div className="bg-gray-50 dark:bg-[#0a0a0a] rounded-2xl p-6 space-y-3 border border-gray-100 dark:border-[#262626]">
+                    <div className="flex justify-between text-xs font-bold text-[var(--text-muted)] lowercase tracking-widest">
+                      <span>Platform Reserve (1%)</span>
+                      <span className="text-[var(--text-main)]">{(Number(amount) * 0.01).toFixed(4)} ETH</span>
                     </div>
-                    <div className="flex justify-between text-lg font-bold">
-                      <span className="text-gray-900">Total</span>
-                      <span className="text-blue-600">{(Number(amount) * 1.01).toFixed(4)} ETH</span>
+                    <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-[#262626]">
+                      <span className="text-sm font-bold opacity-80">Total Payable</span>
+                      <span className="text-xl font-bold text-[var(--primary)]">{(Number(amount) * 1.01).toFixed(4)} ETH</span>
                     </div>
                   </div>
 
                   <button
                     disabled={isLoading || !isConnected}
-                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 text-white font-bold py-5 rounded-2xl transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3"
+                    type="submit"
+                    className="button_primary w-full flex items-center justify-center gap-4 py-5 shadow-xl shadow-blue-500/10"
                   >
                     {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Wallet className="w-6 h-6" />}
-                    {isWaitingForTx ? 'Confirming on-chain...' : isContractLoading ? 'Confirm in Wallet...' : 'Confirm Investment'}
+                    <span className="font-bold">
+                        {isWaitingForTx ? 'Confirming On-Chain...' : isContractLoading ? 'Authorize in Wallet' : 'Execute Contribution'}
+                    </span>
                   </button>
 
-                  <p className="text-center text-xs text-gray-400 font-medium">
-                    This transaction will be executed on the Celo Alfajores Testnet.
+                  <p className="text-center text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest opacity-60">
+                    On-chain transparency via Celo Alfajores
                   </p>
                 </form>
               )}

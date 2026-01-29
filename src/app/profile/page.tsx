@@ -154,7 +154,7 @@ export default function ProfilePage() {
 const ProfileInfo = ({ icon, label, value }: any) => (
     <div className="flex items-center gap-4">
         <div className="p-3 bg-gray-50 dark:bg-slate-800 rounded-2xl text-gray-400">
-            {React.cloneElement(icon, { className: 'w-5 h-5' })}
+            {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<any>, { className: 'w-5 h-5' }) : icon}
         </div>
         <div>
             <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{label}</p>

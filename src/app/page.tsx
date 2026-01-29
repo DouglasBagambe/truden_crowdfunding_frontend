@@ -5,167 +5,146 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Shield, Zap, Globe, Users, ArrowRight, TrendingUp, BarChart3, Lock } from 'lucide-react';
+import { ArrowRight, Shield, Zap, Globe, Users } from 'lucide-react';
 
 export default function LandingPage() {
   return (
-    <div className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white selection:bg-indigo-100 dark:selection:bg-indigo-900/40">
+    <div className="min-h-screen flex flex-col">
       <Navbar />
       
-      {/* Hero Section */}
-      <section className="relative pt-40 pb-32 overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-indigo-500/10 blur-[120px] rounded-full -z-10" />
-        <div className="max-w-7xl mx-auto px-6 text-center space-y-10">
-            <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="inline-flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/30 px-5 py-2 rounded-full"
-            >
-                <Zap className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                <span className="text-xs font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400">Next Gen Decentralized Funding</span>
-            </motion.div>
-
-            <motion.h1 
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="text-7xl md:text-8xl font-bold tracking-tighter leading-[0.9]"
-            >
-                Finance the <br /> <span className="premium-text-gradient">Unstoppable.</span>
-            </motion.h1>
-
-            <motion.p 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="max-w-2xl mx-auto text-xl text-slate-500 dark:text-slate-400 font-medium leading-relaxed"
-            >
-                Truden is the world's first high-integrity crowdfunding protocol. 
-                Transparent on-chain milestones meet institutional-grade security.
-            </motion.p>
-
-            <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3 }}
-                className="flex flex-col sm:flex-row items-center justify-center gap-5 pt-8"
-            >
-                <Link 
-                    href="/dashboard" 
-                    className="w-full sm:w-auto premium-gradient text-white font-black text-sm uppercase tracking-widest px-12 py-5 rounded-2xl shadow-2xl shadow-indigo-500/20 hover:scale-105 transition-transform active:scale-95"
+      <main className="flex-grow">
+        {/* Hero Section */}
+        <section className="pt-32 pb-20 lg:pt-48 lg:pb-32 bg-[var(--card)] border-b border-[var(--border)] transition-colors duration-300">
+          <div className="container mx-auto px-6">
+            <div className="grid lg:grid-cols-2 gap-16 items-center">
+              <div className="space-y-10">
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-[var(--secondary)] text-[var(--primary)] text-[10px] font-black uppercase tracking-[0.2em]"
                 >
-                    Launch App
-                </Link>
-                <Link 
-                    href="/register" 
-                    className="w-full sm:w-auto bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-200 font-black text-sm uppercase tracking-widest px-12 py-5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  <Zap size={14} />
+                  PROTOCOL V1.0 LIVE
+                </motion.div>
+                
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="space-y-4"
                 >
-                    Create Account
-                </Link>
-            </motion.div>
-        </div>
-      </section>
-
-      {/* Feature Grid */}
-      <section className="py-32 bg-slate-50 dark:bg-slate-900/50">
-          <div className="max-w-7xl mx-auto px-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-                  <FeatureItem 
-                    icon={<Shield className="w-8 h-8" />}
-                    title="On-Chain Escrow"
-                    description="Funds are locked in smart contracts and only released upon community-verified milestone completion."
-                  />
-                  <FeatureItem 
-                    icon={<Globe className="w-8 h-8" />}
-                    title="Borderless Capital"
-                    description="Access global liquidity instantly. No geographical barriers, no intermediaries, just direct value."
-                  />
-                  <FeatureItem 
-                    icon={<Users className="w-8 h-8" />}
-                    title="DAO Governance"
-                    description="Investors hold voting power. Decide the future of projects you fund with transparent governance tokens."
-                  />
-              </div>
-          </div>
-      </section>
-
-      {/* Trust Section */}
-      <section className="py-32 border-t border-slate-100 dark:border-slate-800">
-          <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-              <div className="space-y-8">
-                  <h2 className="text-5xl font-bold tracking-tight leading-tight">Built on the foundation of <br /> <span className="text-indigo-600">Absolute Trust.</span></h2>
-                  <div className="space-y-6">
-                      <TrustPoint icon={<Lock />} title="Institutional Security" desc="Audited contracts and multi-sig treasury management." />
-                      <TrustPoint icon={<BarChart3 />} title="Real-time Analytics" desc="Track every dollar and milestone in real-time on-scan." />
-                      <TrustPoint icon={<TrendingUp />} title="Yield Incentives" desc="Earn reputation and yield and early backer rewards." />
-                  </div>
-              </div>
-              <div className="relative">
-                  <div className="absolute -inset-4 bg-indigo-500/10 blur-3xl rounded-full" />
-                  <div className="relative bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-8 rounded-[3rem] shadow-2xl">
-                      <div className="space-y-6">
-                          <div className="flex justify-between items-center">
-                              <h4 className="font-bold">Live Fundings</h4>
-                              <div className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase rounded-full">Secure</div>
-                          </div>
-                          {[1,2,3].map(i => (
-                              <div key={i} className="flex gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl">
-                                  <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl" />
-                                  <div className="flex-1 space-y-2">
-                                      <div className="h-3 w-1/3 bg-slate-200 dark:bg-slate-700 rounded-full" />
-                                      <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full" />
-                                  </div>
-                              </div>
-                          ))}
-                      </div>
-                  </div>
-              </div>
-          </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-32 bg-indigo-600 overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 blur-[100px] -mr-32 -mt-32 rounded-full" />
-          <div className="max-w-5xl mx-auto px-6 text-center space-y-8 relative z-10">
-              <h2 className="text-5xl font-bold text-white tracking-tight">Ready to build the future?</h2>
-              <p className="text-indigo-100 text-lg font-medium opacity-80 max-w-xl mx-auto">
-                  Join thousands of innovators and investors who are already shaping the decentralized landscape.
-              </p>
-              <div className="pt-6">
-                  <Link href="/register" className="bg-white text-indigo-600 font-black text-sm uppercase tracking-widest px-12 py-5 rounded-2xl shadow-xl hover:scale-105 transition-transform inline-block">
-                      Start Your Legacy
+                  <h1 className="typography_h1">
+                    Fund real projects. <br />
+                    <span className="text-[var(--primary)]">Empower innovators.</span>
+                  </h1>
+                  <p className="typography_body text-lg md:text-xl max-w-xl font-medium">
+                    TruFund is a decentralized launchpad where visionary ideas meet the capital they deserve. 
+                    Built on Celo for speed, transparency, and global reach.
+                  </p>
+                </motion.div>
+                
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="flex flex-wrap gap-5"
+                >
+                  <Link href="/register" className="button_primary px-10 py-4.5 text-base flex items-center gap-2 shadow-2xl shadow-blue-500/20">
+                    Get Started <ArrowRight size={18} />
                   </Link>
+                  <Link href="/dashboard" className="button_secondary px-10 py-4.5 text-base border-2 border-[var(--primary)]/10 hover:border-[var(--primary)]">
+                    Explore Projects
+                  </Link>
+                </motion.div>
               </div>
+
+              <div className="hidden lg:grid grid-cols-2 gap-8">
+                <StatNode label="Raised via Escrow" value="$4.2M" sub="24h +12%" />
+                <StatNode label="Active Backers" value="15.8k" sub="Global Network" />
+                <StatNode label="Projects Launched" value="142" sub="98% Success Rate" />
+                <StatNode label="Security Audit" value="A+" sub="CertiK Verified" />
+              </div>
+            </div>
           </div>
-      </section>
+        </section>
+
+        {/* Features Section */}
+        <section className="py-24 bg-[var(--background)] transition-colors duration-300">
+          <div className="container mx-auto px-6">
+            <div className="text-center max-w-2xl mx-auto mb-20 space-y-4">
+              <h2 className="typography_h2">Why Choose TruFund?</h2>
+              <p className="typography_body font-medium">Platform for secure, milestone-based crowdfunding.</p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-12">
+              <FeatureNode 
+                icon={<Shield />}
+                title="On-Chain Escrow"
+                desc="Funds are held in secure smart contracts and released only when milestones are verified by the community."
+              />
+              <FeatureNode 
+                icon={<Globe />}
+                title="Borderless Capital"
+                desc="Launch or back projects from anywhere in the world. No banking limits, no borders, just innovation."
+              />
+              <FeatureNode 
+                icon={<Users />}
+                title="Direct Governance"
+                desc="Backers are more than just funders—they are governance participants with voting rights on project path."
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="py-32 bg-[var(--card)] border-t border-[var(--border)] transition-colors duration-300">
+          <div className="container mx-auto px-6">
+            <div className="bg-[var(--primary)] rounded-[3rem] p-12 md:p-24 text-center space-y-10 relative overflow-hidden shadow-2xl shadow-blue-900/20">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 blur-[100px] -mr-48 -mt-48 rounded-full"></div>
+                <div className="absolute bottom-0 left-0 w-96 h-96 bg-black/10 blur-[100px] -ml-48 -mb-48 rounded-full"></div>
+                
+                <div className="relative z-10 space-y-4">
+                    <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight">
+                        Ready to lead the future?
+                    </h2>
+                    <p className="text-blue-100 text-lg md:text-xl max-w-2xl mx-auto font-medium">
+                        Join the next generation of innovators and backers. Your journey starts with a single transaction.
+                    </p>
+                </div>
+                
+                <div className="flex justify-center gap-6 relative z-10 pt-4">
+                    <Link href="/register" className="bg-white text-[var(--primary)] font-black py-5 px-14 rounded-2xl hover:bg-gray-50 transition-all hover:scale-105 active:scale-95 shadow-xl">
+                        CREATE ACCOUNT
+                    </Link>
+                </div>
+            </div>
+          </div>
+        </section>
+      </main>
 
       <Footer />
     </div>
   );
 }
 
-const FeatureItem = ({ icon, title, description }: any) => (
-    <div className="space-y-6 p-8 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 hover:shadow-xl transition-all">
-        <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-            {icon}
-        </div>
-        <div className="space-y-2">
-            <h3 className="text-xl font-bold tracking-tight">{title}</h3>
-            <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed font-medium">
-                {description}
-            </p>
-        </div>
+const StatNode = ({ label, value, sub }: { label: string, value: string, subText?: string, sub?: string }) => (
+  <div className="card_base hover:translate-y-[-5px]">
+    <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">{label}</p>
+    <div className="flex items-baseline gap-2 mt-3">
+        <p className="text-4xl font-black text-[var(--text-main)] tracking-tighter">{value}</p>
+        <span className="text-[10px] font-bold text-emerald-500">{sub}</span>
     </div>
+  </div>
 );
 
-const TrustPoint = ({ icon, title, desc }: any) => (
-    <div className="flex gap-4">
-        <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl text-indigo-600 h-fit">
-            {React.cloneElement(icon, { size: 20 })}
-        </div>
-        <div>
-            <h4 className="font-bold text-lg mb-0.5">{title}</h4>
-            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{desc}</p>
-        </div>
+const FeatureNode = ({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) => (
+  <div className="card_base space-y-8 hover:border-[var(--primary)] group">
+    <div className="w-16 h-16 rounded-[1.5rem] bg-[var(--secondary)] text-[var(--primary)] flex items-center justify-center border border-[var(--primary)]/5 group-hover:scale-110 transition-transform">
+      {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<any>, { size: 32 }) : icon}
     </div>
+    <div className="space-y-3">
+      <h3 className="text-2xl font-bold text-[var(--text-main)] transition-colors">{title}</h3>
+      <p className="typography_body font-medium">{desc}</p>
+    </div>
+  </div>
 );

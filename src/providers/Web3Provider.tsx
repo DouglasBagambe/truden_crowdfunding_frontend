@@ -11,8 +11,8 @@ const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID || '8e562725807968565257
 
 // 2. Create wagmiConfig
 const metadata = {
-  name: 'Truden Crowdfunding',
-  description: 'Premium Decentralized Crowdfunding Platform',
+  name: 'TruFund',
+  description: 'Decentralized Milestone-Based Crowdfunding',
   url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   icons: ['https://avatars.githubusercontent.com/u/37784886']
 };
@@ -32,10 +32,10 @@ const wagmiConfig = defaultWagmiConfig({
 createWeb3Modal({ 
   wagmiConfig, 
   projectId, 
-  themeMode: 'dark',
+  themeMode: 'light',
   themeVariables: {
-    '--w3m-accent': '#6366f1',
-    '--w3m-border-radius-master': '1px'
+    '--w3m-accent': '#0c3b92',
+    '--w3m-border-radius-master': '12px'
   }
 });
 

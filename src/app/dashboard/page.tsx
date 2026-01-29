@@ -7,32 +7,27 @@ import ProjectCard from '@/components/dashboard/ProjectCard';
 import RightSidebar from '@/components/dashboard/RightSidebar';
 import CreateProjectModal from '@/components/dashboard/CreateProjectModal';
 import InvestModal from '@/components/dashboard/InvestModal';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useProjects } from '@/hooks/useProjects';
-import { Loader2, PlusCircle, Search, SlidersHorizontal, ArrowUpRight } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { Search, TrendingUp, ArrowUpRight, Shield, PlusCircle, LayoutDashboard, Wallet, Clock } from 'lucide-react';
 
 export default function DashboardPage() {
-  const { data: projectsData, isLoading, error } = useProjects();
+  const { data: projectsData, isLoading } = useProjects();
+  const { user } = useAuth();
   
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isInvestModalOpen, setIsInvestModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('All');
+  const [activeTab, setActiveTab] = useState('Overview');
 
   const allFetchedProjects = projectsData?.items || [];
-  
   const filteredProjects = useMemo(() => {
-    return allFetchedProjects.filter((p: any) => {
-      const matchesSearch = (p.name || p.title || '').toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesTab = activeTab === 'All' || (p.industry || '').toUpperCase() === activeTab.toUpperCase();
-      return matchesSearch && matchesTab;
-    });
-  }, [allFetchedProjects, searchQuery, activeTab]);
-
-  const featuredProjects = useMemo(() => {
-    return allFetchedProjects.slice(0, 3);
-  }, [allFetchedProjects]);
+    return allFetchedProjects.filter((p: any) => 
+      (p.name || p.title || '').toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [allFetchedProjects, searchQuery]);
 
   const handleProjectClick = (project: any) => {
     setSelectedProject(project);
@@ -40,148 +35,132 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="pt-24 bg-background min-h-screen text-foreground selection:bg-indigo-100 dark:selection:bg-indigo-900/40">
+    <div className="bg-[var(--background)] min-h-screen text-[var(--text-main)] pt-[72px] transition-colors duration-300">
       <Navbar />
       
-      <main className="max-w-7xl mx-auto px-6 pb-24">
-        <div className="flex flex-col lg:flex-row gap-12">
+      <main className="container mx-auto p-6 lg:p-10">
+        <div className="flex flex-col lg:flex-row gap-10">
           
-          <div className="flex-1 space-y-16">
-            {/* Hero Section */}
-            <section className="relative h-[520px] rounded-[4rem] overflow-hidden premium-shadow group border border-gray-100 dark:border-slate-800">
-              <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-900/60 to-transparent z-10" />
-              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop')] bg-cover bg-center group-hover:scale-105 transition-transform duration-1000" />
-              
-              <div className="relative z-20 h-full flex flex-col justify-center px-16 max-w-3xl space-y-8">
-                <div className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-4 py-2 rounded-full w-fit">
-                    <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Governance Active</span>
-                </div>
-                <motion.h1 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-7xl font-bold leading-[0.9] text-white tracking-tighter"
-                >
-                  Finance <br /> <span className="text-indigo-400">Reimagined.</span>
-                </motion.h1>
-                <motion.p 
-                   initial={{ opacity: 0, y: 20 }}
-                   animate={{ opacity: 1, y: 0 }}
-                   transition={{ delay: 0.1 }}
-                  className="text-slate-300 text-lg leading-relaxed font-medium max-w-xl"
-                >
-                  Truden is the decentralized protocol for high-integrity project funding. 
-                  Direct, transparent, and built on-chain.
-                </motion.p>
-                <motion.div 
-                   initial={{ opacity: 0, scale: 0.95 }}
-                   animate={{ opacity: 1, scale: 1 }}
-                   transition={{ delay: 0.2 }}
-                  className="flex gap-4 pt-4"
-                >
-                  <button className="premium-gradient text-white font-black text-xs uppercase tracking-widest py-4.5 px-10 rounded-2xl transition-all shadow-xl shadow-indigo-600/20 active:scale-95 flex items-center gap-2">
-                    Start Investing <ArrowUpRight className="w-4 h-4" />
-                  </button>
-                  <button 
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="bg-white/5 hover:bg-white/10 backdrop-blur-xl text-white font-black text-xs uppercase tracking-widest py-4.5 px-10 rounded-2xl border border-white/20 transition-all active:scale-95"
-                  >
-                    Launch Proposal
-                  </button>
-                </motion.div>
-              </div>
-            </section>
+          <div className="flex-1 space-y-8">
+            {/* Header / KPI Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <KPICard label="Portfolio Value" value="$12,840" trend="+12.5%" icon={<TrendingUp size={16} className="text-emerald-500" />} />
+                <KPICard label="Active Positions" value="8" icon={<LayoutDashboard size={16} className="text-blue-500" />} />
+                <KPICard label="Reserved (Escrow)" value="$3,200" icon={<Shield size={16} className="text-indigo-500" />} />
+            </div>
 
-            {/* Content Area */}
-            <div className="space-y-12">
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-gray-100 dark:border-slate-800 pb-8">
-                    <div className="space-y-4">
-                        <h2 className="text-4xl font-bold tracking-tight">Marketplace</h2>
-                        <div className="flex items-center gap-1 bg-gray-50 dark:bg-slate-900 p-1 rounded-2xl border border-gray-100 dark:border-slate-800">
-                            {['All', 'Technology', 'Fintech', 'Sustainability'].map(tab => (
+            {/* Main Tabs Container */}
+            <div className="bg-[var(--card)] rounded-[2rem] border border-[var(--border)] overflow-hidden shadow-sm transition-colors duration-300">
+                <div className="border-b border-[var(--border)] px-8">
+                    <div className="flex items-center justify-between">
+                        <nav className="flex gap-10">
+                             {['Overview', 'Investments', 'Marketplace', 'DAO'].map(tab => (
                                 <button 
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}
-                                    className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                    className={`py-6 text-sm font-bold border-b-2 transition-all relative ${
+                                        activeTab === tab 
+                                        ? 'border-[var(--primary)] text-[var(--primary)]' 
+                                        : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                                    }`}
                                 >
                                     {tab}
+                                    {activeTab === tab && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--primary)]" />}
                                 </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                        <div className="relative group">
-                            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-indigo-600 transition-colors" />
+                             ))}
+                        </nav>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] opacity-50" />
                             <input 
                                 type="text"
-                                placeholder="Search projects..."
+                                placeholder="Search..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none transition-all w-[300px]"
+                                className="bg-[var(--background)] rounded-xl py-2 pl-10 pr-4 text-xs font-bold border border-transparent focus:border-[var(--primary)]/20 outline-none w-56 transition-all"
                             />
                         </div>
-                        <button className="p-4 bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl text-gray-400 hover:text-indigo-600 transition-colors">
-                            <SlidersHorizontal className="w-5 h-5" />
-                        </button>
                     </div>
                 </div>
 
-                {isLoading ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
-                    {[1,2,3,4,5,6].map(i => <SkeletonCard key={i} />)}
-                  </div>
-                ) : error ? (
-                  <div className="p-20 bg-rose-50 dark:bg-rose-950/10 border-2 border-dashed border-rose-100 dark:border-rose-900/30 rounded-[4rem] text-center space-y-4">
-                    <div className="w-16 h-16 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Loader2 className="w-8 h-8 text-rose-500 animate-spin" />
-                    </div>
-                    <p className="text-rose-600 dark:text-rose-400 font-bold text-xl uppercase tracking-widest">Connection Interrupted</p>
-                    <p className="text-rose-400 dark:text-rose-500/60 text-xs font-black uppercase tracking-widest">Re-establishing neural link...</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
-                     <AnimatePresence mode="popLayout">
-                        {filteredProjects.map((project: any) => (
-                            <motion.div
-                                layout
-                                key={project.id}
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                transition={{ duration: 0.3 }}
-                            >
-                                <ProjectCard 
-                                    title={project.name || project.title}
-                                    description={project.summary || project.description}
-                                    raised={project.raisedAmount || 0}
-                                    target={project.targetAmount || 1000}
-                                    onClick={() => handleProjectClick(project)}
-                                />
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
-                    
-                    {filteredProjects.length === 0 && (
-                        <div className="col-span-full py-32 text-center bg-gray-50/50 dark:bg-slate-900/50 rounded-[4rem] border-2 border-dashed border-gray-100 dark:border-slate-800">
-                             <p className="text-gray-400 font-black uppercase tracking-[0.2em] text-[10px]">No matching assets found</p>
+                <div className="p-8">
+                    {activeTab === 'Overview' ? (
+                        <div className="space-y-12">
+                            {/* Analytics Mockup */}
+                            <div className="space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-lg font-bold tracking-tight">Market Analytics</h3>
+                                    <div className="flex gap-2">
+                                        <button className="text-[10px] font-black uppercase tracking-widest bg-[var(--background)] px-3 py-1.5 rounded-lg border border-[var(--border)]">1W</button>
+                                        <button className="text-[10px] font-black uppercase tracking-widest bg-[var(--primary)] text-white px-3 py-1.5 rounded-lg shadow-lg shadow-blue-500/10">1M</button>
+                                    </div>
+                                </div>
+                                <div className="h-48 w-full bg-[var(--background)] rounded-2xl border border-[var(--border)] relative flex items-end p-4 group overflow-hidden">
+                                    <div className="w-full h-24 flex items-end justify-between gap-1.5 px-4 overflow-hidden">
+                                        {[40, 70, 50, 90, 60, 100, 80, 55, 75, 45, 65, 85].map((h, i) => (
+                                            <div key={i} className="flex-1 bg-[var(--primary)] opacity-10 group-hover:opacity-60 transition-all rounded-t-lg" style={{ height: `${h}%` }} />
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Project Grid */}
+                            <div className="space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-lg font-bold tracking-tight">Vetted Opportunities</h3>
+                                    <button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-2 text-[var(--primary)] font-bold text-sm hover:underline">
+                                        <PlusCircle size={16} /> Launch Innovation
+                                    </button>
+                                </div>
+                                
+                                {isLoading ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {[1,2,3,4].map(i => <div key={i} className="h-48 bg-[var(--background)] rounded-2xl animate-pulse" />)}
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {filteredProjects.map((project: any) => (
+                                            <ProjectCard 
+                                                key={project.id}
+                                                project={project}
+                                                onClick={() => handleProjectClick(project)}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="py-24 text-center space-y-4">
+                            <div className="w-16 h-16 bg-[var(--background)] rounded-2xl flex items-center justify-center mx-auto border border-[var(--border)] opacity-50">
+                                <Clock className="text-[var(--text-muted)]" size={24} />
+                            </div>
+                            <h4 className="text-lg font-bold">Syncing Records</h4>
+                            <p className="text-sm text-[var(--text-muted)] font-medium max-w-xs mx-auto">This module is established on-chain. Syncing metadata...</p>
                         </div>
                     )}
-                  </div>
-                )}
+                </div>
             </div>
           </div>
 
-          <aside className="lg:w-[380px] space-y-8">
-            <RightSidebar onTriggerCreate={() => setIsCreateModalOpen(true)} />
+          <aside className="w-full lg:w-[380px] space-y-8">
+            <RightSidebar />
             
-            {/* Quick Stats sidebar extension */}
-             <div className="glass-card rounded-[2.5rem] p-8 space-y-6">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Network health</h4>
-                <div className="space-y-4">
-                    <HealthRow label="TVL" value="$12.5M" progress={80} />
-                    <HealthRow label="Volume 24h" value="$1.2M" progress={65} />
-                    <HealthRow label="Nodes" value="1,245" progress={45} />
+            <div className="bg-[var(--card)] rounded-[2rem] border border-[var(--border)] p-8 space-y-6 shadow-sm transition-colors duration-300">
+                <h3 className="text-lg font-bold tracking-tight">Global Activity</h3>
+                <div className="space-y-6">
+                    <ActivityEntry label="Escrow Verified" time="2h ago" desc="Alpha project release" type="finance" />
+                    <ActivityEntry label="Proposal Passing" time="1d ago" desc="Staking rewards v2" type="governance" />
+                    <ActivityEntry label="Security Update" time="3d ago" desc="Audit hash updated" type="success" />
+                </div>
+            </div>
+            
+            <div className="bg-[var(--primary)] rounded-[2rem] p-8 space-y-4 shadow-xl text-white relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 blur-2xl -mr-16 -mt-16 rounded-full" />
+                <h3 className="text-lg font-bold relative z-10">Governance Hub</h3>
+                <p className="text-sm text-blue-100 font-medium relative z-10 leading-relaxed">Increase protocol reserve for emergency project recovery?</p>
+                <div className="flex gap-3 pt-4 relative z-10">
+                    <button className="flex-1 bg-white text-[var(--primary)] font-bold py-3 rounded-xl text-xs hover:bg-gray-100 transition-all shadow-sm">APPROVE</button>
+                    <button className="flex-1 bg-white/10 text-white font-bold py-3 rounded-xl text-xs hover:bg-white/20 border border-white/20 transition-all">REJECT</button>
                 </div>
             </div>
           </aside>
@@ -200,26 +179,36 @@ export default function DashboardPage() {
   );
 }
 
-const SkeletonCard = () => (
-    <div className="bg-gray-50 dark:bg-slate-900 h-[420px] rounded-[3rem] border border-gray-100 dark:border-slate-800 overflow-hidden animate-pulse">
-        <div className="h-48 bg-gray-100 dark:bg-slate-800" />
-        <div className="p-8 space-y-4">
-            <div className="h-6 w-2/3 bg-gray-100 dark:bg-slate-800 rounded-lg" />
-            <div className="h-4 w-full bg-gray-100 dark:bg-slate-800 rounded-lg" />
-            <div className="h-4 w-1/2 bg-gray-100 dark:bg-slate-800 rounded-lg" />
-            <div className="pt-8 h-12 w-full bg-gray-100 dark:bg-slate-800 rounded-2xl" />
+const KPICard = ({ label, value, trend, icon }: any) => (
+    <div className="bg-[var(--card)] p-8 rounded-[2rem] border border-[var(--border)] space-y-4 shadow-sm hover:border-[var(--primary)]/50 transition-all group duration-300">
+        <div className="flex items-center justify-between">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">{label}</p>
+            <div className="w-8 h-8 rounded-lg bg-[var(--background)] flex items-center justify-center border border-[var(--border)] group-hover:bg-[var(--secondary)] transition-colors">
+                {icon}
+            </div>
+        </div>
+        <div className="flex items-baseline justify-between">
+            <p className="text-3xl font-black tracking-tight text-[var(--text-main)]">{value}</p>
+            {trend && <span className="text-[9px] font-black text-emerald-500 bg-emerald-50 dark:bg-emerald-950/20 px-2 py-1 rounded-md tracking-widest">{trend}</span>}
         </div>
     </div>
 );
 
-const HealthRow = ({ label, value, progress }: any) => (
-    <div className="space-y-1.5">
-        <div className="flex justify-between text-[10px] font-bold">
-            <span className="text-gray-500 uppercase">{label}</span>
-            <span className="text-gray-700 dark:text-gray-300">{value}</span>
+const ActivityEntry = ({ label, time, desc, type }: any) => (
+    <div className="flex gap-4">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${
+            type === 'finance' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 border-blue-100 dark:border-blue-800/30' :
+            type === 'success' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-100 dark:border-emerald-800/30' :
+            'bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-100 dark:border-amber-800/30'
+        }`}>
+            {type === 'finance' && <Wallet size={16} />}
+            {type === 'success' && <ArrowUpRight size={16} />}
+            {type === 'governance' && <Shield size={16} />}
         </div>
-        <div className="h-1 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
-            <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${progress}%` }} />
+        <div className="space-y-0.5">
+            <p className="text-xs font-bold text-[var(--text-main)]">{label}</p>
+            <p className="text-xs text-[var(--text-muted)] font-medium">{desc}</p>
+            <p className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-[0.1em] pt-1 opacity-60">{time}</p>
         </div>
     </div>
 );
