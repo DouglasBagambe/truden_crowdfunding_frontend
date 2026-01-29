@@ -2,18 +2,25 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { userService } from '../lib/user-service';
 import { authService } from '../lib/auth-service';
 import { useEffect } from 'react';
+import toast from 'react-hot-toast';
 
 export function useAuth() {
   const queryClient = useQueryClient();
 
   const { data: user, isLoading, error, refetch } = useQuery({
     queryKey: ['me'],
-    queryFn: userService.getMe,
+    queryFn: async () => {
+        try {
+            return await userService.getMe();
+        } catch (e) {
+            return null;
+        }
+    },
     retry: false,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  const isAuthenticated = !!user && !error;
+  const isAuthenticated = !!user;
 
   const loginMutation = useMutation({
     mutationFn: authService.login,
@@ -24,13 +31,19 @@ export function useAuth() {
           localStorage.setItem('refreshToken', data.refresh_token);
         }
         queryClient.invalidateQueries({ queryKey: ['me'] });
+        toast.success(`Welcome back, ${data.user?.firstName || 'Legacy Builder'}!`);
       }
+    },
+    onError: (error: any) => {
+        toast.error(error.response?.data?.message || 'Authentication failed');
     }
   });
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     queryClient.setQueryData(['me'], null);
+    toast.success('Securely signed out');
     window.location.href = '/login';
   };
 

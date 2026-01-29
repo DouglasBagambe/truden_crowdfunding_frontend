@@ -46,7 +46,7 @@ const Navbar = () => {
             </span>
           </button>
 
-          <Link href="/login" className="h-11 w-11 flex items-center justify-center text-gray-400 hover:text-indigo-600 bg-gray-50 dark:bg-slate-800 rounded-xl transition-all border border-gray-100 dark:border-slate-700">
+          <Link href="/profile" className="h-11 w-11 flex items-center justify-center text-gray-400 hover:text-indigo-600 bg-gray-50 dark:bg-slate-800 rounded-xl transition-all border border-gray-100 dark:border-slate-700">
             <User className="w-5 h-5" />
           </Link>
         </div>

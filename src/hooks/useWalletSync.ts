@@ -27,9 +27,9 @@ export function useWalletSync() {
           setIsLinking(true);
           await userService.linkWallet(normalizedAddress);
           await refetchUser();
-          console.log('Wallet linked successfully:', address);
+          toast.success(`Wallet ${address.slice(0, 6)}... linked to profile`);
         } catch (err: any) {
-          console.error('Failed to link wallet:', err);
+          toast.error('Failed to link wallet');
         } finally {
           setIsLinking(false);
         }
