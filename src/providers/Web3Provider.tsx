@@ -25,14 +25,13 @@ const wagmiConfig = defaultWagmiConfig({
   enableWalletConnect: true,
   enableInjected: true,
   enableEIP6963: true,
-  enableCoinbaseWallet: true,
+  enableCoinbase: true,
 });
 
 // 3. Create modal
 createWeb3Modal({ 
   wagmiConfig, 
   projectId, 
-  chains,
   themeMode: 'dark',
   themeVariables: {
     '--w3m-accent': '#6366f1',
