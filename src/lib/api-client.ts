@@ -21,10 +21,29 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 // Interceptor to handle errors- specifically 401 Unauthorized
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => response,
-  (error: any) => {
-    if (error.response?.status === 401) {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
+  async (error: any) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      try {
+        const refreshToken = localStorage.getItem('refreshToken');
+        if (refreshToken) {
+          const response = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
+          const { access_token } = response.data;
+          
+          localStorage.setItem('token', access_token);
+          apiClient.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+          
+          return apiClient(originalRequest);
+        }
+      } catch (refreshError) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          window.location.href = '/login';
+        }
       }
     }
     return Promise.reject(error);
