@@ -3,11 +3,12 @@
 import React, { useState } from 'react';
 import AuthCard from '@/components/auth/AuthCard';
 import Link from 'next/link';
-import { Mail, Lock, Eye, Wallet, Loader2 } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Wallet, Loader2, TrendingUp } from 'lucide-react';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { useAccount } from 'wagmi';
 import { authService } from '@/lib/auth-service';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 
 export default function LoginPage() {
   const { open } = useWeb3Modal();
@@ -16,6 +17,7 @@ export default function LoginPage() {
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -26,9 +28,9 @@ export default function LoginPage() {
     
     try {
       await authService.login({ email, password });
-      router.push('/dashboard');
+      window.location.href = '/dashboard'; // Use window.location for full state refresh
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed');
+      setError(err.response?.data?.message || 'Authentication failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
@@ -36,91 +38,104 @@ export default function LoginPage() {
 
   return (
     <AuthCard>
-      <div className="space-y-8">
+      <div className="space-y-10">
+        <header className="space-y-2">
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Welcome back</h2>
+            <p className="text-gray-500 font-medium">Please enter your details to sign in.</p>
+        </header>
+
         <button 
           onClick={() => open()}
-          className={`w-full flex items-center justify-center gap-3 font-bold py-4 rounded-xl transition-all shadow-lg ${
+          className={`w-full flex items-center justify-center gap-3 font-black text-sm uppercase tracking-widest py-4 rounded-2xl transition-all shadow-xl active:scale-[0.98] ${
             isConnected 
-              ? 'bg-green-500 hover:bg-green-600 shadow-green-100' 
-              : 'bg-[#3B82F6] hover:bg-blue-600 shadow-blue-200'
-          } text-white`}
+              ? 'bg-emerald-500 shadow-emerald-500/20 text-white' 
+              : 'bg-indigo-600 shadow-indigo-500/20 text-white hover:bg-indigo-700'
+          }`}
         >
           {isConnected ? (
-            <><CheckCircle className="w-5 h-5" /> Connected: {address?.slice(0,6)}...{address?.slice(-4)}</>
+            <><div className="w-2 h-2 bg-white rounded-full animate-pulse" /> Linked: {address?.slice(0,6)}...{address?.slice(-4)}</>
           ) : (
-            <><Wallet className="w-5 h-5" /> Connect Wallet</>
+            <><Wallet className="w-4 h-4" /> Connect Wallet</>
           )}
         </button>
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-gray-100"></span>
+            <span className="w-full border-t border-gray-100 dark:border-slate-800"></span>
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-white px-4 text-gray-400 font-medium">or continue with email</span>
+          <div className="relative flex justify-center text-[10px] uppercase tracking-widest font-black">
+            <span className="bg-white dark:bg-slate-900 px-4 text-gray-400">or use email</span>
           </div>
         </div>
 
         {error && (
-          <div className="p-4 bg-red-50 text-red-600 text-sm font-medium rounded-xl border border-red-100 italic">
+          <motion.div 
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="p-4 bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 text-xs font-bold rounded-xl border border-rose-100 dark:border-rose-900/30 italic"
+          >
             {error}
-          </div>
+          </motion.div>
         )}
 
         <form onSubmit={handleLogin} className="space-y-6">
-          <div className="space-y-2">
-            <div className="relative group">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
-                required
-                className="w-full bg-[#f1f5f9] border-none rounded-xl py-4 px-6 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
-              />
+          <div className="space-y-4">
+            <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Email Address</label>
+                <div className="relative group">
+                    <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-indigo-600 transition-colors" />
+                    <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="e.g. name@company.com"
+                        required
+                        className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl py-4 pl-12 pr-6 text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none font-medium"
+                    />
+                </div>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <div className="relative group">
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                required
-                className="w-full bg-[#f1f5f9] border-none rounded-xl py-4 px-6 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
-              />
-              <button type="button" className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                <Eye className="w-5 h-5" />
-              </button>
+            <div className="space-y-2">
+                <div className="flex justify-between items-center ml-1">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Password</label>
+                    <Link href="#" className="text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-700 transition-colors">Forgot?</Link>
+                </div>
+                <div className="relative group">
+                    <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-indigo-600 transition-colors" />
+                    <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        required
+                        className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl py-4 pl-12 pr-12 text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none font-medium"
+                    />
+                    <button 
+                        type="button" 
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                </div>
             </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <input 
-              type="checkbox" 
-              id="remember" 
-              className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 rounded-md cursor-pointer"
-            />
-            <label htmlFor="remember" className="text-gray-600 font-medium cursor-pointer">Remember me</label>
           </div>
 
           <button 
             type="submit"
             disabled={isLoading}
-            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2"
+            className="w-full premium-gradient text-white font-black text-sm uppercase tracking-widest py-4 rounded-2xl transition-all flex items-center justify-center gap-3 shadow-xl shadow-indigo-500/20 active:scale-[0.98] disabled:opacity-70"
           >
-            {isLoading && <Loader2 className="w-5 h-5 animate-spin" />}
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <TrendingUp className="w-4 h-4" />}
             Sign In
           </button>
         </form>
 
-        <div className="text-center pt-4">
-          <p className="text-gray-500">
-            New?{' '}
-            <Link href="/register" className="text-blue-600 font-bold hover:underline">
-              Create an account
+        <div className="text-center">
+          <p className="text-gray-500 font-medium text-sm">
+            Don't have an account?{' '}
+            <Link href="/register" className="text-indigo-600 font-bold hover:underline ml-1">
+              Create Legacy
             </Link>
           </p>
         </div>
@@ -128,9 +143,3 @@ export default function LoginPage() {
     </AuthCard>
   );
 }
-
-const CheckCircle = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-);
