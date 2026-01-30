@@ -1,6 +1,7 @@
 import axios, { InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+console.log('[API_CLIENT_DEBUG] API_URL:', API_URL);
 
 export const apiClient = axios.create({
   baseURL: API_URL,
