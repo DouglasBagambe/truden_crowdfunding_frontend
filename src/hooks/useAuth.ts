@@ -23,18 +23,26 @@ export function useAuth() {
   const isAuthenticated = !!user;
 
   const loginMutation = useMutation({
-    mutationFn: authService.login,
+    mutationFn: (data: any) => {
+      console.log('[AUTH_FRONTEND_DEBUG] Attempting login with:', data.email);
+      return authService.login(data);
+    },
     onSuccess: (data) => {
-      if (data.access_token) {
-        localStorage.setItem('token', data.access_token);
-        if (data.refresh_token) {
-          localStorage.setItem('refreshToken', data.refresh_token);
+      console.log('[AUTH_FRONTEND_DEBUG] Login success response:', data);
+      if (data.accessToken || data.access_token) {
+        const token = data.accessToken || data.access_token;
+        const refreshToken = data.refreshToken || data.refresh_token;
+        localStorage.setItem('token', token);
+        if (refreshToken) {
+          localStorage.setItem('refreshToken', refreshToken);
         }
         queryClient.invalidateQueries({ queryKey: ['me'] });
-        toast.success(`Welcome back, ${data.user?.firstName || 'Legacy Builder'}!`);
+        toast.success(`Welcome back, ${data.user?.firstName || data.user?.profile?.firstName || 'Legacy Builder'}!`);
       }
     },
     onError: (error: any) => {
+        console.error('[AUTH_FRONTEND_DEBUG] Login error:', error);
+        console.error('[AUTH_FRONTEND_DEBUG] Error response data:', error.response?.data);
         toast.error(error.response?.data?.message || 'Authentication failed');
     }
   });
