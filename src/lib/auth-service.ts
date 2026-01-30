@@ -14,6 +14,11 @@ export const authService = {
     return response.data;
   },
 
+  async verifyMfa(data: { userId: string; code: string }) {
+    const response = await apiClient.post('/auth/mfa/verify', data);
+    return response.data;
+  },
+
   async getProfile() {
     const response = await apiClient.get('/auth/profile');
     return response.data;

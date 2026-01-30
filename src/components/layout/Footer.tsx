@@ -1,60 +1,73 @@
+'use client';
+
 import React from 'react';
+import { Logo } from '../common/Logo';
 import Link from 'next/link';
-import { Twitter, Instagram, Facebook } from 'lucide-react';
 
 const Footer = () => {
   return (
-    <footer className="bg-gray-50 border-t border-gray-100 pt-20 pb-10">
-      <div className="max-w-7xl mx-auto px-6">
+    <footer className="bg-[var(--card)] border-t border-[var(--border)] pt-20 pb-10 transition-colors duration-300">
+      <div className="container mx-auto px-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-12 mb-16">
-          <div className="space-y-4">
-            <h4 className="font-bold text-gray-900">Company</h4>
-            <ul className="space-y-2 text-sm text-gray-600">
-              <li><Link href="#" className="hover:text-blue-600">About Us</Link></li>
-              <li><Link href="#" className="hover:text-blue-600">Contact</Link></li>
-              <li><Link href="#" className="hover:text-blue-600">Careers</Link></li>
-            </ul>
-          </div>
-          
-          <div className="space-y-4">
-            <h4 className="font-bold text-gray-900">Resources</h4>
-            <ul className="space-y-2 text-sm text-gray-600">
-              <li><Link href="#" className="hover:text-blue-600">Blog</Link></li>
-              <li><Link href="#" className="hover:text-blue-600">Help Center</Link></li>
-              <li><Link href="#" className="hover:text-blue-600">Whitepaper</Link></li>
-            </ul>
-          </div>
-          
-          <div className="space-y-4">
-            <h4 className="font-bold text-gray-900">Legal</h4>
-            <ul className="space-y-2 text-sm text-gray-600">
-              <li><Link href="#" className="hover:text-blue-600">Terms of Service</Link></li>
-              <li><Link href="#" className="hover:text-blue-600">Privacy Policy</Link></li>
-            </ul>
+          <div className="col-span-2 md:col-span-1 space-y-6">
+            <Logo size={24} />
+            <p className="text-sm text-[var(--text-muted)] font-medium leading-relaxed max-w-xs">
+              Empowering global innovation through decentralized milestone-based funding on the Celo network.
+            </p>
           </div>
 
-          <div className="space-y-4">
-            <h4 className="font-bold text-gray-900">Follow Us</h4>
-            <div className="flex gap-4">
-              <Link href="#" className="p-2 bg-white rounded-lg border border-gray-100 text-gray-400 hover:text-blue-600 shadow-sm">
-                <Twitter className="w-4 h-4" />
-              </Link>
-              <Link href="#" className="p-2 bg-white rounded-lg border border-gray-100 text-gray-400 hover:text-blue-600 shadow-sm">
-                <Instagram className="w-4 h-4" />
-              </Link>
-              <Link href="#" className="p-2 bg-white rounded-lg border border-gray-100 text-gray-400 hover:text-blue-600 shadow-sm">
-                <Facebook className="w-4 h-4" />
-              </Link>
-            </div>
-          </div>
+          <FooterSection title="Protocol">
+            <FooterLink href="/explore">Explore Projects</FooterLink>
+            <FooterLink href="/how-it-works">How It Works</FooterLink>
+            <FooterLink href="/dao">Governance</FooterLink>
+            <FooterLink href="/stats">Market Stats</FooterLink>
+          </FooterSection>
+
+          <FooterSection title="Resources">
+            <FooterLink href="/docs">Documentation</FooterLink>
+            <FooterLink href="/terms">Terms of Service</FooterLink>
+            <FooterLink href="/privacy">Privacy Policy</FooterLink>
+            <FooterLink href="/audit">Security Audit</FooterLink>
+          </FooterSection>
+
+          <FooterSection title="Connect">
+            <FooterLink href="https://twitter.com/trufund">X / Twitter</FooterLink>
+            <FooterLink href="https://discord.gg/trufund">Discord</FooterLink>
+            <FooterLink href="https://github.com/trufund">GitHub</FooterLink>
+            <FooterLink href="mailto:hello@trufund.io">Email Support</FooterLink>
+          </FooterSection>
         </div>
-        
-        <div className="border-t border-gray-200 pt-8 flex flex-col md:row items-center justify-between gap-4">
-          <p className="text-sm text-gray-500 font-medium">© 2024 Truden. All rights reserved.</p>
+
+        <div className="pt-8 border-t border-[var(--border)] flex flex-col md:flex-row justify-between items-center gap-6">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--text-muted)] opacity-60">
+            © 2026 TruFund. Build trust, fund the future.
+          </p>
+          <div className="flex gap-8">
+            <button className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors">Network Status</button>
+            <button className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors">Security</button>
+            <button className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors">Contact</button>
+          </div>
         </div>
       </div>
     </footer>
   );
 };
+
+const FooterSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <div className="space-y-6">
+    <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-main)]">{title}</h4>
+    <ul className="space-y-3">
+      {children}
+    </ul>
+  </div>
+);
+
+const FooterLink = ({ href, children }: { href: string; children: React.ReactNode }) => (
+  <li>
+    <Link href={href} className="text-sm font-bold text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors">
+      {children}
+    </Link>
+  </li>
+);
 
 export default Footer;

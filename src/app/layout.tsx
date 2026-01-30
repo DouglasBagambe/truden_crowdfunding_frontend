@@ -1,21 +1,16 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { Web3Provider } from "@/providers/Web3Provider";
+import { AuthSyncProvider } from "@/providers/AuthSyncProvider";
+import { ThemeProvider } from "@/providers/ThemeProvider";
+import { Toaster } from 'react-hot-toast';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Truden Crowdfunding",
-  description: "Invest in the future, today.",
+  title: "TruFund | Decentralized Crowdfunding",
+  description: "Secure, transparent, and borderless funding for global innovation.",
 };
 
 export default function RootLayout({
@@ -24,11 +19,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <Web3Provider>
-          {children}
-        </Web3Provider>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.className} antialiased selection:bg-blue-100 selection:text-blue-900`}>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+          <Web3Provider>
+            <AuthSyncProvider>
+              {children}
+              <Toaster 
+                position="bottom-right" 
+                toastOptions={{
+                    className: 'dark:bg-[#1a1a1a] dark:text-white dark:border-[#333] border text-sm font-bold',
+                    duration: 4000
+                }}
+              />
+            </AuthSyncProvider>
+          </Web3Provider>
+        </ThemeProvider>
       </body>
     </html>
   );
