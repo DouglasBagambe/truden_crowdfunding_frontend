@@ -12,6 +12,10 @@ import {
 } from 'lucide-react';
 import { userService } from '@/lib/user-service';
 import KYCModal from '@/components/dashboard/KYCModal';
+import { useAccount, useSignMessage } from 'wagmi';
+import { useWeb3Modal } from '@web3modal/wagmi/react';
+import { SiweMessage } from 'siwe';
+import toast from 'react-hot-toast';
 
 export default function ProfilePage() {
   const { user, refetchUser } = useAuth();
@@ -24,10 +28,65 @@ export default function ProfilePage() {
     setTimeout(() => setCopied(''), 2000);
   };
 
-  const handleUnlink = async (wallet: string) => {
-    if (confirm(`Unlink wallet ${wallet.slice(0, 6)}...?`)) {
-        await userService.unlinkWallet(wallet);
-        refetchUser();
+  const { address, isConnected } = useAccount();
+  const { signMessageAsync } = useSignMessage();
+  const { open } = useWeb3Modal();
+
+  const handleLinkWallet = async () => {
+    if (!isConnected) {
+      open();
+      return;
+    }
+    
+    if (!address) return;
+
+    const alreadyLinked = user?.primaryWallet === address.toLowerCase() || 
+                        user?.linkedWallets?.includes(address.toLowerCase());
+    
+    if (alreadyLinked) {
+      toast.error("This wallet is already linked to your account");
+      return;
+    }
+
+    const tId = toast.loading("Preparing signature request...");
+    try {
+      const nonce = await userService.getSiweNonce(address);
+      const siweMessage = new SiweMessage({
+        domain: window.location.host,
+        address: address,
+        statement: 'Link this wallet to your TruFund account',
+        uri: window.location.origin,
+        version: '1',
+        chainId: 1, 
+        nonce: nonce,
+      });
+      
+      const message = siweMessage.prepareMessage();
+      const signature = await signMessageAsync({ message });
+      
+      await userService.linkWallet({
+        wallet: address,
+        message,
+        signature
+      });
+      
+      toast.success("Wallet linked successfully", { id: tId });
+      refetchUser();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.response?.data?.message || "Failed to link wallet", { id: tId });
+    }
+  };
+
+  const handleUnlink = async (walletAddress: string) => {
+    if (confirm(`Unlink wallet ${walletAddress.slice(0, 6)}...?`)) {
+        try {
+            await userService.unlinkWallet(walletAddress);
+            toast.success("Wallet unlinked");
+            refetchUser();
+        } catch (e: any) {
+            toast.error(e.response?.data?.message || "Failed to unlink");
+        }
     }
   };
 
@@ -76,6 +135,13 @@ export default function ProfilePage() {
                             <Wallet className="w-5 h-5 text-indigo-600" />
                             <h3 className="text-xl font-bold">Connected Wallets</h3>
                         </div>
+                        <button 
+                            onClick={handleLinkWallet}
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 font-bold hover:bg-indigo-100 transition-all text-xs"
+                        >
+                            <PlusCircle className="w-4 h-4" />
+                            Link New Wallet
+                        </button>
                     </div>
 
                     <div className="space-y-4">

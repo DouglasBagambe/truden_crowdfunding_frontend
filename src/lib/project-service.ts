@@ -1,8 +1,8 @@
 import { apiClient } from './api-client';
 
 export const projectService = {
-  async getProjects() {
-    const response = await apiClient.get('/projects');
+  async getProjects(params?: any) {
+    const response = await apiClient.get('/projects', { params });
     return response.data;
   },
 

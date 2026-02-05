@@ -14,7 +14,8 @@ import {
   Leaf,
   Palette,
   FlaskConical,
-  Plus
+  Plus,
+  Search
 } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import ProjectCard from '@/components/dashboard/ProjectCard';
@@ -85,14 +86,41 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="flex flex-wrap justify-center gap-4"
+              className="max-w-2xl mx-auto"
             >
-              <Link href="/dashboard" className="button_primary px-8 py-3.5">
-                Browse Projects
-              </Link>
-              <Link href="/register" className="button_secondary px-8 py-3.5">
-                Create a Campaign
-              </Link>
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const target = e.target as HTMLFormElement;
+                  const search = (target.elements.namedItem('search') as HTMLInputElement).value;
+                  window.location.href = `/explore?search=${encodeURIComponent(search)}`;
+                }}
+                className="relative group mb-8"
+              >
+                <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)] group-focus-within:text-[var(--primary)] transition-colors" />
+                <input 
+                  name="search"
+                  type="text" 
+                  placeholder="Search projects, categories, or creators..." 
+                  className="w-full bg-[var(--card)] border border-[var(--border)] rounded-[2rem] py-5 pl-16 pr-32 focus:outline-none focus:border-[var(--primary)] shadow-2xl shadow-blue-500/5 transition-all text-lg font-medium"
+                />
+                <button 
+                  type="submit"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 button_primary py-2.5 px-6 rounded-full text-sm font-black uppercase tracking-widest bg-indigo-600 hover:bg-indigo-700"
+                >
+                  Explore
+                </button>
+              </form>
+
+              <div className="flex flex-wrap justify-center gap-4">
+                <Link href="/explore" className="text-sm font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 hover:underline">
+                  Browse Projects
+                </Link>
+                <span className="text-[var(--text-muted)]">•</span>
+                <Link href="/register" className="text-sm font-black uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--text-main)]">
+                  Start a Campaign
+                </Link>
+              </div>
             </motion.div>
           </div>
         </section>
