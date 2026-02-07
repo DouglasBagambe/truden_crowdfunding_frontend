@@ -1,0 +1,26 @@
+<svg width="1000" height="800" viewBox="0 0 1000 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1000" y2="800" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0EA5E9"/>
+      <stop offset="0.55" stop-color="#7C3AED"/>
+      <stop offset="1" stop-color="#F59E0B"/>
+    </linearGradient>
+    <radialGradient id="glow1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(300 260) rotate(25) scale(420 340)">
+      <stop stop-color="#FFFFFF" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(760 520) rotate(-10) scale(520 420)">
+      <stop stop-color="#0B1220" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#0B1220" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1000" height="800" fill="url(#bg)"/>
+  <rect width="1000" height="800" fill="url(#glow1)"/>
+  <rect width="1000" height="800" fill="url(#glow2)"/>
+
+  <g opacity="0.22" fill="#FFFFFF">
+    <path d="M103 642c64-82 158-108 252-61 83 42 149 32 214-30 64-61 145-71 231-22 85 48 148 44 189-8v92H103v-71z"/>
+    <path d="M-20 260c84-68 186-78 285-18 89 54 168 58 254 11 85-46 166-37 248 28 80 63 158 71 253 22v90H-20v-133z"/>
+  </g>
+</svg>
