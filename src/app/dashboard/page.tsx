@@ -14,7 +14,7 @@ import { Search, TrendingUp, ArrowUpRight, Shield, PlusCircle, LayoutDashboard, 
 
 export default function DashboardPage() {
   const { data: projectsData, isLoading } = useProjects();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isInvestModalOpen, setIsInvestModalOpen] = useState(false);
@@ -107,7 +107,15 @@ export default function DashboardPage() {
                             <div className="space-y-6">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-lg font-bold tracking-tight">Vetted Opportunities</h3>
-                                    <button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-2 text-[var(--primary)] font-bold text-sm hover:underline">
+                                    <button 
+                                        onClick={() => {
+                                            if (!isAuthenticated) {
+                                                window.location.href = `/login?next=${encodeURIComponent('/dashboard')}`;
+                                            } else {
+                                                setIsCreateModalOpen(true);
+                                            }
+                                        }} 
+                                        className="flex items-center gap-2 text-[var(--primary)] font-bold text-sm hover:underline">
                                         <PlusCircle size={16} /> Launch Innovation
                                     </button>
                                 </div>

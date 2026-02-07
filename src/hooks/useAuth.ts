@@ -36,8 +36,18 @@ export function useAuth() {
         if (refreshToken) {
           localStorage.setItem('refreshToken', refreshToken);
         }
+        // Set a cookie so Next.js middleware can read auth state on the server
+        try {
+          const maxAge = 60 * 60 * 24 * 7; // 7 days
+          document.cookie = `token=${token}; Max-Age=${maxAge}; Path=/`;
+        } catch {}
         queryClient.invalidateQueries({ queryKey: ['me'] });
         toast.success(`Welcome back, ${data.user?.firstName || data.user?.profile?.firstName || 'Legacy Builder'}!`);
+        try {
+          const sp = new URLSearchParams(window.location.search);
+          const next = sp.get('next') || '/';
+          window.location.href = next;
+        } catch {}
       }
     },
     onError: (error: any) => {
@@ -50,6 +60,10 @@ export function useAuth() {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
+    // Clear cookie used by middleware
+    try {
+      document.cookie = 'token=; Max-Age=0; Path=/';
+    } catch {}
     queryClient.setQueryData(['me'], null);
     toast.success('Securely signed out');
     window.location.href = '/login';

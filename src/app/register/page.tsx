@@ -31,7 +31,7 @@ export default function RegisterPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/dashboard');
+      router.push('/');
     }
   }, [isAuthenticated, router]);
 
@@ -51,8 +51,8 @@ export default function RegisterPage() {
         lastName: formData.lastName,
         role: formData.role
       });
-      toast.success("Identity initialized! Please sign in.");
-      router.push('/login');
+      toast.success("Identity initialized! Redirecting...");
+      router.push('/');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Registration failed');
     } finally {

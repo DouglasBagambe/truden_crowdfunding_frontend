@@ -1,0 +1,30 @@
+<svg width="1000" height="800" viewBox="0 0 1000 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="1000" y2="800" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FAFC"/>
+      <stop offset="0.55" stop-color="#EEF2FF"/>
+      <stop offset="1" stop-color="#ECFEFF"/>
+    </linearGradient>
+    <radialGradient id="ink1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(260 310) rotate(18) scale(520 420)">
+      <stop stop-color="#0EA5E9" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#0EA5E9" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ink2" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(740 470) rotate(-12) scale(520 420)">
+      <stop stop-color="#7C3AED" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#7C3AED" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ink3" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(520 180) rotate(0) scale(620 380)">
+      <stop stop-color="#F59E0B" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#F59E0B" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1000" height="800" fill="url(#bg3)"/>
+  <rect width="1000" height="800" fill="url(#ink1)"/>
+  <rect width="1000" height="800" fill="url(#ink2)"/>
+  <rect width="1000" height="800" fill="url(#ink3)"/>
+
+  <g opacity="0.20" fill="#0B1220">
+    <path d="M90 608c92-76 194-86 305-16 108 67 204 61 310-18 104-78 206-81 305-10v236H90V608z" opacity="0.35"/>
+  </g>
+</svg>

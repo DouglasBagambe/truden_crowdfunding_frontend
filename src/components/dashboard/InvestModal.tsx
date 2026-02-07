@@ -5,9 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, Wallet, AlertCircle, CheckCircle } from 'lucide-react';
 import { projectService } from '@/lib/project-service';
 import { useQueryClient } from '@tanstack/react-query';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain } from 'wagmi';
 import { parseEther } from 'viem';
 import { ESCROW_ADDRESS, ESCROW_ABI } from '@/constants/contracts';
+import { useAuth } from '@/hooks/useAuth';
 
 interface InvestModalProps {
   isOpen: boolean;
@@ -18,6 +19,9 @@ interface InvestModalProps {
 const InvestModal = ({ isOpen, onClose, project }: InvestModalProps) => {
   const queryClient = useQueryClient();
   const { isConnected } = useAccount();
+  const chainId = useChainId();
+  const { switchChainAsync, chains } = useSwitchChain();
+  const { isAuthenticated } = useAuth();
   const [amount, setAmount] = useState('');
   const [isApiLoading, setIsApiLoading] = useState(false);
   const [error, setError] = useState('');
@@ -31,12 +35,25 @@ const InvestModal = ({ isOpen, onClose, project }: InvestModalProps) => {
 
   const handleInvest = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAuthenticated) {
+      setError('Please sign in to invest');
+      const next = typeof window !== 'undefined' ? window.location.pathname : '/';
+      window.location.href = `/login?next=${encodeURIComponent(next)}`;
+      return;
+    }
     if (!isConnected) {
       setError('Please connect your wallet first');
       return;
     }
 
     try {
+      // Ensure correct network
+      const targetChainId = chains?.[0]?.id;
+      if (targetChainId && chainId !== targetChainId) {
+        setError('Switching network...');
+        await switchChainAsync({ chainId: targetChainId });
+        setError('');
+      }
       const amountWei = parseEther(amount);
       const onChainId = BigInt(project.projectOnchainId || 0);
 
@@ -137,18 +154,18 @@ const InvestModal = ({ isOpen, onClose, project }: InvestModalProps) => {
                         className="input_field text-3xl font-bold py-6 px-8 pr-20"
                         placeholder="0.00"
                       />
-                      <span className="absolute right-8 top-1/2 -translate-y-1/2 font-black text-[var(--text-muted)] tracking-widest text-xs">ETH</span>
+                      <span className="absolute right-8 top-1/2 -translate-y-1/2 font-black text-[var(--text-muted)] tracking-widest text-xs">CELO</span>
                     </div>
                   </div>
 
                   <div className="bg-gray-50 dark:bg-[#0a0a0a] rounded-2xl p-6 space-y-3 border border-gray-100 dark:border-[#262626]">
                     <div className="flex justify-between text-xs font-bold text-[var(--text-muted)] lowercase tracking-widest">
                       <span>Platform Reserve (1%)</span>
-                      <span className="text-[var(--text-main)]">{(Number(amount) * 0.01).toFixed(4)} ETH</span>
+                      <span className="text-[var(--text-main)]">{(Number(amount) * 0.01).toFixed(4)} CELO</span>
                     </div>
                     <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-[#262626]">
                       <span className="text-sm font-bold opacity-80">Total Payable</span>
-                      <span className="text-xl font-bold text-[var(--primary)]">{(Number(amount) * 1.01).toFixed(4)} ETH</span>
+                      <span className="text-xl font-bold text-[var(--primary)]">{(Number(amount) * 1.01).toFixed(4)} CELO</span>
                     </div>
                   </div>
 
@@ -164,7 +181,7 @@ const InvestModal = ({ isOpen, onClose, project }: InvestModalProps) => {
                   </button>
 
                   <p className="text-center text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest opacity-60">
-                    On-chain transparency via Celo Alfajores
+                    On-chain transparency via Celo Testnet
                   </p>
                 </form>
               )}

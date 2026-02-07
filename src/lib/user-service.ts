@@ -11,8 +11,13 @@ export const userService = {
     return response.data;
   },
 
-  async linkWallet(wallet: string) {
-    const response = await apiClient.post('/users/me/wallets', { wallet });
+  async getSiweNonce(address: string) {
+    const response = await apiClient.post('/auth/siwe/nonce', { address });
+    return response.data.nonce;
+  },
+
+  async linkWallet(data: { wallet: string; message: string; signature: string }) {
+    const response = await apiClient.post('/users/me/wallets', data);
     return response.data;
   },
 

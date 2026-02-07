@@ -1,0 +1,17 @@
+{
+  "typescript.tsserver.watchOptions": {
+    "excludeDirectories": [
+      "**/node_modules/**",
+      "**/.git/**",
+      "**/.next/**"
+    ]
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/.git/**": true,
+    "**/.next/**": true
+  },
+  "search.exclude": {
+    "**/node_modules/**": true
+  }
+}
