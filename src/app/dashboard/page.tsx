@@ -10,11 +10,20 @@ import InvestModal from '@/components/dashboard/InvestModal';
 import { motion } from 'framer-motion';
 import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
+import { projectService } from '@/lib/project-service';
+import Link from 'next/link';
 import { Search, TrendingUp, ArrowUpRight, Shield, PlusCircle, LayoutDashboard, Wallet, Clock } from 'lucide-react';
 
 export default function DashboardPage() {
   const { data: projectsData, isLoading } = useProjects();
   const { user, isAuthenticated } = useAuth();
+  
+  const { data: userInvestments, isLoading: investmentsLoading } = useQuery({
+    queryKey: ['my-investments', user?.id || user?._id],
+    queryFn: () => projectService.getUserInvestments(user?.id || user?._id),
+    enabled: !!(user?.id || user?._id)
+  });
   
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isInvestModalOpen, setIsInvestModalOpen] = useState(false);
@@ -83,7 +92,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="p-8">
-                    {activeTab === 'Overview' ? (
+                    {activeTab === 'Overview' && (
                         <div className="space-y-12">
                             {/* Analytics Mockup */}
                             <div className="space-y-6">
@@ -137,7 +146,45 @@ export default function DashboardPage() {
                                 )}
                             </div>
                         </div>
-                    ) : (
+                    )}
+
+                    {activeTab === 'Investments' && (
+                        <div className="space-y-8">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-bold tracking-tight">Your Portfolio</h3>
+                                <div className="text-xs font-bold text-[var(--text-muted)]">
+                                    {userInvestments?.length || 0} active investments
+                                </div>
+                            </div>
+                            
+                            {investmentsLoading ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {[1,2].map(i => <div key={i} className="h-64 bg-[var(--background)] rounded-2xl animate-pulse" />)}
+                                </div>
+                            ) : userInvestments && userInvestments.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {userInvestments.map((inv: any) => (
+                                        <InvestmentItem key={inv.id} investment={inv} />
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="py-24 text-center space-y-4 border border-dashed border-[var(--border)] rounded-3xl">
+                                    <div className="w-16 h-16 bg-[var(--background)] rounded-2xl flex items-center justify-center mx-auto opacity-50">
+                                        <Wallet className="text-[var(--text-muted)]" size={24} />
+                                    </div>
+                                    <h4 className="text-lg font-bold">No active investments</h4>
+                                    <p className="text-sm text-[var(--text-muted)] font-medium max-w-xs mx-auto">
+                                        Start backing innovative projects to build your portfolio.
+                                    </p>
+                                    <button onClick={() => setActiveTab('Overview')} className="button_primary text-xs py-3 px-6 mt-4">
+                                        Browse Projects
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {(activeTab !== 'Overview' && activeTab !== 'Investments') && (
                         <div className="py-24 text-center space-y-4">
                             <div className="w-16 h-16 bg-[var(--background)] rounded-2xl flex items-center justify-center mx-auto border border-[var(--border)] opacity-50">
                                 <Clock className="text-[var(--text-muted)]" size={24} />
@@ -186,6 +233,51 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+const InvestmentItem = ({ investment }: any) => (
+    <div className="bg-[var(--card)] rounded-3xl border border-[var(--border)] overflow-hidden hover:border-[var(--primary)]/50 transition-all group shadow-sm">
+        {/* Image & Status */}
+        <div className="h-48 bg-[var(--secondary)] relative overflow-hidden">
+            {investment.project?.imageUrl ? (
+                <img src={investment.project.imageUrl} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+            ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                    <span className="text-4xl">🚀</span>
+                </div>
+            )}
+            <div className="absolute top-4 right-4 flex gap-2">
+                <span className={`px-3 py-1 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest rounded-lg ${
+                    investment.status === 'completed' ? 'bg-green-500/80' : 
+                    investment.status === 'refunded' ? 'bg-rose-500/80' : 'bg-black/50'
+                }`}>
+                    {investment.status}
+                </span>
+            </div>
+        </div>
+        
+        <div className="p-6 space-y-6">
+            <div className="space-y-2">
+                <h4 className="text-lg font-bold text-[var(--text-main)] line-clamp-1">
+                    {investment.project?.title || 'Unknown Project'}
+                </h4>
+                <div className="flex justify-between items-center text-sm">
+                   <span className="text-[var(--text-muted)] font-medium">Invested Amount</span>
+                   <span className="font-bold text-[var(--primary)]">{investment.amount} CELO</span>
+                </div>
+            </div>
+            
+            <div className="pt-4 border-t border-[var(--border)] flex justify-between items-center">
+                 <div className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)]">
+                    <Clock size={14} />
+                    <span>{new Date(investment.createdAt).toLocaleDateString()}</span>
+                 </div>
+                 <Link href={`/explore/${investment.project?.id || '#'}`} className="text-xs font-black uppercase tracking-widest text-[var(--primary)] hover:underline">
+                    View Details
+                 </Link>
+            </div>
+        </div>
+    </div>
+);
 
 const KPICard = ({ label, value, trend, icon }: any) => (
     <div className="bg-[var(--card)] p-8 rounded-[2rem] border border-[var(--border)] space-y-4 shadow-sm hover:border-[var(--primary)]/50 transition-all group duration-300">

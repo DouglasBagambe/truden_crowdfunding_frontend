@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 
@@ -19,10 +20,25 @@ interface ProjectCardProps {
 }
 
 export default function ProjectCard({ project, onClick }: ProjectCardProps) {
+  const router = useRouter();
   const projectName = project.name || project.title || 'Untitled Project';
   const raised = project.raisedAmount || 0;
   const goal = project.goalAmount || 100000;
   const percentage = Math.min((raised / goal) * 100, 100);
+
+  const handleClick = () => {
+    if (onClick) {
+      onClick();
+    } else {
+      // Safety check: ensure project ID exists before navigating
+      const projectId = project.id || project._id;
+      if (!projectId) {
+        console.error('[ProjectCard] Cannot navigate: Project ID is undefined', project);
+        return;
+      }
+      router.push(`/explore/${projectId}`);
+    }
+  };
 
   return (
     <motion.div
@@ -32,7 +48,7 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
       whileHover={{ y: -8 }}
       transition={{ duration: 0.3 }}
       className="bg-[var(--card)] rounded-2xl overflow-hidden border border-[var(--border)] shadow-sm hover:shadow-xl transition-all cursor-pointer group"
-      onClick={onClick}
+      onClick={handleClick}
     >
       {/* Project Image */}
       <div className="relative h-48 bg-[var(--secondary)] overflow-hidden">

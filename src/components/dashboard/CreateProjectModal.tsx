@@ -2,13 +2,21 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2, AlertCircle, ChevronRight, ChevronLeft, Target, Rocket, Globe } from 'lucide-react';
+import { X, Loader2, AlertCircle, ChevronRight, ChevronLeft, Target, Rocket, Globe, Plus, Trash2, Calendar, Flag } from 'lucide-react';
 import { projectService } from '@/lib/project-service';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'react-hot-toast';
 
 interface CreateProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
+}
+
+interface Milestone {
+  title: string;
+  description: string;
+  payoutPercentage: number;
+  dueDate: string;
 }
 
 const CreateProjectModal = ({ isOpen, onClose }: CreateProjectModalProps) => {
@@ -27,19 +35,72 @@ const CreateProjectModal = ({ isOpen, onClose }: CreateProjectModalProps) => {
     industry: 'TECHNOLOGY',
     country: 'Global',
     beneficiary: 'Community',
-    paymentMethod: 'Escrow'
+    paymentMethod: 'Escrow',
+    milestones: [] as Milestone[]
+  });
+
+  const [newMilestone, setNewMilestone] = useState({
+    title: '',
+    description: '',
+    payoutPercentage: '',
+    dueDate: ''
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const nextStep = () => setStep(s => Math.min(s + 1, 4));
+  const handleMilestoneChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setNewMilestone({ ...newMilestone, [e.target.name]: e.target.value });
+  };
+
+  const addMilestone = () => {
+    if (!newMilestone.title || !newMilestone.payoutPercentage || !newMilestone.dueDate) {
+      toast.error('Please fill in all milestone fields');
+      return;
+    }
+
+    const currentTotal = formData.milestones.reduce((acc, m) => acc + m.payoutPercentage, 0);
+    const newPercentage = Number(newMilestone.payoutPercentage);
+
+    if (currentTotal + newPercentage > 100) {
+      toast.error(`Total percentage cannot exceed 100%. Remaining: ${100 - currentTotal}%`);
+      return;
+    }
+
+    setFormData({
+      ...formData,
+      milestones: [...formData.milestones, { ...newMilestone, payoutPercentage: newPercentage }]
+    });
+
+    setNewMilestone({
+      title: '',
+      description: '',
+      payoutPercentage: '',
+      dueDate: ''
+    });
+  };
+
+  const removeMilestone = (index: number) => {
+    setFormData({
+      ...formData,
+      milestones: formData.milestones.filter((_, i) => i !== index)
+    });
+  };
+
+  const nextStep = () => setStep(s => Math.min(s + 1, 5));
   const prevStep = () => setStep(s => Math.max(s - 1, 1));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (step < 4) {
+    if (step < 5) {
+        if (step === 4) {
+             const total = formData.milestones.reduce((acc, m) => acc + m.payoutPercentage, 0);
+             if (total !== 100) {
+                 toast.error(`Total milestone allocation must equal 100%. Current: ${total}%`);
+                 return;
+             }
+        }
         nextStep();
         return;
     }
@@ -51,11 +112,17 @@ const CreateProjectModal = ({ isOpen, onClose }: CreateProjectModalProps) => {
       await projectService.createProject({
         ...formData,
         targetAmount: Number(formData.targetAmount),
+        milestones: formData.milestones.map(m => ({
+            ...m,
+            dueDate: new Date(m.dueDate)
+        }))
       });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      toast.success('Project deployed successfully!');
       resetAndClose();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Protocol initialization failed.');
+      console.error(err);
+      setError(err.response?.data?.message || err.message || 'Protocol initialization failed.');
     } finally {
       setIsLoading(false);
     }
@@ -73,10 +140,13 @@ const CreateProjectModal = ({ isOpen, onClose }: CreateProjectModalProps) => {
         industry: 'TECHNOLOGY',
         country: 'Global',
         beneficiary: 'Community',
-        paymentMethod: 'Escrow'
+        paymentMethod: 'Escrow',
+        milestones: []
       });
       onClose();
   };
+
+  const totalAllocation = formData.milestones.reduce((acc, m) => acc + m.payoutPercentage, 0);
 
   return (
     <AnimatePresence>
@@ -103,7 +173,7 @@ const CreateProjectModal = ({ isOpen, onClose }: CreateProjectModalProps) => {
                   <div>
                     <h2 className="text-xl font-bold text-[var(--text-main)] tracking-tight">Launch on TruFund</h2>
                     <div className="flex items-center gap-2 mt-1">
-                        {[1,2,3,4].map(s => (
+                        {[1,2,3,4,5].map(s => (
                             <div key={s} className={`h-1.5 rounded-full transition-all duration-500 ${s === step ? 'w-8 bg-[var(--primary)]' : 'w-2 bg-gray-100 dark:bg-[#262626]'}`} />
                         ))}
                     </div>
@@ -143,6 +213,7 @@ const CreateProjectModal = ({ isOpen, onClose }: CreateProjectModalProps) => {
                         onChange={handleChange}
                         className="input_field"
                         placeholder="Project Aurora"
+                        autoFocus
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -181,6 +252,7 @@ const CreateProjectModal = ({ isOpen, onClose }: CreateProjectModalProps) => {
                                     onChange={handleChange}
                                     className="input_field pl-12 font-bold"
                                     placeholder="100,000"
+                                    autoFocus
                                 />
                             </div>
                         </div>
@@ -237,6 +309,7 @@ const CreateProjectModal = ({ isOpen, onClose }: CreateProjectModalProps) => {
                             onChange={handleChange}
                             className="input_field h-48 resize-none py-4 leading-relaxed"
                             placeholder="Detail your goals, team, and how the funds will be used..."
+                            autoFocus
                         />
                     </div>
                     <div className="space-y-1.5">
@@ -256,8 +329,125 @@ const CreateProjectModal = ({ isOpen, onClose }: CreateProjectModalProps) => {
                 )}
 
                 {step === 4 && (
+                    <motion.div 
+                        key="step4"
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        className="space-y-8"
+                    >
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-bold text-[var(--text-main)]">Project Milestones</h3>
+                                <div className="text-xs font-bold bg-gray-100 dark:bg-[#1a1a1a] px-3 py-1 rounded-full">
+                                    <span className={totalAllocation === 100 ? 'text-green-500' : 'text-[var(--primary)]'}>
+                                        {totalAllocation}%
+                                    </span>
+                                    <span className="text-[var(--text-muted)]"> Allocated</span>
+                                </div>
+                            </div>
+
+                            {/* Add Milestone Form */}
+                            <div className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-2xl p-5 space-y-4">
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div className="col-span-2 space-y-1">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Title</label>
+                                        <input
+                                            name="title"
+                                            value={newMilestone.title}
+                                            onChange={handleMilestoneChange}
+                                            className="input_field text-sm py-2"
+                                            placeholder="e.g., MVP Launch"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Pct (%)</label>
+                                        <input
+                                            name="payoutPercentage"
+                                            type="number"
+                                            value={newMilestone.payoutPercentage}
+                                            onChange={handleMilestoneChange}
+                                            className="input_field text-sm py-2 font-bold"
+                                            placeholder="25"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Due Date</label>
+                                        <div className="relative">
+                                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
+                                            <input
+                                                name="dueDate"
+                                                type="date"
+                                                value={newMilestone.dueDate}
+                                                onChange={handleMilestoneChange}
+                                                className="input_field text-sm py-2 pl-9"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                         <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Description</label>
+                                         <input
+                                            name="description"
+                                            value={newMilestone.description}
+                                            onChange={handleMilestoneChange}
+                                            className="input_field text-sm py-2"
+                                            placeholder="What will be delivered?"
+                                        />
+                                    </div>
+                                </div>
+                                <button 
+                                    type="button"
+                                    onClick={addMilestone}
+                                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#262626] hover:border-[var(--primary)] text-sm font-bold rounded-xl transition-all"
+                                >
+                                    <Plus size={14} /> Add Milestone
+                                </button>
+                            </div>
+
+                            {/* Milestone List */}
+                            <div className="space-y-2 max-h-48 overflow-y-auto">
+                                {formData.milestones.map((milestone, i) => (
+                                    <motion.div 
+                                        key={i}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="flex items-center justify-between p-4 bg-[var(--card)] border border-[var(--border)] rounded-xl group"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-[var(--secondary)] flex items-center justify-center text-[var(--primary)]">
+                                                <Flag size={14} />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold text-[var(--text-main)]">{milestone.title}</p>
+                                                <p className="text-xs text-[var(--text-muted)]">
+                                                    {milestone.payoutPercentage}% • {new Date(milestone.dueDate).toLocaleDateString()}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            type="button"
+                                            onClick={() => removeMilestone(i)}
+                                            className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </motion.div>
+                                ))}
+                                {formData.milestones.length === 0 && (
+                                    <p className="text-center text-xs text-[var(--text-muted)] py-4 italic">
+                                        No milestones added yet. Define how funds will be released.
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+
+                {step === 5 && (
                   <motion.div 
-                    key="step4"
+                    key="step5"
                     initial={{ opacity: 0, scale: 0.98 }}
                     animate={{ opacity: 1, scale: 1 }}
                     className="space-y-8"
@@ -275,7 +465,20 @@ const CreateProjectModal = ({ isOpen, onClose }: CreateProjectModalProps) => {
                             <div className="bg-white dark:bg-[#111] px-4 py-2 rounded-xl border border-gray-100 dark:border-[#262626] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
                                 {formData.projectType}
                             </div>
+                             <div className="bg-white dark:bg-[#111] px-4 py-2 rounded-xl border border-gray-100 dark:border-[#262626] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+                                {formData.milestones.length} Milestones
+                            </div>
                         </div>
+                        
+                        {/* Milestone Preview */}
+                         <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-[#262626]">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Timeline</p>
+                            <div className="flex gap-1 h-2 rounded-full overflow-hidden bg-gray-200 dark:bg-[#1a1a1a]">
+                                {formData.milestones.map((m, i) => (
+                                    <div key={i} className="h-full bg-[var(--primary)] opacity-80" style={{ width: `${m.payoutPercentage}%` }} />
+                                ))}
+                            </div>
+                         </div>
                     </div>
 
                     <div className="p-5 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 rounded-2xl flex items-center gap-4 text-amber-700 dark:text-amber-500 text-xs font-bold leading-snug">
@@ -304,8 +507,8 @@ const CreateProjectModal = ({ isOpen, onClose }: CreateProjectModalProps) => {
                 >
                   {isLoading ? <Loader2 size={18} className="animate-spin" /> : (
                       <>
-                        {step === 4 ? 'Deploy Project' : 'Continue'}
-                        {step < 4 && <ChevronRight size={16} />}
+                        {step === 5 ? 'Deploy Project' : 'Continue'}
+                        {step < 5 && <ChevronRight size={16} />}
                       </>
                   )}
                 </button>
