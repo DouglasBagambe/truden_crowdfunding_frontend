@@ -15,8 +15,6 @@ import MultiStepInvestModal from '@/components/dashboard/MultiStepInvestModal';
 import { projectService } from '@/lib/project-service';
 import { useAuth } from '@/hooks/useAuth';
 
-import { useInvestmentNFT } from '@/hooks/useInvestmentNFT';
-
 export default function ProjectDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -45,9 +43,6 @@ export default function ProjectDetailPage() {
     queryFn: () => projectService.getProject(projectId),
     enabled: !!projectId && projectId !== 'undefined',
   });
-
-  // Check NFT ownership
-  const { hasInvestment, balance } = useInvestmentNFT(project?.projectOnchainId);
 
   if (isLoading) {
     return (
@@ -101,7 +96,7 @@ export default function ProjectDetailPage() {
             <div className="lg:col-span-2 space-y-8">
               {/* Project Header */}
               <div className="space-y-4">
-                <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-3">
                   <span className={`px-4 py-1.5 rounded-full text-xs font-bold ${
                     project.projectType === 'CHARITY'
                       ? 'bg-rose-500 text-white'
@@ -112,18 +107,6 @@ export default function ProjectDetailPage() {
                   <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-green-100 dark:bg-green-950/30 text-green-700 dark:text-green-400">
                     {project.status || 'Active'}
                   </span>
-                  
-                  {/* NFT Ownership Badge */}
-                  {hasInvestment && (
-                    <motion.span 
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="px-4 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-600 text-white flex items-center gap-1 shadow-lg shadow-purple-500/20"
-                    >
-                      <Award className="w-3 h-3" />
-                      Investor • {balance} NFT{balance > 1 ? 's' : ''} Owned
-                    </motion.span>
-                  )}
                 </div>
 
                 <h1 className="text-4xl lg:text-5xl font-black text-[var(--text-main)] leading-tight">
@@ -243,7 +226,6 @@ export default function ProjectDetailPage() {
                   daysLeft={daysLeft}
                   onInvest={() => setIsInvestModalOpen(true)}
                   isAuthenticated={isAuthenticated}
-                  hasInvestment={hasInvestment}
                 />
 
                 {/* Recent Backers */}
@@ -280,14 +262,8 @@ export default function ProjectDetailPage() {
 }
 
 // Investment Card Component
-const InvestmentCard = ({ project, raised, goal, percentage, daysLeft, onInvest, isAuthenticated, hasInvestment }: any) => (
-  <div className="bg-[var(--card)] rounded-3xl p-8 border-2 border-[var(--border)] shadow-2xl relative overflow-hidden">
-    {hasInvestment && (
-      <div className="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-black uppercase tracking-widest py-1 px-3 rounded-bl-xl">
-        Backed
-      </div>
-    )}
-
+const InvestmentCard = ({ project, raised, goal, percentage, daysLeft, onInvest, isAuthenticated }: any) => (
+  <div className="bg-[var(--card)] rounded-3xl p-8 border-2 border-[var(--border)] shadow-2xl">
     {/* Progress */}
     <div className="space-y-4 mb-6">
       <div className="flex justify-between items-end">
@@ -331,20 +307,10 @@ const InvestmentCard = ({ project, raised, goal, percentage, daysLeft, onInvest,
     <button
       onClick={onInvest}
       disabled={!isAuthenticated}
-      className={`w-full py-5 mb-4 shadow-xl flex items-center justify-center gap-3 transition-all ${
-        hasInvestment 
-          ? 'bg-green-500 hover:bg-green-600 text-white shadow-green-500/20 rounded-2xl' 
-          : 'button_primary'
-      }`}
+      className="button_primary w-full py-5 mb-4 shadow-xl shadow-blue-500/20 flex items-center justify-center gap-3"
     >
-      <Heart className={`w-5 h-5 ${hasInvestment ? 'fill-current' : ''}`} />
-      <span className="font-bold">
-        {!isAuthenticated 
-          ? 'Sign In to Invest' 
-          : hasInvestment 
-            ? 'Invest Again' 
-            : 'Back This Project'}
-      </span>
+      <Heart className="w-5 h-5" />
+      <span className="font-bold">{isAuthenticated ? 'Back This Project' : 'Sign In to Invest'}</span>
     </button>
 
     {/* Trust Badges */}

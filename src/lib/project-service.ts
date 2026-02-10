@@ -24,10 +24,5 @@ export const projectService = {
   async invest(data: { projectId: string; amount: number; txHash?: string }) {
     const response = await apiClient.post('/investments/invest', data);
     return response.data;
-  },
-
-  async getUserInvestments(userId: string) {
-    const response = await apiClient.get(`/investments/user/${userId}`);
-    return response.data;
   }
 };
