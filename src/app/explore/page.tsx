@@ -28,7 +28,22 @@ export default function ExplorePage() {
     };
 
     const { data, isLoading } = useProjects(queryParams);
-    const projects = data?.projects || data?.items || [];
+    const rawProjects = data?.projects || data?.items || [];
+    
+    // Normalize project IDs and add debugging
+    const projects = rawProjects.map((project: any) => {
+        const normalizedProject = {
+            ...project,
+            id: project.id || project._id
+        };
+        
+        // Debug: Log projects without IDs
+        if (!normalizedProject.id) {
+            console.warn('[Explorer] Project missing ID:', project);
+        }
+        
+        return normalizedProject;
+    }).filter((p: any) => p.id); // Filter out projects without IDs
 
     const categories = [
         { id: 'ALL', label: 'All Projects', icon: <Globe size={16} /> },

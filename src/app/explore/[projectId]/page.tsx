@@ -1,13 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
-  ArrowLeft, Calendar, TrendingUp, Users, Shield,
-  Clock, Target, Award, MapPin, Globe, Share2,
-  Heart, CheckCircle, AlertCircle, ExternalLink
+  ArrowLeft, Calendar, Users, Clock, CheckCircle, 
+  AlertCircle, Heart, Share2, Bookmark
 } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -21,17 +20,21 @@ export default function ProjectDetailPage() {
   const projectId = params.projectId as string;
   const { isAuthenticated } = useAuth();
   const [isInvestModalOpen, setIsInvestModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'story' | 'timeline' | 'updates' | 'comments'>('story');
 
   // Early return if projectId is undefined or invalid
   if (!projectId || projectId === 'undefined') {
     return (
-      <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <AlertCircle className="w-16 h-16 text-rose-500 mx-auto" />
-          <h2 className="text-2xl font-bold text-[var(--text-main)]">Invalid Project Link</h2>
-          <p className="text-[var(--text-muted)]">The project ID is missing or invalid.</p>
-          <button onClick={() => router.push('/explore')} className="button_primary">
-            Back to Explorer
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center space-y-4 max-w-md px-6">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto" />
+          <h2 className="text-2xl font-bold text-gray-900">Invalid Project Link</h2>
+          <p className="text-gray-600">The project ID is missing or invalid.</p>
+          <button 
+            onClick={() => router.push('/explore')} 
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            Back to Projects
           </button>
         </div>
       </div>
@@ -46,10 +49,10 @@ export default function ProjectDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="w-16 h-16 border-4 border-[var(--primary)] border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-[var(--text-muted)] font-bold">Loading project...</p>
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-gray-600 font-medium">Loading project...</p>
         </div>
       </div>
     );
@@ -57,12 +60,16 @@ export default function ProjectDetailPage() {
 
   if (!project) {
     return (
-      <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <AlertCircle className="w-16 h-16 text-rose-500 mx-auto" />
-          <h2 className="text-2xl font-bold text-[var(--text-main)]">Project Not Found</h2>
-          <button onClick={() => router.push('/explore')} className="button_primary">
-            Back to Explorer
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center space-y-4 max-w-md px-6">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto" />
+          <h2 className="text-2xl font-bold text-gray-900">Project Not Found</h2>
+          <p className="text-gray-600">This project doesn't exist or has been removed.</p>
+          <button 
+            onClick={() => router.push('/explore')} 
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            Back to Projects
           </button>
         </div>
       </div>
@@ -72,177 +79,178 @@ export default function ProjectDetailPage() {
   const raised = project.raisedAmount || 0;
   const goal = project.goalAmount || project.targetAmount || 100000;
   const percentage = Math.min((raised / goal) * 100, 100);
+  const backerCount = project.backerCount || 0;
   const daysLeft = project.deadline 
     ? Math.max(0, Math.ceil((new Date(project.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : 30;
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
+    <div className="min-h-screen bg-gray-50">
       <Navbar />
 
-      <main className="pt-24 pb-24">
-        {/* Hero Section */}
-        <div className="container mx-auto px-6">
+      <main className="pt-20 pb-16">
+        <div className="max-w-7xl mx-auto px-6">
+          {/* Back Button */}
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors mb-6 font-bold"
+            className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6 font-medium transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Projects
           </button>
 
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Left Column - Project Details */}
-            <div className="lg:col-span-2 space-y-8">
-              {/* Project Header */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <span className={`px-4 py-1.5 rounded-full text-xs font-bold ${
+          {/* Project Header */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className={`px-3 py-1 rounded text-xs font-medium ${
                     project.projectType === 'CHARITY'
-                      ? 'bg-rose-500 text-white'
-                      : 'bg-amber-500 text-white'
+                      ? 'bg-pink-100 text-pink-700'
+                      : 'bg-blue-100 text-blue-700'
                   }`}>
-                    {project.projectType === 'CHARITY' ? 'Charity' : 'ROI Investment'}
+                    {project.projectType === 'CHARITY' ? 'Charity' : 'ROI Project'}
                   </span>
-                  <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-green-100 dark:bg-green-950/30 text-green-700 dark:text-green-400">
+                  <span className="px-3 py-1 rounded bg-green-100 text-green-700 text-xs font-medium">
                     {project.status || 'Active'}
                   </span>
+                  <span className="text-sm text-gray-500">
+                    Created: {new Date(project.createdAt || Date.now()).toLocaleDateString()}
+                  </span>
                 </div>
-
-                <h1 className="text-4xl lg:text-5xl font-black text-[var(--text-main)] leading-tight">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">
                   {project.name || project.title}
                 </h1>
-
-                <p className="text-xl text-[var(--text-muted)] font-medium">
+                <p className="text-gray-600 leading-relaxed">
                   {project.summary || project.description}
                 </p>
-
-                {/* Creator Info */}
-                <div className="flex items-center gap-4 pt-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
-                    {project.creator?.name?.[0] || 'C'}
-                  </div>
-                  <div>
-                    <p className="text-sm text-[var(--text-muted)] font-medium">Created by</p>
-                    <p className="font-bold text-[var(--text-main)]">{project.creator?.name || 'Anonymous Creator'}</p>
-                  </div>
-                </div>
               </div>
+              <div className="flex items-center gap-2 ml-6">
+                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                  <Bookmark className="w-5 h-5 text-gray-600" />
+                </button>
+                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                  <Share2 className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
+            </div>
 
-              {/* Project Image/Video */}
-              <div className="relative h-96 bg-[var(--secondary)] rounded-3xl overflow-hidden border border-[var(--border)]">
+            {/* Creator Info */}
+            <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
+              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                {project.creator?.name?.[0] || 'C'}
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">by</p>
+                <p className="font-semibold text-gray-900">{project.creator?.name || 'Anonymous Creator'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column - Project Content */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Project Image */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                 {project.imageUrl || project.media?.[0] ? (
                   <img
                     src={project.imageUrl || project.media?.[0]}
                     alt={project.name || project.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-96 object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <div className="text-9xl opacity-10">🚀</div>
+                  <div className="w-full h-96 bg-gray-100 flex items-center justify-center">
+                    <div className="text-6xl opacity-20">🚀</div>
                   </div>
                 )}
               </div>
 
-              {/* Funding Timeline */}
-              <FundingTimeline project={project} />
+              {/* Funding Progress */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Invested</p>
+                      <p className="text-3xl font-bold text-gray-900">${raised.toLocaleString()}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-600 mb-1">Goal</p>
+                      <p className="text-lg font-semibold text-gray-900">${goal.toLocaleString()}</p>
+                    </div>
+                  </div>
 
-              {/* Project Story */}
-              <div className="bg-[var(--card)] rounded-3xl p-8 border border-[var(--border)]">
-                <h2 className="text-2xl font-bold text-[var(--text-main)] mb-6">The Story</h2>
-                <div className="prose prose-lg dark:prose-invert max-w-none">
-                  <p className="text-[var(--text-muted)] leading-relaxed whitespace-pre-line">
-                    {project.story || project.description || 'No story available yet.'}
-                  </p>
+                  {/* Progress Bar */}
+                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${percentage}%` }}
+                      transition={{ duration: 1 }}
+                      className="h-full bg-blue-600 rounded-full"
+                    />
+                  </div>
+
+                  <div className="text-sm text-gray-600">
+                    <span className="font-semibold text-blue-600">{Math.round(percentage)}% funded</span>
+                    {' • '}
+                    <span className="font-semibold">{backerCount}</span> backers
+                  </div>
                 </div>
               </div>
 
-              {/* Use of Funds */}
-              {project.useOfFunds && project.useOfFunds.length > 0 && (
-                <div className="bg-[var(--card)] rounded-3xl p-8 border border-[var(--border)]">
-                  <h2 className="text-2xl font-bold text-[var(--text-main)] mb-6">Use of Funds</h2>
-                  <div className="space-y-4">
-                    {project.useOfFunds.map((item: any, index: number) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-[var(--secondary)] rounded-xl flex items-center justify-center">
-                            <Target className="w-5 h-5 text-[var(--primary)]" />
-                          </div>
-                          <div>
-                            <p className="font-bold text-[var(--text-main)]">{item.item || item.category}</p>
-                            <p className="text-xs text-[var(--text-muted)]">{item.percentage}% of total</p>
-                          </div>
-                        </div>
-                        <span className="text-lg font-bold text-[var(--primary)]">
-                          ${(item.amount || 0).toLocaleString()}
-                        </span>
-                      </div>
-                    ))}
+              {/* Tab Navigation */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div className="border-b border-gray-200">
+                  <div className="flex">
+                    <TabButton 
+                      active={activeTab === 'story'} 
+                      onClick={() => setActiveTab('story')}
+                    >
+                      Details
+                    </TabButton>
+                    <TabButton 
+                      active={activeTab === 'timeline'} 
+                      onClick={() => setActiveTab('timeline')}
+                    >
+                      Timeline
+                    </TabButton>
+                    <TabButton 
+                      active={activeTab === 'updates'} 
+                      onClick={() => setActiveTab('updates')}
+                    >
+                      Updates
+                    </TabButton>
+                    <TabButton 
+                      active={activeTab === 'comments'} 
+                      onClick={() => setActiveTab('comments')}
+                    >
+                      Comments
+                    </TabButton>
                   </div>
                 </div>
-              )}
 
-              {/* Team/Creator Details */}
-              <div className="bg-[var(--card)] rounded-3xl p-8 border border-[var(--border)]">
-                <h2 className="text-2xl font-bold text-[var(--text-main)] mb-6">About the Creator</h2>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold">
-                      {project.creator?.name?.[0] || 'C'}
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-[var(--text-main)]">
-                        {project.creator?.name || 'Anonymous Creator'}
-                      </h3>
-                      <p className="text-sm text-[var(--text-muted)]">
-                        {project.creator?.bio || 'Entrepreneur & Innovator'}
-                      </p>
-                    </div>
-                  </div>
-                  {project.website && (
-                    <a
-                      href={project.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-[var(--primary)] hover:underline font-bold"
-                    >
-                      <Globe className="w-4 h-4" />
-                      Visit Website
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  )}
+                <div className="p-6">
+                  {activeTab === 'story' && <ProjectStory project={project} />}
+                  {activeTab === 'timeline' && <ProjectTimeline project={project} />}
+                  {activeTab === 'updates' && <ProjectUpdates />}
+                  {activeTab === 'comments' && <ProjectComments />}
                 </div>
               </div>
             </div>
 
-            {/* Right Column - Investment Card (Sticky) */}
+            {/* Right Column - Investment Card */}
             <div className="lg:col-span-1">
-              <div className="sticky top-28 space-y-6">
+              <div className="sticky top-24">
                 <InvestmentCard
                   project={project}
                   raised={raised}
                   goal={goal}
                   percentage={percentage}
                   daysLeft={daysLeft}
+                  backerCount={backerCount}
                   onInvest={() => setIsInvestModalOpen(true)}
                   isAuthenticated={isAuthenticated}
                 />
-
-                {/* Recent Backers */}
-                <div className="bg-[var(--card)] rounded-3xl p-6 border border-[var(--border)]">
-                  <h3 className="text-lg font-bold text-[var(--text-main)] mb-4">Recent Backers</h3>
-                  <div className="space-y-3">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full"></div>
-                        <div className="flex-1">
-                          <p className="text-sm font-bold text-[var(--text-main)]">Backer #{i}</p>
-                          <p className="text-xs text-[var(--text-muted)]">Contributed 50 CELO</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -261,176 +269,177 @@ export default function ProjectDetailPage() {
   );
 }
 
+// Tab Button Component
+const TabButton = ({ active, onClick, children }: any) => (
+  <button
+    onClick={onClick}
+    className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+      active
+        ? 'border-blue-600 text-blue-600'
+        : 'border-transparent text-gray-600 hover:text-gray-900'
+    }`}
+  >
+    {children}
+  </button>
+);
+
 // Investment Card Component
-const InvestmentCard = ({ project, raised, goal, percentage, daysLeft, onInvest, isAuthenticated }: any) => (
-  <div className="bg-[var(--card)] rounded-3xl p-8 border-2 border-[var(--border)] shadow-2xl">
-    {/* Progress */}
-    <div className="space-y-4 mb-6">
-      <div className="flex justify-between items-end">
-        <div>
-          <p className="text-3xl font-black text-[var(--primary)]">
-            ${raised.toLocaleString()}
-          </p>
-          <p className="text-sm text-[var(--text-muted)] font-medium">
-            raised of ${goal.toLocaleString()} goal
-          </p>
-        </div>
-        <div className="text-right">
-          <p className="text-2xl font-bold text-[var(--text-main)]">{Math.round(percentage)}%</p>
-        </div>
-      </div>
-
-      {/* Progress Bar */}
-      <div className="w-full bg-gray-100 dark:bg-[#1a1a1a] rounded-full h-3 overflow-hidden">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${percentage}%` }}
-          transition={{ duration: 1, delay: 0.2 }}
-          className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full"
-        />
-      </div>
-    </div>
-
-    {/* Stats */}
-    <div className="grid grid-cols-2 gap-4 mb-6">
-      <div className="bg-[var(--secondary)] rounded-2xl p-4 text-center">
-        <p className="text-2xl font-bold text-[var(--text-main)]">{project.backerCount || 0}</p>
-        <p className="text-xs text-[var(--text-muted)] font-bold uppercase tracking-wider">Backers</p>
-      </div>
-      <div className="bg-[var(--secondary)] rounded-2xl p-4 text-center">
-        <p className="text-2xl font-bold text-[var(--text-main)]">{daysLeft}</p>
-        <p className="text-xs text-[var(--text-muted)] font-bold uppercase tracking-wider">Days Left</p>
-      </div>
-    </div>
-
-    {/* CTA Button */}
+const InvestmentCard = ({ 
+  project, raised, goal, percentage, daysLeft, backerCount, onInvest, isAuthenticated 
+}: any) => (
+  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-6">
     <button
       onClick={onInvest}
       disabled={!isAuthenticated}
-      className="button_primary w-full py-5 mb-4 shadow-xl shadow-blue-500/20 flex items-center justify-center gap-3"
+      className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-semibold"
     >
-      <Heart className="w-5 h-5" />
-      <span className="font-bold">{isAuthenticated ? 'Back This Project' : 'Sign In to Invest'}</span>
+      {isAuthenticated ? 'Invest Now' : 'Sign In to Invest'}
     </button>
 
-    {/* Trust Badges */}
-    <div className="space-y-2 pt-4 border-t border-[var(--border)]">
-      <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-        <Shield className="w-4 h-4 text-green-500" />
-        <span className="font-medium">Protected by Smart Contract Escrow</span>
+    <button className="w-full py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center justify-center gap-2">
+      <Heart className="w-4 h-4" />
+      Save
+    </button>
+
+    <div className="pt-6 border-t border-gray-200 space-y-4">
+      <div>
+        <p className="text-2xl font-bold text-gray-900">${raised.toLocaleString()}</p>
+        <p className="text-sm text-gray-600">pledged of ${goal.toLocaleString()} goal</p>
       </div>
-      <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-        <CheckCircle className="w-4 h-4 text-blue-500" />
-        <span className="font-medium">Milestone-Based Fund Release</span>
+
+      <div>
+        <p className="text-2xl font-bold text-gray-900">{backerCount}</p>
+        <p className="text-sm text-gray-600">backers</p>
+      </div>
+
+      <div>
+        <p className="text-2xl font-bold text-gray-900">{daysLeft}</p>
+        <p className="text-sm text-gray-600">days to go</p>
+      </div>
+
+      <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+        <div className="h-full bg-blue-600 rounded-full" style={{ width: `${percentage}%` }} />
+      </div>
+      <p className="text-sm text-gray-600">{Math.round(percentage)}% funded</p>
+    </div>
+
+    <div className="pt-6 border-t border-gray-200 space-y-2">
+      <div className="flex items-center gap-2 text-sm text-gray-600">
+        <CheckCircle className="w-4 h-4 text-green-600" />
+        <span>Smart Contract Escrow</span>
+      </div>
+      <div className="flex items-center gap-2 text-sm text-gray-600">
+        <CheckCircle className="w-4 h-4 text-green-600" />
+        <span>Milestone-Based Release</span>
       </div>
     </div>
   </div>
 );
 
-// Funding Timeline Component
-const FundingTimeline = ({ project }: any) => {
+// Project Story Component
+const ProjectStory = ({ project }: any) => (
+  <div className="space-y-6">
+    <div>
+      <h2 className="text-xl font-bold text-gray-900 mb-4">Overview</h2>
+      <div className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+        {project.story || project.description || 'No project story available yet.'}
+      </div>
+    </div>
+
+    {project.useOfFunds && project.useOfFunds.length > 0 && (
+      <div className="pt-6 border-t border-gray-200">
+        <h3 className="text-lg font-bold text-gray-900 mb-4">Use of Funds</h3>
+        <div className="space-y-3">
+          {project.useOfFunds.map((item: any, index: number) => (
+            <div key={index} className="flex items-center justify-between py-2">
+              <div>
+                <p className="font-medium text-gray-900">{item.item || item.category}</p>
+                <p className="text-sm text-gray-600">{item.percentage}% of total</p>
+              </div>
+              <span className="text-lg font-semibold text-gray-900">
+                ${(item.amount || 0).toLocaleString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {project.website && (
+      <div className="pt-6 border-t border-gray-200">
+        <a
+          href={project.website}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-2"
+        >
+          Visit Website →
+        </a>
+      </div>
+    )}
+  </div>
+);
+
+// Project Timeline Component
+const ProjectTimeline = ({ project }: any) => {
   const milestones = project.milestones || [
-    { title: 'Project Launch', amount: 25, dueDate: '2026-02-15', status: 'Completed' },
-    { title: 'Development Phase 1', amount: 35, dueDate: '2026-03-01', status: 'In Progress' },
-    { title: 'Beta Testing', amount: 20, dueDate: '2026-03-15', status: 'Pending' },
-    { title: 'Final Delivery', amount: 20, dueDate: '2026-04-01', status: 'Pending' },
+    { title: 'Project Launch', date: 'Jan 2023', description: 'Initial concept development and market research completed.', status: 'completed' },
+    { title: 'Pilot Farm Launch', date: 'Apr 2023', description: 'First vertical farm module operational in city A.', status: 'completed' },
+    { title: 'Series A Funding Round', date: 'Oct 2023', description: 'Successfully secured initial investment for expansion.', status: 'completed' },
+    { title: 'Scaling Operations', date: 'Feb 2024', description: 'Began deployment of 5 new farm units in key urban areas.', status: 'in-progress' },
   ];
 
   return (
-    <div className="bg-[var(--card)] rounded-3xl p-8 border border-[var(--border)]">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-[var(--text-main)]">Funding Timeline</h2>
-        <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-          <Calendar className="w-4 h-4" />
-          <span className="font-bold">{milestones.length} Milestones</span>
-        </div>
-      </div>
-
-      <div className="relative space-y-6">
+    <div className="space-y-8">
+      <h2 className="text-xl font-bold text-gray-900">Project Timeline</h2>
+      
+      <div className="space-y-6">
         {milestones.map((milestone: any, index: number) => {
-          const isCompleted = milestone.status === 'Completed';
-          const isInProgress = milestone.status === 'In Progress';
-          const isPending = milestone.status === 'Pending';
+          const isCompleted = milestone.status === 'completed' || milestone.status === 'Completed';
+          const isInProgress = milestone.status === 'in-progress' || milestone.status === 'In Progress';
 
           return (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              className="relative flex gap-6"
-            >
+            <div key={index} className="relative flex gap-4">
               {/* Timeline Line */}
               {index < milestones.length - 1 && (
-                <div className="absolute left-6 top-14 w-0.5 h-full bg-gray-200 dark:bg-[#262626]"></div>
+                <div className="absolute left-2 top-8 w-0.5 h-full bg-gray-200"></div>
               )}
 
-              {/* Status Icon */}
-              <div className={`relative z-10 w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${
-                isCompleted 
-                  ? 'bg-green-500' 
-                  : isInProgress 
-                  ? 'bg-blue-500 animate-pulse' 
-                  : 'bg-gray-200 dark:bg-[#262626]'
-              }`}>
-                {isCompleted ? (
-                  <CheckCircle className="w-6 h-6 text-white" />
-                ) : isInProgress ? (
-                  <Clock className="w-6 h-6 text-white" />
-                ) : (
-                  <Award className="w-6 h-6 text-gray-400" />
-                )}
+              {/* Status Dot */}
+              <div className="relative z-10 flex-shrink-0">
+                <div className={`w-4 h-4 rounded-full ${
+                  isCompleted ? 'bg-blue-600' : isInProgress ? 'bg-blue-400' : 'bg-gray-300'
+                }`} />
               </div>
 
-              {/* Milestone Content */}
-              <div className="flex-1 bg-[var(--secondary)] rounded-2xl p-6 border border-[var(--border)]">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="text-lg font-bold text-[var(--text-main)]">{milestone.title}</h3>
-                    <p className="text-sm text-[var(--text-muted)] font-medium">
-                      Due: {new Date(milestone.dueDate).toLocaleDateString('en-US', { 
-                        month: 'short', 
-                        day: 'numeric', 
-                        year: 'numeric' 
-                      })}
-                    </p>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    isCompleted ? 'bg-green-100 dark:bg-green-950/30 text-green-700 dark:text-green-400' :
-                    isInProgress ? 'bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400' :
-                    'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-                  }`}>
-                    {milestone.status}
-                  </span>
+              {/* Content */}
+              <div className="flex-1 pb-6">
+                <div className="flex items-baseline justify-between mb-1">
+                  <h3 className="font-semibold text-gray-900">{milestone.title}</h3>
+                  <span className="text-sm text-gray-500">{milestone.date || milestone.dueDate}</span>
                 </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-[var(--text-muted)] font-bold">Release Amount</span>
-                  <span className="text-xl font-bold text-[var(--primary)]">
-                    {milestone.amount}% (${((project.goalAmount || 100000) * milestone.amount / 100).toLocaleString()})
-                  </span>
-                </div>
-
-                {/* Progress bar for in-progress milestones */}
-                {isInProgress && (
-                  <div className="mt-4">
-                    <div className="w-full bg-gray-200 dark:bg-[#1a1a1a] rounded-full h-2 overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: '60%' }}
-                        transition={{ duration: 1 }}
-                        className="h-full bg-blue-500 rounded-full"
-                      />
-                    </div>
-                    <p className="text-xs text-[var(--text-muted)] mt-2 font-medium">60% Complete</p>
-                  </div>
-                )}
+                <p className="text-sm text-gray-600">{milestone.description}</p>
               </div>
-            </motion.div>
+            </div>
           );
         })}
       </div>
     </div>
   );
 };
+
+// Project Updates Component
+const ProjectUpdates = () => (
+  <div className="text-center py-12">
+    <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+    <p className="text-gray-600">No updates yet</p>
+  </div>
+);
+
+// Project Comments Component
+const ProjectComments = () => (
+  <div className="text-center py-12">
+    <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+    <p className="text-gray-600">No comments yet</p>
+  </div>
+);
