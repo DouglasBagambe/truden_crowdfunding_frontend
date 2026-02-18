@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, ArrowLeft, ArrowRight, CheckCircle, 
+import {
+  X, ArrowLeft, ArrowRight, CheckCircle,
   FileText, DollarSign, Calendar, Target,
   Upload, Plus, Trash2
 } from 'lucide-react';
@@ -28,18 +28,18 @@ export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWi
     category: '',
     projectType: 'ROI',
     summary: '',
-    
+
     // Details
     description: '',
     story: '',
     website: '',
     imageUrl: '',
-    
+
     // Funding
     goalAmount: '',
     deadline: '',
     useOfFunds: [] as Array<{ item: string; amount: string; percentage: string }>,
-    
+
     // Milestones
     milestones: [] as Array<{ title: string; description: string; amount: string; dueDate: string }>,
   });
@@ -95,10 +95,15 @@ export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWi
         })),
       };
 
-      await projectService.createProject(projectData);
-      
-      // Success - redirect to creator dashboard
-      router.push('/dashboard/creator');
+      const res = await projectService.createProject(projectData);
+
+      // Success - redirect to the new project detail page
+      const newProjectId = (res as any).id || (res as any)._id;
+      if (newProjectId) {
+        router.push(`/projects/${newProjectId}`);
+      } else {
+        router.push('/dashboard');
+      }
       onClose();
     } catch (error) {
       console.error('Error creating project:', error);
@@ -259,11 +264,10 @@ const BasicsStep = ({ formData, updateFormData }: any) => (
         <button
           type="button"
           onClick={() => updateFormData('projectType', 'ROI')}
-          className={`p-4 border-2 rounded-lg transition-all ${
-            formData.projectType === 'ROI'
-              ? 'border-blue-600 bg-blue-50'
-              : 'border-gray-300 hover:border-gray-400'
-          }`}
+          className={`p-4 border-2 rounded-lg transition-all ${formData.projectType === 'ROI'
+            ? 'border-blue-600 bg-blue-50'
+            : 'border-gray-300 hover:border-gray-400'
+            }`}
         >
           <p className="font-semibold text-gray-900">ROI Investment</p>
           <p className="text-sm text-gray-600 mt-1">Investors receive returns</p>
@@ -271,11 +275,10 @@ const BasicsStep = ({ formData, updateFormData }: any) => (
         <button
           type="button"
           onClick={() => updateFormData('projectType', 'CHARITY')}
-          className={`p-4 border-2 rounded-lg transition-all ${
-            formData.projectType === 'CHARITY'
-              ? 'border-pink-600 bg-pink-50'
-              : 'border-gray-300 hover:border-gray-400'
-          }`}
+          className={`p-4 border-2 rounded-lg transition-all ${formData.projectType === 'CHARITY'
+            ? 'border-pink-600 bg-pink-50'
+            : 'border-gray-300 hover:border-gray-400'
+            }`}
         >
           <p className="font-semibold text-gray-900">Charity</p>
           <p className="text-sm text-gray-600 mt-1">Donation-based funding</p>
@@ -348,15 +351,46 @@ const DetailsStep = ({ formData, updateFormData }: any) => (
 
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-2">
-        Project Image URL
+        Project Image
       </label>
-      <input
-        type="url"
-        value={formData.imageUrl}
-        onChange={(e) => updateFormData('imageUrl', e.target.value)}
-        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        placeholder="https://example.com/image.jpg"
-      />
+      <div className="flex items-center gap-4">
+        {formData.imageUrl && (
+          <div className="relative w-24 h-24 rounded-lg overflow-hidden border">
+            <img src={formData.imageUrl} className="w-full h-full object-cover" />
+            <button
+              onClick={() => updateFormData('imageUrl', '')}
+              className="absolute top-1 right-1 bg-white/80 rounded-full p-1 text-rose-600 hover:bg-rose-600 hover:text-white transition-all shadow-sm"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
+        )}
+        <div className="relative flex-1">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              try {
+                const res = await projectService.uploadMedia(file);
+                if (res.url) updateFormData('imageUrl', res.url);
+              } catch (err) {
+                console.error('Upload failed', err);
+              }
+            }}
+            className="hidden"
+            id="cover-upload-wizard"
+          />
+          <label
+            htmlFor="cover-upload-wizard"
+            className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6 hover:bg-gray-50 cursor-pointer transition-all"
+          >
+            <Upload className="w-8 h-8 text-gray-400 mb-2" />
+            <span className="text-sm font-medium text-gray-600">Click to upload cover image</span>
+          </label>
+        </div>
+      </div>
     </div>
   </motion.div>
 );

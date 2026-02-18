@@ -15,3 +15,11 @@ export function useProject(id: string) {
     enabled: !!id,
   });
 }
+
+export function useMyProjects() {
+  return useQuery({
+    queryKey: ['my-projects'],
+    queryFn: () => projectService.getMyProjects(),
+    staleTime: 30_000,
+  });
+}

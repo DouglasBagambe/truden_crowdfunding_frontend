@@ -120,7 +120,7 @@ export default function LandingPage() {
               <Link href="/explore" className="bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-semibold px-8 py-3 rounded-xl transition-colors shadow-sm hover:shadow">
                 Browse Projects
               </Link>
-              <Link href="/register" className="bg-white/85 dark:bg-slate-900/65 backdrop-blur text-slate-950 dark:text-white font-semibold px-8 py-3 rounded-xl border border-white/40 dark:border-white/10 hover:bg-white dark:hover:bg-slate-900 transition-colors shadow-sm hover:shadow">
+              <Link href="/create-project" className="bg-white/85 dark:bg-slate-900/65 backdrop-blur text-slate-950 dark:text-white font-semibold px-8 py-3 rounded-xl border border-white/40 dark:border-white/10 hover:bg-white dark:hover:bg-slate-900 transition-colors shadow-sm hover:shadow">
                 Create a Campaign
               </Link>
             </motion.div>
@@ -209,10 +209,10 @@ export default function LandingPage() {
                   <p className="text-lg font-semibold text-[var(--text-main)]">
                     Total Impact: <span className="text-[#0ea5e9]">${stats.charity.toLocaleString()}K Raised</span> | {stats.charityCount} Projects Funded
                   </p>
-                  <button className="bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-semibold px-8 py-3 rounded-lg inline-flex items-center gap-2 transition-colors">
+                  <Link href="/create-project" className="bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-semibold px-8 py-3 rounded-lg inline-flex items-center gap-2 transition-colors">
                     <Plus size={20} />
                     Create Charity Project
-                  </button>
+                  </Link>
                 </div>
               </motion.section>
             )}
@@ -258,10 +258,10 @@ export default function LandingPage() {
                   <p className="text-lg font-semibold text-[var(--text-main)]">
                     Total Investment: <span className="text-[#0ea5e9]">${stats.roi.toLocaleString()}M</span> | Avg. ROI: 15%
                   </p>
-                  <button className="bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-semibold px-8 py-3 rounded-lg inline-flex items-center gap-2 transition-colors">
+                  <Link href="/create-project" className="bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-semibold px-8 py-3 rounded-lg inline-flex items-center gap-2 transition-colors">
                     <Plus size={20} />
                     Create ROI Project
-                  </button>
+                  </Link>
                 </div>
               </motion.section>
             )}
@@ -322,7 +322,7 @@ export default function LandingPage() {
                 <p className="text-[var(--text-muted)] text-base">
                   FundFlow provides the tools and community support you need to turn your innovative ideas into reality. Start your crowdfunding journey today.
                 </p>
-                <Link href="/register" className="bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-semibold px-8 py-3 rounded-lg inline-block transition-colors">
+                <Link href="/create-project" className="bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-semibold px-8 py-3 rounded-lg inline-block transition-colors">
                   Start Your Campaign
                 </Link>
               </div>

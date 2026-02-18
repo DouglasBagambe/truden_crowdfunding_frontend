@@ -23,23 +23,39 @@ export interface ProjectMilestone {
 
 export interface CreateProjectParams {
   name: string;
-  projectType: ProjectType;
-  category: string;
+  type: ProjectType;
+  category?: string;
+  subcategory?: string;
+  industry?: string;
   summary: string;
   story: string;
+  country: string;
+  location?: string;
+  beneficiary: string;
+  paymentMethod: string;
   targetAmount: number;
   currency: string;
-  fundingEndDate: string;
-  milestones: ProjectMilestone[];
-  mediaUrls?: {
-    videoUrls?: string[];
-    galleryImages?: string[];
-  };
-  socialLinks?: {
-    website?: string;
-    twitter?: string;
-    linkedin?: string;
-  };
+  fundingStartDate?: string;
+  fundingEndDate?: string;
+  tags?: string[];
+  videoUrls?: string[];
+  galleryImages?: string[];
+  imageUrl?: string;
+  socialLinks?: Array<{ platform: string; url: string }>;
+  website?: string;
+  milestones?: Array<{
+    title: string;
+    description: string;
+    dueDate: string;
+    payoutPercentage?: number;
+  }>;
+  useOfFunds?: Array<{
+    item: string;
+    amount: number;
+    percentage: number;
+  }>;
+  risks?: string;
+  challenges?: string;
 }
 
 export const projectService = {
@@ -57,11 +73,23 @@ export const projectService = {
   },
 
   /**
-   * Get project details
+   * Get project details (works for all statuses including DRAFT)
    */
   async getProject(id: string) {
     const response = await apiClient.get(`/projects/${id}`);
     return response.data;
+  },
+
+  /**
+   * Get public projects for explore page
+   */
+  async getPublicProjects(params?: any) {
+    const response = await apiClient.get('/projects', { params });
+    const data = response.data;
+    if (Array.isArray(data)) return { items: data };
+    if (data?.items) return data;
+    if (data?.projects) return { ...data, items: data.projects };
+    return { items: data?.data ?? [] };
   },
 
   /**
@@ -89,6 +117,18 @@ export const projectService = {
   },
 
   /**
+   * Get current user's own projects (including drafts)
+   */
+  async getMyProjects() {
+    const response = await apiClient.get('/projects/me');
+    const data = response.data;
+    if (Array.isArray(data)) return data;
+    if (data?.projects) return data.projects;
+    if (data?.items) return data.items;
+    return data?.data ?? [];
+  },
+
+  /**
    * Upload project media
    */
   async uploadMedia(file: File) {
@@ -105,7 +145,6 @@ export const projectService = {
   /**
    * Simple invest (deprecated in favor of flutterwave/wallet flow)
    */
-  async invest(data: { projectId: string; amount: number }) {
   async invest(data: { projectId: string; amount: number; txHash?: string }) {
     const response = await apiClient.post('/investments/invest', data);
     return response.data;

@@ -25,3 +25,74 @@ export const ESCROW_ABI = [
     outputs: [{ name: '', type: 'uint256' }],
   },
 ] as const;
+
+export const INVESTMENT_NFT_ADDRESS = (process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000') as `0x${string}`;
+
+export const INVESTMENT_NFT_ABI = [
+  {
+    type: 'function',
+    name: 'mintInvestmentNFT',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'investor', type: 'address' },
+      { name: 'projectId', type: 'string' },
+      { name: 'amount', type: 'uint256' },
+      { name: 'metadataURI', type: 'string' },
+      { name: 'investmentId', type: 'string' },
+    ],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'updateInvestmentValue',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'tokenId', type: 'uint256' },
+      { name: 'newValue', type: 'uint256' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'getInvestmentData',
+    stateMutability: 'view',
+    inputs: [{ name: 'tokenId', type: 'uint256' }],
+    outputs: [
+      {
+        type: 'tuple',
+        components: [
+          { name: 'projectId', type: 'string' },
+          { name: 'investor', type: 'address' },
+          { name: 'initialAmount', type: 'uint256' },
+          { name: 'currentValue', type: 'uint256' },
+          { name: 'investmentDate', type: 'uint256' },
+          { name: 'isActive', type: 'bool' },
+          { name: 'investmentId', type: 'string' },
+        ],
+      },
+    ],
+  },
+  {
+    type: 'function',
+    name: 'balanceOf',
+    stateMutability: 'view',
+    inputs: [{ name: 'owner', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'tokenURI',
+    stateMutability: 'view',
+    inputs: [{ name: 'tokenId', type: 'uint256' }],
+    outputs: [{ name: '', type: 'string' }],
+  },
+  {
+    type: 'event',
+    name: 'Transfer',
+    inputs: [
+      { name: 'from', type: 'address', indexed: true },
+      { name: 'to', type: 'address', indexed: true },
+      { name: 'tokenId', type: 'uint256', indexed: true },
+    ],
+  },
+] as const;
