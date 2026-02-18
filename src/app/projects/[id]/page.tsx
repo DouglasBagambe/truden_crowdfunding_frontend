@@ -24,6 +24,7 @@ export default function ProjectDetailPage() {
     const [error, setError] = useState('');
     const [activeTab, setActiveTab] = useState<'story' | 'timeline' | 'updates'>('story');
     const [bookmarked, setBookmarked] = useState(false);
+    const [isSubmittingForReview, setIsSubmittingForReview] = useState(false);
 
     useEffect(() => {
         if (projectId && projectId !== 'undefined') {
@@ -49,6 +50,19 @@ export default function ProjectDetailPage() {
             setError(err?.response?.data?.message || 'Project not found');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSubmitForReview = async () => {
+        try {
+            setIsSubmittingForReview(true);
+            await projectService.submitForReview(projectId);
+            await loadProject();
+        } catch (err: any) {
+            console.error('Error submitting project for review:', err);
+            setError(err?.response?.data?.message || 'Failed to submit project for review');
+        } finally {
+            setIsSubmittingForReview(false);
         }
     };
 
@@ -104,6 +118,11 @@ export default function ProjectDetailPage() {
     };
     const statusColor = statusColorMap[project.status] || 'bg-gray-500/10 text-gray-400';
 
+    const projectType = project.projectType || project.type;
+    const isCharity = projectType === 'CHARITY';
+    const isRoi = projectType === 'ROI';
+    const isOwner = isAuthenticated && (user?.id || user?._id) && (project.creatorId === (user?.id || user?._id));
+
     return (
         <div className="min-h-screen bg-[var(--background)] text-[var(--text-main)]">
             <Navbar />
@@ -124,11 +143,22 @@ export default function ProjectDetailPage() {
                     {(project.status === 'DRAFT' || project.status === 'PENDING_REVIEW') && (
                         <div className="mb-8 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3">
                             <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0" />
-                            <p className="text-sm text-amber-300 font-medium">
-                                {project.status === 'DRAFT'
-                                    ? 'This project is in draft mode. Submit it for review to make it public.'
-                                    : 'This project is under review and will be publicly visible once approved.'}
-                            </p>
+                            <div className="flex-1">
+                                <p className="text-sm text-amber-300 font-medium">
+                                    {project.status === 'DRAFT'
+                                        ? 'This project is in draft mode. Submit it for review to make it public.'
+                                        : 'This project is under review and will be publicly visible once approved.'}
+                                </p>
+                            </div>
+                            {project.status === 'DRAFT' && isOwner && (
+                                <button
+                                    onClick={handleSubmitForReview}
+                                    disabled={isSubmittingForReview}
+                                    className="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-60"
+                                >
+                                    {isSubmittingForReview ? 'Submitting...' : 'Submit for Review'}
+                                </button>
+                            )}
                         </div>
                     )}
 
@@ -397,28 +427,58 @@ export default function ProjectDetailPage() {
 
                                 {/* Trust Badges */}
                                 <div className="bg-[var(--card)] p-6 rounded-2xl border border-[var(--border)] space-y-3">
-                                    <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                                        <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                                        <span>Smart Contract Escrow Protection</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                                        <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                                        <span>Milestone-Based Fund Release</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                                        <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                                        <span>NFT Investment Certificate</span>
-                                    </div>
+                                    {isRoi && (
+                                        <>
+                                            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                                                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                                                <span>Smart Contract Escrow Protection</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                                                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                                                <span>Milestone-Based Fund Release</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                                                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                                                <span>NFT Investment Certificate</span>
+                                            </div>
+                                        </>
+                                    )}
+                                    {isCharity && (
+                                        <>
+                                            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                                                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                                                <span>Donation Transparency Tracking</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                                                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                                                <span>Milestone-Based Release (if applicable)</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                                                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                                                <span>Community Accountability</span>
+                                            </div>
+                                        </>
+                                    )}
+                                    {!isCharity && !isRoi && (
+                                        <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                                            <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                                            <span>Protocol Safeguards Enabled</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Disclosure */}
                                 <div className="p-6 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-2">
                                     <div className="flex items-center gap-2 text-amber-400">
                                         <Flag size={16} />
-                                        <h4 className="font-black text-xs uppercase tracking-widest">Investment Disclosure</h4>
+                                        <h4 className="font-black text-xs uppercase tracking-widest">
+                                            {isCharity ? 'Donation Disclosure' : 'Investment Disclosure'}
+                                        </h4>
                                     </div>
                                     <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-                                        Truden facilitates crowdfunding but doesn't guarantee project delivery. Investments carry risks. Only contribute what you can afford to lose.
+                                        {isCharity
+                                            ? "Truden facilitates fundraising but doesn't guarantee project delivery or outcomes. Donations are non-refundable unless explicitly stated. Contribute what you can afford."
+                                            : "Truden facilitates crowdfunding but doesn't guarantee project delivery. Investments carry risks. Only contribute what you can afford to lose."}
                                     </p>
                                 </div>
                             </div>

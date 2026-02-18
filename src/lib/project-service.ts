@@ -116,6 +116,16 @@ export const projectService = {
     return response.data;
   },
 
+  async adminListPending() {
+    const response = await apiClient.get('/admin/projects/pending');
+    return response.data;
+  },
+
+  async adminDecision(id: string, dto: { finalStatus: string; reason?: string }) {
+    const response = await apiClient.post(`/admin/projects/${id}/decision`, dto);
+    return response.data;
+  },
+
   /**
    * Get current user's own projects (including drafts)
    */

@@ -61,6 +61,19 @@ const CHARITY_SUBCATEGORIES = [
     { label: 'Infrastructure', value: 'infrastructure' }
 ];
 
+const isProbablyUrl = (value: unknown): value is string => {
+    if (typeof value !== 'string') return false;
+    const trimmed = value.trim();
+    if (!trimmed) return false;
+    try {
+        // Accept only absolute URLs for backend IsUrl validation
+        const u = new URL(trimmed);
+        return u.protocol === 'http:' || u.protocol === 'https:';
+    } catch {
+        return false;
+    }
+};
+
 export default function CreateProjectPage() {
     const router = useRouter();
     const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
@@ -155,12 +168,20 @@ export default function CreateProjectPage() {
             if (!payload.location) delete payload.location;
             if (!payload.challenges) delete payload.challenges;
             if (!payload.risks) delete payload.risks;
+            if (!payload.imageUrl) delete payload.imageUrl;
             if (payload.socialLinks) {
                 payload.socialLinks = payload.socialLinks.filter((l: any) => l.url && l.url.trim().length > 0);
                 if (payload.socialLinks.length === 0) delete payload.socialLinks;
             }
-            if (payload.galleryImages && payload.galleryImages.length === 0) delete payload.galleryImages;
+            if (payload.galleryImages) {
+                payload.galleryImages = payload.galleryImages.filter((u: any) => isProbablyUrl(u));
+                if (payload.galleryImages.length === 0) delete payload.galleryImages;
+            }
             if (payload.videoUrls && payload.videoUrls.length === 0) delete payload.videoUrls;
+
+            console.log('[CREATE_PROJECT_DEBUG] payload.imageUrl:', payload.imageUrl);
+            console.log('[CREATE_PROJECT_DEBUG] payload.galleryImages:', payload.galleryImages);
+            console.log('[CREATE_PROJECT_DEBUG] full payload:', payload);
 
             const result = await projectService.createProject(payload);
             const projectId = result.project?._id || result.project?.id || result._id || result.id;
@@ -181,7 +202,7 @@ export default function CreateProjectPage() {
     const addMilestone = () => {
         setFormData({
             ...formData,
-            milestones: [...(formData.milestones || []), { title: '', description: '', amount: 0, dueDate: '', payoutPercentage: 0 }]
+            milestones: [...(formData.milestones || []), { title: '', description: '', dueDate: '', payoutPercentage: 0 }]
         });
     };
 
@@ -209,9 +230,13 @@ export default function CreateProjectPage() {
             for (let i = 0; i < files.length; i++) {
                 try {
                     const res = await projectService.uploadMedia(files[i]);
+                    console.log('[CREATE_PROJECT_DEBUG] uploadMedia response:', res);
                     // Assuming API base handle by client, res.url should be valid
-                    if (res.url) {
-                        urls.push(res.url);
+                    const candidateUrl = res?.url;
+                    if (isProbablyUrl(candidateUrl)) {
+                        urls.push(candidateUrl);
+                    } else {
+                        console.warn('[CREATE_PROJECT_DEBUG] uploadMedia returned invalid url:', candidateUrl);
                     }
                 } catch (err: any) {
                     console.error('File upload failed:', err);
@@ -220,21 +245,25 @@ export default function CreateProjectPage() {
                 }
             }
 
+            // Ensure we never store invalid URLs (backend validates IsUrl)
+            const safeUrls = urls.filter((u) => isProbablyUrl(u));
+            console.log('[CREATE_PROJECT_DEBUG] safeUrls:', safeUrls);
+
             if (type === 'cover') {
-                if (urls.length > 0) {
-                    setFormData(prev => ({ ...prev, imageUrl: urls[0] }));
+                if (safeUrls.length > 0) {
+                    setFormData(prev => ({ ...prev, imageUrl: safeUrls[0] }));
                 }
             } else if (type === 'gallery') {
                 setFormData(prev => ({
                     ...prev,
-                    galleryImages: [...(prev.galleryImages || []), ...urls],
+                    galleryImages: [...(prev.galleryImages || []), ...safeUrls],
                     // If no cover image yet, set the first gallery image as cover
-                    imageUrl: prev.imageUrl || urls[0] || ''
+                    imageUrl: prev.imageUrl || safeUrls[0] || ''
                 }));
             } else {
                 setFormData(prev => ({
                     ...prev,
-                    videoUrls: [...(prev.videoUrls || []), ...urls]
+                    videoUrls: [...(prev.videoUrls || []), ...safeUrls]
                 }));
             }
         } catch (err) {

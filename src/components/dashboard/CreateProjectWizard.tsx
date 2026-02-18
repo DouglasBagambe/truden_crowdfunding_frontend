@@ -17,6 +17,18 @@ interface CreateProjectWizardProps {
 
 type Step = 'basics' | 'details' | 'funding' | 'milestones' | 'review';
 
+const isProbablyUrl = (value: unknown): value is string => {
+  if (typeof value !== 'string') return false;
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  try {
+    const u = new URL(trimmed);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
 export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWizardProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<Step>('basics');
@@ -70,7 +82,7 @@ export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWi
     setIsSubmitting(true);
     try {
       // Convert form data to API format
-      const projectData = {
+      const projectData: any = {
         name: formData.name,
         category: formData.category,
         projectType: formData.projectType,
@@ -95,6 +107,12 @@ export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWi
         })),
       };
 
+      // Sanitize optional URL fields so backend IsUrl validators don't fail
+      if (!isProbablyUrl(projectData.imageUrl)) delete projectData.imageUrl;
+      if (!isProbablyUrl(projectData.website)) delete projectData.website;
+
+      console.log('[CREATE_PROJECT_WIZARD_DEBUG] createProject payload:', projectData);
+
       const res = await projectService.createProject(projectData);
 
       // Success - redirect to the new project detail page
@@ -106,7 +124,7 @@ export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWi
       }
       onClose();
     } catch (error) {
-      console.error('Error creating project:', error);
+      console.error('[CREATE_PROJECT_WIZARD_DEBUG] Error creating project:', error);
       alert('Failed to create project. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -374,9 +392,16 @@ const DetailsStep = ({ formData, updateFormData }: any) => (
               if (!file) return;
               try {
                 const res = await projectService.uploadMedia(file);
-                if (res.url) updateFormData('imageUrl', res.url);
+                console.log('[CREATE_PROJECT_WIZARD_DEBUG] uploadMedia response:', res);
+                const candidateUrl = (res as any)?.url;
+                if (isProbablyUrl(candidateUrl)) {
+                  updateFormData('imageUrl', candidateUrl);
+                } else {
+                  console.warn('[CREATE_PROJECT_WIZARD_DEBUG] uploadMedia returned invalid url:', candidateUrl);
+                  updateFormData('imageUrl', '');
+                }
               } catch (err) {
-                console.error('Upload failed', err);
+                console.error('[CREATE_PROJECT_WIZARD_DEBUG] Upload failed', err);
               }
             }}
             className="hidden"
