@@ -106,6 +106,7 @@ export const projectService = {
    * Simple invest (deprecated in favor of flutterwave/wallet flow)
    */
   async invest(data: { projectId: string; amount: number }) {
+  async invest(data: { projectId: string; amount: number; txHash?: string }) {
     const response = await apiClient.post('/investments/invest', data);
     return response.data;
   }

@@ -5,6 +5,7 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import ProjectCard from '@/components/dashboard/ProjectCard';
 import RightSidebar from '@/components/dashboard/RightSidebar';
+import CreateProjectWizard from '@/components/dashboard/CreateProjectWizard';
 import InvestModal from '@/components/dashboard/InvestModal';
 import { NFTPortfolio } from '@/components/dashboard/NFTPortfolio';
 import { motion } from 'framer-motion';
@@ -39,6 +40,7 @@ interface ActivityEntryProps {
     desc: string;
     type: 'finance' | 'governance' | 'success';
 }
+import { Search, TrendingUp, ArrowUpRight, Shield, PlusCircle, LayoutDashboard, Wallet, Clock, Vote, CheckCircle2, XCircle } from 'lucide-react';
 
 export default function DashboardPage() {
     const { data: projectsData, isLoading } = useProjects();
@@ -277,6 +279,72 @@ export default function DashboardPage() {
                             </div>
                         </div>
                     </aside>
+          <aside className="w-full lg:w-[380px] space-y-8">
+            {/* Active Votes Section - IMPROVED COLORS */}
+            <div className="bg-[var(--card)] rounded-[2rem] border border-[var(--border)] p-8 space-y-6 shadow-sm transition-colors duration-300">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-bold tracking-tight text-[var(--text-main)]">Active Votes</h3>
+                    <button className="text-xs font-bold text-[var(--primary)] hover:underline">View Hub</button>
+                </div>
+                <div className="space-y-5">
+                    <VoteCard 
+                        title="Adjust APY Multiplier"
+                        description="Impacts long-term staking pools."
+                        status="passing"
+                        progress={82}
+                    />
+                    <VoteCard 
+                        title="New Listing: SolX"
+                        description="Solar energy tech proposal."
+                        status="failing"
+                        progress={24}
+                    />
+                </div>
+            </div>
+
+            {/* Submit Project CTA - IMPROVED COLORS */}
+            <div className="bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-600 dark:to-indigo-700 rounded-[2rem] p-8 space-y-4 shadow-xl text-white relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-3xl -mr-16 -mt-16 rounded-full" />
+                <div className="relative z-10 space-y-4">
+                    <h3 className="text-lg font-bold">Got a Vision?</h3>
+                    <p className="text-sm text-blue-50 font-medium leading-relaxed">Submit your project and get funded by a global network of backers.</p>
+                    <button className="w-full bg-white text-blue-600 font-bold py-3.5 rounded-xl text-xs hover:bg-gray-50 transition-all shadow-lg mt-2">
+                        SUBMIT PROJECT
+                    </button>
+                    <div className="flex gap-3 pt-2">
+                        <div className="flex items-center gap-2 text-xs text-blue-100">
+                            <Shield size={14} />
+                            <span className="font-medium">Escrow Protected</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-blue-100">
+                            <CheckCircle2 size={14} />
+                            <span className="font-medium">Audited Contracts</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {/* Global Activity - IMPROVED COLORS */}
+            <div className="bg-[var(--card)] rounded-[2rem] border border-[var(--border)] p-8 space-y-6 shadow-sm transition-colors duration-300">
+                <h3 className="text-lg font-bold tracking-tight text-[var(--text-main)]">Global Activity</h3>
+                <div className="space-y-6">
+                    <ActivityEntry label="Escrow Verified" time="2h ago" desc="Alpha project release" type="finance" />
+                    <ActivityEntry label="Proposal Passing" time="1d ago" desc="Staking rewards v2" type="governance" />
+                    <ActivityEntry label="Security Update" time="3d ago" desc="Audit hash updated" type="success" />
+                </div>
+            </div>
+            
+            {/* Governance Hub - IMPROVED COLORS */}
+            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 dark:from-indigo-600 dark:to-purple-700 rounded-[2rem] p-8 space-y-4 shadow-xl text-white relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 blur-2xl -mr-16 -mt-16 rounded-full" />
+                <h3 className="text-lg font-bold relative z-10">Governance Hub</h3>
+                <p className="text-sm text-indigo-50 font-medium relative z-10 leading-relaxed">Increase protocol reserve for emergency project recovery?</p>
+                <div className="flex gap-3 pt-4 relative z-10">
+                    <button className="flex-1 bg-white text-indigo-600 font-bold py-3 rounded-xl text-xs hover:bg-gray-50 transition-all shadow-sm">APPROVE</button>
+                    <button className="flex-1 bg-white/10 text-white font-bold py-3 rounded-xl text-xs hover:bg-white/20 border border-white/20 transition-all">REJECT</button>
+                </div>
+            </div>
+          </aside>
 
                 </div>
             </main>
@@ -289,6 +357,15 @@ export default function DashboardPage() {
             <Footer />
         </div>
     );
+      <CreateProjectWizard isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+      <InvestModal 
+        isOpen={isInvestModalOpen} 
+        onClose={() => setIsInvestModalOpen(false)}
+        project={selectedProject || {}}
+      />
+      <Footer />
+    </div>
+  );
 }
 
 const KPICard = ({ label, value, trend, icon }: KPICardProps) => (
@@ -301,10 +378,48 @@ const KPICard = ({ label, value, trend, icon }: KPICardProps) => (
         </div>
         <div className="flex items-baseline justify-between">
             <p className="text-3xl font-black tracking-tight text-[var(--text-main)]">{value}</p>
-            {trend && <span className="text-[9px] font-black text-emerald-500 bg-emerald-50 dark:bg-emerald-950/20 px-2 py-1 rounded-md tracking-widest">{trend}</span>}
+            {trend && <span className="text-[9px] font-black text-emerald-600 bg-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 px-2 py-1 rounded-md tracking-widest">{trend}</span>}
         </div>
     </div>
 );
+
+const VoteCard = ({ title, description, status, progress }: any) => {
+    const isPassing = status === 'passing';
+    
+    return (
+        <div className="space-y-3 p-5 rounded-2xl bg-[var(--background)] border border-[var(--border)] hover:border-[var(--primary)]/30 transition-all">
+            <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1 flex-1">
+                    <h4 className="text-sm font-bold text-[var(--text-main)]">{title}</h4>
+                    <p className="text-xs text-[var(--text-muted)] font-medium">{description}</p>
+                </div>
+                <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg shrink-0 ${
+                    isPassing 
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' 
+                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                }`}>
+                    {status}
+                </span>
+            </div>
+            <div className="space-y-2">
+                <div className="flex items-center justify-between text-[10px] font-bold">
+                    <span className="text-[var(--text-muted)] uppercase tracking-widest">Progress</span>
+                    <span className={isPassing ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>{progress}%</span>
+                </div>
+                <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div 
+                        className={`h-full rounded-full transition-all ${
+                            isPassing 
+                                ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' 
+                                : 'bg-gradient-to-r from-red-500 to-red-600'
+                        }`}
+                        style={{ width: `${progress}%` }}
+                    />
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const ActivityEntry = ({ label, time, desc, type }: ActivityEntryProps) => (
     <div className="flex gap-4">
@@ -312,6 +427,11 @@ const ActivityEntry = ({ label, time, desc, type }: ActivityEntryProps) => (
             type === 'success' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-100 dark:border-emerald-800/30' :
                 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-100 dark:border-amber-800/30'
             }`}>
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${
+            type === 'finance' ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800/30' :
+            type === 'success' ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/30' :
+            'bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/30'
+        }`}>
             {type === 'finance' && <Wallet size={16} />}
             {type === 'success' && <ArrowUpRight size={16} />}
             {type === 'governance' && <Shield size={16} />}

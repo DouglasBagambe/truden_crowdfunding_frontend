@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import Link from 'next/link';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Heart, 
   TrendingUp, 
@@ -267,18 +267,49 @@ export default function LandingPage() {
             )}
 
             {/* Categories */}
-            <section className="space-y-10 py-8">
-              <div className="text-center">
-                <h2 className="text-3xl md:text-4xl font-bold text-[var(--text-main)]">Explore Categories</h2>
+            <section className="space-y-12 py-8 text-center">
+              <div className="space-y-4 max-w-2xl mx-auto">
+                <h2 className="text-4xl md:text-5xl font-black tracking-tight text-gray-900">Explore Categories</h2>
+                <p className="text-gray-500 font-medium">Find projects that align with your passions and investment goals.</p>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-                <Category icon={<Lightbulb />} label="Technology" color="blue" />
-                <Category icon={<GraduationCap />} label="Education" color="blue" />
-                <Category icon={<UtensilsCrossed />} label="Food & Craft" color="blue" />
-                <Category icon={<Leaf />} label="Environment" color="blue" />
-                <Category icon={<Palette />} label="Arts & Culture" color="blue" />
-                <Category icon={<FlaskConical />} label="Science" color="blue" />
+                <Category 
+                  icon={<Lightbulb className="w-8 h-8" />} 
+                  label="Technology" 
+                  href="/explore?category=TECHNOLOGY"
+                  color="blue" 
+                />
+                <Category 
+                  icon={<GraduationCap className="w-8 h-8" />} 
+                  label="Education" 
+                  href="/explore?category=EDUCATION"
+                  color="indigo" 
+                />
+                <Category 
+                  icon={<UtensilsCrossed className="w-8 h-8" />} 
+                  label="Food & Craft" 
+                  href="/explore?category=COMMUNITY"
+                  color="amber" 
+                />
+                <Category 
+                  icon={<Leaf className="w-8 h-8" />} 
+                  label="Environment" 
+                  href="/explore?category=ENVIRONMENT"
+                  color="emerald" 
+                />
+                <Category 
+                  icon={<Palette className="w-8 h-8" />} 
+                  label="Arts & Culture" 
+                  href="/explore?category=COMMUNITY"
+                  color="rose" 
+                />
+                <Category 
+                  icon={<FlaskConical className="w-8 h-8" />} 
+                  label="Health" 
+                  href="/explore?category=HEALTH"
+                  color="cyan" 
+                />
               </div>
             </section>
 
@@ -318,15 +349,17 @@ export default function LandingPage() {
   );
 }
 
-function Category({ icon, label, color }: { icon: React.ReactNode, label: string, color: string }) {
+function Category({ icon, label, color, href }: { icon: React.ReactNode, label: string, color: string, href: string }) {
   return (
-    <div className="bg-[var(--card)] border border-[var(--border)] p-6 rounded-xl flex flex-col items-center gap-3 hover:border-[#0ea5e9] hover:-translate-y-1 transition-all group cursor-pointer">
-      <div className="text-[#0ea5e9] transition-colors">
-        {icon}
+    <Link href={href}>
+      <div className="bg-white border border-gray-100 p-8 rounded-3xl flex flex-col items-center gap-4 hover:border-blue-500 hover:shadow-xl hover:-translate-y-2 transition-all group cursor-pointer shadow-sm">
+        <div className="text-blue-500 transition-transform group-hover:scale-110 duration-500">
+          {icon}
+        </div>
+        <span className="text-xs font-black uppercase tracking-widest text-gray-400 group-hover:text-gray-900 transition-colors text-center">
+          {label}
+        </span>
       </div>
-      <span className="text-sm font-semibold text-[var(--text-muted)] group-hover:text-[var(--text-main)] transition-colors text-center">
-        {label}
-      </span>
-    </div>
+    </Link>
   );
 }
