@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, Wallet, AlertCircle, CheckCircle } from 'lucide-react';
-import { projectService } from '@/lib/project-service';
+import { investmentService } from '@/lib/investment-service';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain } from 'wagmi';
 import { parseEther } from 'viem';
@@ -74,18 +74,21 @@ const InvestModal = ({ isOpen, onClose, project }: InvestModalProps) => {
       const syncWithBackend = async () => {
         setIsApiLoading(true);
         try {
-          await projectService.invest({
-            projectId: project.id,
-            amount: Number(amount)
+          await investmentService.createInvestment({
+            projectId: project.id || project._id,
+            amount: Number(amount),
+            projectOnchainId: project.projectOnchainId
           });
           setSuccess(true);
           queryClient.invalidateQueries({ queryKey: ['projects'] });
+          queryClient.invalidateQueries({ queryKey: ['investments'] });
           setTimeout(() => {
             onClose();
             setSuccess(false);
             setAmount('');
           }, 4000);
         } catch (err: any) {
+          console.error('Backend sync error:', err);
           setError('Blockchain success, but backend sync failed. Please contact support.');
         } finally {
           setIsApiLoading(false);
@@ -93,7 +96,7 @@ const InvestModal = ({ isOpen, onClose, project }: InvestModalProps) => {
       };
       syncWithBackend();
     }
-  }, [isTxConfirmed, hash]);
+  }, [isTxConfirmed, hash, project, amount, queryClient, onClose]);
 
   const isLoading = isContractLoading || isWaitingForTx || isApiLoading;
 
@@ -176,7 +179,7 @@ const InvestModal = ({ isOpen, onClose, project }: InvestModalProps) => {
                   >
                     {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Wallet className="w-6 h-6" />}
                     <span className="font-bold">
-                        {isWaitingForTx ? 'Confirming On-Chain...' : isContractLoading ? 'Authorize in Wallet' : 'Execute Contribution'}
+                      {isWaitingForTx ? 'Confirming On-Chain...' : isContractLoading ? 'Authorize in Wallet' : isApiLoading ? 'Syncing Backend...' : 'Execute Contribution'}
                     </span>
                   </button>
 

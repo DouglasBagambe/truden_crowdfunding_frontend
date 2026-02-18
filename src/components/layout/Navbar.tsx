@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Logo } from '../common/Logo';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { useAccount } from 'wagmi';
-import { User, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { User, Settings, LogOut, ChevronDown, LayoutDashboard } from 'lucide-react';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -29,39 +29,33 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-5">
-          
+
           {user ? (
             <div className="flex items-center gap-4">
-              <button 
+              <button
                 onClick={() => open()}
                 className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--secondary)] text-[var(--primary)] text-xs font-bold transition-all border border-[var(--primary)]/10"
               >
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 {isConnected ? `${address?.slice(0, 6)}...${address?.slice(-4)}` : 'Link Wallet'}
               </button>
-              
+
               <div className="relative group">
                 <button className="w-10 h-10 rounded-xl bg-[var(--secondary)] text-[var(--primary)] flex items-center justify-center border border-[var(--primary)]/10 hover:border-[var(--primary)] transition-all">
                   <User size={20} />
                 </button>
-                
+
                 <div className="absolute right-0 mt-2 w-48 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                  {/* <Link href="/dashboard" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold hover:bg-[var(--secondary)] transition-colors">
-                    Dashboard
+                  <Link href="/dashboard" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold hover:bg-[var(--secondary)] transition-colors">
+                    <LayoutDashboard size={16} /> Dashboard
                   </Link>
-                  <Link href="/dashboard?view=investor" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold hover:bg-[var(--secondary)] transition-colors">
-                    Investor Dashboard
-                  </Link>
-                  <Link href="/dashboard?view=innovator" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold hover:bg-[var(--secondary)] transition-colors">
-                    Innovator Dashboard
-                  </Link> */}
                   <Link href="/profile" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold hover:bg-[var(--secondary)] transition-colors">
                     <User size={16} /> My Profile
                   </Link>
                   <Link href="/settings" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold hover:bg-[var(--secondary)] transition-colors">
                     <Settings size={16} /> Settings
                   </Link>
-                  <button 
+                  <button
                     onClick={() => logout()}
                     className="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors border-t border-[var(--border)] mt-2"
                   >
@@ -87,8 +81,8 @@ const Navbar = () => {
 };
 
 const NavLink = ({ href, children }: { href: string; children: React.ReactNode }) => (
-  <Link 
-    href={href} 
+  <Link
+    href={href}
     className="text-sm font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors tracking-tight"
   >
     {children}
