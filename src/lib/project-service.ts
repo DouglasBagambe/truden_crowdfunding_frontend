@@ -116,6 +116,20 @@ export const projectService = {
     return response.data;
   },
 
+  async donateToCharity(id: string, dto: { amount: number; donorName?: string; message?: string }) {
+    const response = await apiClient.post(`/projects/${id}/donate`, {
+      amount: String(dto.amount),
+      donorName: dto.donorName,
+      message: dto.message,
+    });
+    return response.data;
+  },
+
+  async getCharityDonors(id: string, params?: { limit?: number }) {
+    const response = await apiClient.get(`/projects/${id}/donors`, { params });
+    return response.data;
+  },
+
   async adminListPending() {
     const response = await apiClient.get('/admin/projects/pending');
     return response.data;

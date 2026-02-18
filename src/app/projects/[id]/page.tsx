@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import {
     ArrowLeft, Calendar, Users, Clock, CheckCircle, AlertCircle,
     Heart, Share2, Bookmark, Globe, TrendingUp, BarChart3,
-    Flag, Wallet, Loader2, CheckCircle2, ExternalLink
+    Flag, Wallet, Loader2, CheckCircle2, ExternalLink, X
 } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -25,6 +25,34 @@ export default function ProjectDetailPage() {
     const [activeTab, setActiveTab] = useState<'story' | 'timeline' | 'updates'>('story');
     const [bookmarked, setBookmarked] = useState(false);
     const [isSubmittingForReview, setIsSubmittingForReview] = useState(false);
+    const [isDonateOpen, setIsDonateOpen] = useState(false);
+    const [donationAmount, setDonationAmount] = useState('');
+    const [donorName, setDonorName] = useState('');
+    const [isDonating, setIsDonating] = useState(false);
+    const [donationError, setDonationError] = useState('');
+    const [donors, setDonors] = useState<Array<{ id: string; donorName: string; amount: number; createdAt?: string | null }>>([]);
+    const [donorsLoading, setDonorsLoading] = useState(false);
+
+    const projectType = project?.projectType || project?.type;
+    const isCharity = projectType === 'CHARITY';
+    const isRoi = projectType === 'ROI';
+
+    const getPrefillDonorName = () => {
+        const firstName = (user as any)?.firstName;
+        const lastName = (user as any)?.lastName;
+        const combined = `${typeof firstName === 'string' ? firstName : ''} ${typeof lastName === 'string' ? lastName : ''}`.trim();
+        const fallback = (user as any)?.name || (user as any)?.fullName;
+        const profileName = (combined || fallback || '').toString().trim();
+        return profileName;
+    };
+
+    const openDonateModal = () => {
+        if (!donorName.trim()) {
+            const prefill = getPrefillDonorName();
+            if (prefill) setDonorName(prefill);
+        }
+        setIsDonateOpen(true);
+    };
 
     useEffect(() => {
         if (projectId && projectId !== 'undefined') {
@@ -34,6 +62,12 @@ export default function ProjectDetailPage() {
             setLoading(false);
         }
     }, [projectId]);
+
+    useEffect(() => {
+        if (projectId && projectId !== 'undefined' && isCharity) {
+            loadDonors();
+        }
+    }, [projectId, isCharity]);
 
     const loadProject = async () => {
         try {
@@ -50,6 +84,44 @@ export default function ProjectDetailPage() {
             setError(err?.response?.data?.message || 'Project not found');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadDonors = async () => {
+        try {
+            setDonorsLoading(true);
+            const items = await projectService.getCharityDonors(projectId, { limit: 50 });
+            setDonors(Array.isArray(items) ? items : (items?.items || []));
+        } catch (e) {
+            setDonors([]);
+        } finally {
+            setDonorsLoading(false);
+        }
+    };
+
+    const handleDonate = async () => {
+        try {
+            setDonationError('');
+            const amountNumber = Number(donationAmount);
+            if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
+                setDonationError('Enter a valid amount');
+                return;
+            }
+            setIsDonating(true);
+            await projectService.donateToCharity(projectId, {
+                amount: amountNumber,
+                donorName: donorName.trim() ? donorName.trim() : 'Anonymous',
+            });
+            setIsDonateOpen(false);
+            setDonationAmount('');
+            setDonorName('');
+            await loadProject();
+            await loadDonors();
+        } catch (err: any) {
+            console.error('Donation error:', err);
+            setDonationError(err?.response?.data?.message || 'Donation failed');
+        } finally {
+            setIsDonating(false);
         }
     };
 
@@ -117,10 +189,6 @@ export default function ProjectDetailPage() {
         REJECTED: 'bg-red-500/10 text-red-400',
     };
     const statusColor = statusColorMap[project.status] || 'bg-gray-500/10 text-gray-400';
-
-    const projectType = project.projectType || project.type;
-    const isCharity = projectType === 'CHARITY';
-    const isRoi = projectType === 'ROI';
     const isOwner = isAuthenticated && (user?.id || user?._id) && (project.creatorId === (user?.id || user?._id));
 
     return (
@@ -385,13 +453,23 @@ export default function ProjectDetailPage() {
 
                                         {/* CTA */}
                                         <div className="space-y-3">
-                                            <button
-                                                disabled={!isAuthenticated}
-                                                className="w-full py-4 bg-[var(--primary)] text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                            >
-                                                <Wallet size={16} />
-                                                {isAuthenticated ? 'Invest in Project' : 'Sign In to Invest'}
-                                            </button>
+                                            {isCharity ? (
+                                                <button
+                                                    onClick={openDonateModal}
+                                                    className="w-full py-4 bg-[var(--primary)] text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                                                >
+                                                    <Wallet size={16} />
+                                                    Donate Now
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    disabled={!isAuthenticated}
+                                                    className="w-full py-4 bg-[var(--primary)] text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                                >
+                                                    <Wallet size={16} />
+                                                    {isAuthenticated ? 'Invest in Project' : 'Sign In to Invest'}
+                                                </button>
+                                            )}
                                             <div className="flex gap-3">
                                                 <button
                                                     onClick={() => setBookmarked(!bookmarked)}
@@ -425,8 +503,38 @@ export default function ProjectDetailPage() {
                                     </div>
                                 </div>
 
+                                {isCharity && (
+                                    <div className="bg-[var(--card)] rounded-3xl p-6 border border-[var(--border)] shadow-xl">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h4 className="font-black text-xs uppercase tracking-widest text-[var(--text-muted)]">Donors</h4>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                                                {donors.length}
+                                            </span>
+                                        </div>
+                                        <div className="max-h-44 overflow-y-auto pr-2 space-y-2">
+                                            {donorsLoading ? (
+                                                <div className="text-sm text-[var(--text-muted)]">Loading...</div>
+                                            ) : donors.length === 0 ? (
+                                                <div className="text-sm text-[var(--text-muted)]">No donations yet.</div>
+                                            ) : (
+                                                donors.map((d) => (
+                                                    <div key={d.id} className="flex items-center justify-between bg-[var(--secondary)] rounded-2xl px-4 py-3">
+                                                        <div>
+                                                            <p className="text-sm font-black">{d.donorName || 'Anonymous'}</p>
+                                                            <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Donation</p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-sm font-black">{currency} {Number(d.amount || 0).toLocaleString()}</p>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Trust Badges */}
-                                <div className="bg-[var(--card)] p-6 rounded-2xl border border-[var(--border)] space-y-3">
+                                <div className={`bg-[var(--card)] p-6 rounded-2xl border border-[var(--border)] space-y-3 ${isCharity ? 'hidden' : ''}`}>
                                     {isRoi && (
                                         <>
                                             <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
@@ -468,7 +576,7 @@ export default function ProjectDetailPage() {
                                 </div>
 
                                 {/* Disclosure */}
-                                <div className="p-6 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-2">
+                                <div className={`p-6 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-2 ${isCharity ? 'hidden' : ''}`}>
                                     <div className="flex items-center gap-2 text-amber-400">
                                         <Flag size={16} />
                                         <h4 className="font-black text-xs uppercase tracking-widest">
@@ -488,6 +596,71 @@ export default function ProjectDetailPage() {
             </main>
 
             <Footer />
+
+            {isCharity && isDonateOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-6">
+                    <div className="w-full max-w-lg bg-[var(--card)] border border-[var(--border)] rounded-3xl overflow-hidden shadow-2xl">
+                        <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-black">Donate to this project</h3>
+                                <p className="text-xs text-[var(--text-muted)] font-medium mt-1">Anonymous donations are allowed.</p>
+                            </div>
+                            <button
+                                onClick={() => { setIsDonateOpen(false); setDonationError(''); }}
+                                className="p-2 rounded-xl hover:bg-white/5 transition-all"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Amount ({currency})</label>
+                                <input
+                                    value={donationAmount}
+                                    onChange={(e) => setDonationAmount(e.target.value)}
+                                    type="number"
+                                    min="1"
+                                    placeholder="Enter amount"
+                                    className="input_field"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Name (optional)</label>
+                                <input
+                                    value={donorName}
+                                    onChange={(e) => setDonorName(e.target.value)}
+                                    type="text"
+                                    placeholder="Anonymous"
+                                    className="input_field"
+                                />
+                            </div>
+
+                            {donationError && (
+                                <div className="p-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 text-rose-300 text-sm font-medium">
+                                    {donationError}
+                                </div>
+                            )}
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    onClick={() => { setIsDonateOpen(false); setDonationError(''); }}
+                                    className="flex-1 py-3 border border-[var(--border)] rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white/5 transition-all"
+                                    disabled={isDonating}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleDonate}
+                                    className="flex-1 py-3 bg-[var(--primary)] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-60"
+                                    disabled={isDonating}
+                                >
+                                    {isDonating ? 'Processing...' : 'Donate'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

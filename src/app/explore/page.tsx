@@ -21,7 +21,7 @@ export default function ExplorePage() {
     const [search, setSearch] = useState('');
     const [category, setCategory] = useState(searchParams.get('category') || 'ALL');
     const [projectType, setProjectType] = useState(searchParams.get('type') || 'ALL');
-    const [statusFilters, setStatusFilters] = useState<string[]>(['FUNDING']);
+    const [statusFilters, setStatusFilters] = useState<string[]>(['APPROVED', 'FUNDING']);
     const [sortBy, setSortBy] = useState('newest');
     const [range, setRange] = useState(100);
 
@@ -29,7 +29,7 @@ export default function ExplorePage() {
         search: search || undefined,
         category: category !== 'ALL' ? category : undefined,
         type: projectType !== 'ALL' ? projectType : undefined,
-        status: statusFilters.length > 0 ? statusFilters[0] : undefined,
+        statuses: statusFilters.length > 0 ? statusFilters : undefined,
     };
 
     const { data, isLoading } = useProjects(queryParams);
@@ -85,7 +85,7 @@ export default function ExplorePage() {
                             <option value="ending">Ending Soon</option>
                             <option value="funded">Most Funded</option>
                         </select>
-                        <Link href="/dashboard" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-blue-500/20 text-sm whitespace-nowrap">
+                        <Link href="/create-project" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-blue-500/20 text-sm whitespace-nowrap">
                             <Plus size={18} />
                             <span>New Project</span>
                         </Link>
@@ -127,9 +127,10 @@ export default function ExplorePage() {
                                 <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Status</h3>
                                 <div className="space-y-3">
                                     {[
+                                        { id: 'APPROVED', label: 'Newly Posted' },
                                         { id: 'FUNDING', label: 'Open Projects' },
                                         { id: 'FUNDED', label: 'Funded' },
-                                        { id: 'CLOSED', label: 'Completed' },
+                                        { id: 'COMPLETED', label: 'Completed' },
                                     ].map((status) => (
                                         <label key={status.id} className="flex items-center gap-3 cursor-pointer group">
                                             <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${statusFilters.includes(status.id) ? 'border-blue-600 bg-blue-600' : 'border-slate-200 group-hover:border-blue-400'}`}>
@@ -185,7 +186,7 @@ export default function ExplorePage() {
 
                             <div className="pt-6 border-t border-slate-100 flex gap-3">
                                 <button 
-                                    onClick={() => { setSearch(''); setCategory('ALL'); setProjectType('ALL'); setStatusFilters(['ACTIVE']); setRange(100); }}
+                                    onClick={() => { setSearch(''); setCategory('ALL'); setProjectType('ALL'); setStatusFilters(['APPROVED', 'FUNDING']); setRange(100); }}
                                     className="flex-1 py-3 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors uppercase tracking-widest"
                                 >
                                     Reset

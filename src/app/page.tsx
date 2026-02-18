@@ -196,7 +196,7 @@ export default function LandingPage() {
                     ))
                   ) : charity.length > 0 ? (
                     charity.slice(0, 3).map((project: any) => (
-                      <ProjectCard key={project.id} project={project} />
+                      <ProjectCard key={project.id || project._id} project={project} />
                     ))
                   ) : (
                     <div className="col-span-3 text-center py-12">
@@ -245,7 +245,7 @@ export default function LandingPage() {
                     ))
                   ) : roi.length > 0 ? (
                     roi.slice(0, 3).map((project: any) => (
-                      <ProjectCard key={project.id} project={project} />
+                      <ProjectCard key={project.id || project._id} project={project} />
                     ))
                   ) : (
                     <div className="col-span-3 text-center py-12">

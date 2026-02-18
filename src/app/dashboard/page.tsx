@@ -109,7 +109,7 @@ export default function DashboardPage() {
 
                     <div className="flex-1 space-y-8">
                         {/* Header / KPI Row */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <KPICard
                                 label="Portfolio Value"
                                 value={`$${portfolioValue.toFixed(2)}`}
@@ -126,7 +126,7 @@ export default function DashboardPage() {
                                 value={myCampaigns.length.toString()}
                                 icon={<Rocket size={16} className="text-indigo-500" />}
                             />
-                        </div>
+                        </div> */}
 
                         {/* Main Dashboard Container */}
                         <div className="bg-[var(--card)] rounded-[2rem] border border-[var(--border)] overflow-hidden shadow-sm transition-colors duration-300">
@@ -258,17 +258,36 @@ export default function DashboardPage() {
                     </div>
 
                     <aside className="w-full lg:w-[380px] space-y-8">
+                        <div className="grid grid-cols-1 gap-6">
+                            <KPICard
+                                label="Portfolio Value"
+                                value={`$${portfolioValue.toFixed(2)}`}
+                                trend={portfolioValue > 0 ? "+12.5%" : undefined}
+                                icon={<TrendingUp size={16} className="text-emerald-500" />}
+                            />
+                            <KPICard
+                                label="Active Positions"
+                                value={activePositions.toString()}
+                                icon={<LayoutDashboard size={16} className="text-blue-500" />}
+                            />
+                            <KPICard
+                                label="My Campaigns"
+                                value={myCampaigns.length.toString()}
+                                icon={<Rocket size={16} className="text-indigo-500" />}
+                            />
+                        </div>
+
                         <RightSidebar onTriggerCreate={() => setIsCreateModalOpen(true)} />
 
                         {/* Recent Activity - Alternative View */}
-                        <div className="bg-[var(--card)] rounded-[2rem] border border-[var(--border)] p-8 space-y-6 shadow-sm transition-colors duration-300">
+                        {/* <div className="bg-[var(--card)] rounded-[2rem] border border-[var(--border)] p-8 space-y-6 shadow-sm transition-colors duration-300">
                             <h3 className="text-lg font-bold tracking-tight text-[var(--text-main)]">Global Activity</h3>
                             <div className="space-y-6">
                                 <ActivityEntry label="Escrow Verified" time="2h ago" desc="Alpha project release" type="finance" />
                                 <ActivityEntry label="Proposal Passing" time="1d ago" desc="Staking rewards v2" type="governance" />
                                 <ActivityEntry label="Security Update" time="3d ago" desc="Audit hash updated" type="success" />
                             </div>
-                        </div>
+                        </div> */}
                     </aside>
 
                 </div>

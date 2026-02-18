@@ -12,7 +12,7 @@ const RightSidebar = ({ onTriggerCreate }: RightSidebarProps) => {
   return (
     <div className="space-y-8">
       {/* Governance Card */}
-      <div className="bg-white dark:bg-[#111] rounded-2xl border border-gray-200 dark:border-[#262626] p-8 space-y-8 shadow-sm">
+      {/* <div className="bg-white dark:bg-[#111] rounded-2xl border border-gray-200 dark:border-[#262626] p-8 space-y-8 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="p-2 bg-[var(--secondary)] text-[var(--primary)] rounded-lg">
@@ -37,7 +37,7 @@ const RightSidebar = ({ onTriggerCreate }: RightSidebarProps) => {
             progress={24}
           />
         </div>
-      </div>
+      </div> */}
 
       {/* Submission CTA */}
       <div className="bg-[var(--primary)] rounded-2xl p-10 text-center space-y-6 shadow-xl relative overflow-hidden group">
@@ -62,7 +62,7 @@ const RightSidebar = ({ onTriggerCreate }: RightSidebarProps) => {
       </div>
 
       {/* Verified Info */}
-      <div className="bg-gray-50 dark:bg-[#1a1a1a] rounded-2xl p-6 border border-gray-200 dark:border-[#333] flex items-center gap-4">
+      {/* <div className="bg-gray-50 dark:bg-[#1a1a1a] rounded-2xl p-6 border border-gray-200 dark:border-[#333] flex items-center gap-4">
         <div className="p-2.5 bg-white dark:bg-[#111] border border-gray-200 dark:border-[#262626] rounded-xl text-emerald-600">
           <ShieldCheck size={20} />
         </div>
@@ -70,37 +70,37 @@ const RightSidebar = ({ onTriggerCreate }: RightSidebarProps) => {
           <h4 className="font-bold text-sm">Escrow Protected</h4>
           <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest">Audited Smart Contracts</p>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };
 
-const ProposalNode = ({ title, desc, status, progress }: any) => (
-  <div className="space-y-3">
-    <div className="flex justify-between items-start">
-        <div>
-            <h4 className="font-bold text-sm text-[var(--text-main)]">{title}</h4>
-            <p className="text-xs text-[var(--text-muted)] font-medium">{desc}</p>
-        </div>
-        <span className={`text-[9px] font-black px-2 py-1 rounded uppercase tracking-wider ${
-            status === 'Passing' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
-        }`}>
-            {status}
-        </span>
-    </div>
-    <div className="space-y-1.5">
-        <div className="h-1.5 w-full bg-gray-100 dark:bg-[#1a1a1a] rounded-full overflow-hidden">
-            <div 
-                className={`h-full rounded-full transition-all duration-1000 ${status === 'Passing' ? 'bg-emerald-500' : 'bg-rose-500'}`}
-                style={{ width: `${progress}%` }}
-            />
-        </div>
-        <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
-            <span>Progress</span>
-            <span>{progress}%</span>
-        </div>
-    </div>
-  </div>
-);
+// const ProposalNode = ({ title, desc, status, progress }: any) => (
+//   <div className="space-y-3">
+//     <div className="flex justify-between items-start">
+//         <div>
+//             <h4 className="font-bold text-sm text-[var(--text-main)]">{title}</h4>
+//             <p className="text-xs text-[var(--text-muted)] font-medium">{desc}</p>
+//         </div>
+//         <span className={`text-[9px] font-black px-2 py-1 rounded uppercase tracking-wider ${
+//             status === 'Passing' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
+//         }`}>
+//             {status}
+//         </span>
+//     </div>
+//     <div className="space-y-1.5">
+//         <div className="h-1.5 w-full bg-gray-100 dark:bg-[#1a1a1a] rounded-full overflow-hidden">
+//             <div 
+//                 className={`h-full rounded-full transition-all duration-1000 ${status === 'Passing' ? 'bg-emerald-500' : 'bg-rose-500'}`}
+//                 style={{ width: `${progress}%` }}
+//             />
+//         </div>
+//         <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+//             <span>Progress</span>
+//             <span>{progress}%</span>
+//         </div>
+//     </div>
+//   </div>
+// );
 
 export default RightSidebar;
