@@ -149,7 +149,7 @@ export default function InvestmentModal({ isOpen, onClose, project, userEmail }:
                 {/* Content */}
                 <div className="p-6">
                     {/* Project Info */}
-                    <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+                    <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-sky-50 rounded-lg">
                         <h3 className="font-semibold text-gray-900">{project.name}</h3>
                         <p className="text-sm text-gray-600 mt-1">
                             Target: {project.currency} {project.targetAmount.toLocaleString()}
@@ -183,7 +183,7 @@ export default function InvestmentModal({ isOpen, onClose, project, userEmail }:
 
                             <button
                                 onClick={handleAmountSubmit}
-                                className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all"
+                                className="w-full py-3 bg-gradient-to-r from-blue-600 to-sky-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-sky-700 transition-all"
                             >
                                 Continue
                             </button>
@@ -229,7 +229,7 @@ export default function InvestmentModal({ isOpen, onClose, project, userEmail }:
                                             }`}
                                     >
                                         <div className="flex items-center gap-3">
-                                            <CreditCard className="w-6 h-6 text-purple-600" />
+                                            <CreditCard className="w-6 h-6 text-blue-600" />
                                             <div>
                                                 <p className="font-semibold text-gray-900">Card Payment</p>
                                                 <p className="text-xs text-gray-500">Visa, Mastercard</p>
@@ -333,7 +333,7 @@ export default function InvestmentModal({ isOpen, onClose, project, userEmail }:
                                 <button
                                     onClick={handlePayment}
                                     disabled={loading || (paymentMethod === 'mobile_money' && !phoneNumber)}
-                                    className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-sky-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-sky-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
                                     {loading ? (
                                         <>
@@ -370,7 +370,7 @@ export default function InvestmentModal({ isOpen, onClose, project, userEmail }:
                             </p>
                             <button
                                 onClick={resetModal}
-                                className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all"
+                                className="w-full py-3 bg-gradient-to-r from-blue-600 to-sky-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-sky-700 transition-all"
                             >
                                 Done
                             </button>

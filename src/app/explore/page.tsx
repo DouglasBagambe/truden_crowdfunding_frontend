@@ -57,21 +57,33 @@ export default function ExplorePage() {
         );
     };
 
+    const isCharitySelected = projectType === 'CHARITY';
+    const accent = {
+        focusText: isCharitySelected ? 'group-focus-within:text-emerald-500' : 'group-focus-within:text-blue-500',
+        focusRing: isCharitySelected ? 'focus:ring-emerald-500/10 focus:border-emerald-500' : 'focus:ring-blue-500/10 focus:border-blue-500',
+        hoverBorder: isCharitySelected ? 'hover:border-emerald-500' : 'hover:border-blue-500',
+        radioOn: isCharitySelected ? 'border-emerald-600 bg-emerald-600' : 'border-blue-600 bg-blue-600',
+        radioOff: isCharitySelected ? 'group-hover:border-emerald-400' : 'group-hover:border-blue-400',
+        checkboxOn: isCharitySelected ? 'border-emerald-600 bg-emerald-600' : 'border-blue-600 bg-blue-600',
+        checkboxOff: isCharitySelected ? 'group-hover:border-emerald-400' : 'group-hover:border-blue-400',
+        newButton: isCharitySelected ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700',
+    };
+
     return (
-        <div className="bg-[#f8fafc] min-h-screen text-slate-900">
+        <div className="bg-[var(--background)] min-h-screen text-[var(--text-main)]">
             <Navbar />
 
             <main className="pt-28 pb-20 container mx-auto px-6 lg:px-12">
                 {/* Search & Header */}
                 <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
                     <div className="relative w-full md:max-w-xl group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                        <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)] ${accent.focusText} transition-colors`} />
                         <input 
                             type="text" 
                             placeholder="Search projects by title or description..." 
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full bg-white border border-slate-200 rounded-2xl py-4 pl-12 pr-4 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all shadow-sm font-medium"
+                            className={`w-full bg-[var(--card)] border border-[var(--border)] rounded-2xl py-4 pl-12 pr-4 focus:ring-4 ${accent.focusRing} outline-none transition-all shadow-sm font-medium`}
                         />
                     </div>
                     
@@ -79,13 +91,13 @@ export default function ExplorePage() {
                         <select 
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value)}
-                            className="bg-white border border-slate-200 rounded-xl py-3 px-4 text-sm font-bold text-slate-600 outline-none hover:border-blue-500 transition-all shadow-sm cursor-pointer"
+                            className={`bg-[var(--card)] border border-[var(--border)] rounded-xl py-3 px-4 text-sm font-bold text-[var(--text-muted)] outline-none transition-all shadow-sm cursor-pointer ${accent.hoverBorder}`}
                         >
                             <option value="newest">Newest First</option>
                             <option value="ending">Ending Soon</option>
                             <option value="funded">Most Funded</option>
                         </select>
-                        <Link href="/create-project" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-blue-500/20 text-sm whitespace-nowrap">
+                        <Link href="/create-project" className={`${accent.newButton} text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2 transition-all shadow-lg text-sm whitespace-nowrap`}>
                             <Plus size={18} />
                             <span>New Project</span>
                         </Link>
@@ -95,16 +107,16 @@ export default function ExplorePage() {
                 <div className="flex flex-col lg:flex-row gap-12">
                     {/* Sidebar Filters */}
                     <aside className="lg:w-80 space-y-8 flex-shrink-0">
-                        <div className="bg-white border border-slate-200 rounded-[2rem] p-8 space-y-10 shadow-sm">
-                            <h2 className="text-xl font-black tracking-tight border-b border-slate-100 pb-4">Filters</h2>
+                        <div className="bg-[var(--card)] border border-[var(--border)] rounded-[2rem] p-8 space-y-10 shadow-sm">
+                            <h2 className="text-xl font-black tracking-tight border-b border-[var(--border)] pb-4">Filters</h2>
                             
                             {/* Project Type */}
                             <div className="space-y-4">
-                                <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Project Type</h3>
+                                <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Project Type</h3>
                                 <div className="space-y-3">
                                     {['ALL', 'ROI', 'CHARITY'].map((type) => (
                                         <label key={type} className="flex items-center gap-3 cursor-pointer group">
-                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${projectType === type ? 'border-blue-600 bg-blue-600' : 'border-slate-200 group-hover:border-blue-400'}`}>
+                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${projectType === type ? accent.radioOn : `border-[var(--border)] ${accent.radioOff}`}`}>
                                                 {projectType === type && <div className="w-2 h-2 rounded-full bg-white" />}
                                             </div>
                                             <input 
@@ -114,7 +126,7 @@ export default function ExplorePage() {
                                                 checked={projectType === type}
                                                 onChange={() => setProjectType(type)}
                                             />
-                                            <span className={`text-sm font-bold transition-colors ${projectType === type ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-700'}`}>
+                                            <span className={`text-sm font-bold transition-colors ${projectType === type ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-main)]'}`}>
                                                 {type === 'ALL' ? 'All Projects' : type === 'ROI' ? 'ROI Projects' : 'Charity Projects'}
                                             </span>
                                         </label>
@@ -124,7 +136,7 @@ export default function ExplorePage() {
 
                             {/* Status */}
                             <div className="space-y-4">
-                                <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Status</h3>
+                                <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Status</h3>
                                 <div className="space-y-3">
                                     {[
                                         { id: 'APPROVED', label: 'Newly Posted' },
@@ -133,7 +145,7 @@ export default function ExplorePage() {
                                         { id: 'COMPLETED', label: 'Completed' },
                                     ].map((status) => (
                                         <label key={status.id} className="flex items-center gap-3 cursor-pointer group">
-                                            <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${statusFilters.includes(status.id) ? 'border-blue-600 bg-blue-600' : 'border-slate-200 group-hover:border-blue-400'}`}>
+                                            <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${statusFilters.includes(status.id) ? accent.checkboxOn : `border-[var(--border)] ${accent.checkboxOff}`}`}>
                                                 {statusFilters.includes(status.id) && <Plus size={14} className="text-white" />}
                                             </div>
                                             <input 
@@ -142,7 +154,7 @@ export default function ExplorePage() {
                                                 checked={statusFilters.includes(status.id)}
                                                 onChange={() => toggleStatus(status.id)}
                                             />
-                                            <span className={`text-sm font-bold transition-colors ${statusFilters.includes(status.id) ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-700'}`}>
+                                            <span className={`text-sm font-bold transition-colors ${statusFilters.includes(status.id) ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-main)]'}`}>
                                                 {status.label}
                                             </span>
                                         </label>

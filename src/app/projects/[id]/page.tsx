@@ -37,19 +37,31 @@ export default function ProjectDetailPage() {
     const isCharity = projectType === 'CHARITY';
     const isRoi = projectType === 'ROI';
 
+    const [mediaIndex, setMediaIndex] = useState(0);
+    const mediaItems = project ? [
+        ...(project.imageUrl ? [{ type: 'image', url: project.imageUrl }] : []),
+        ...(project.galleryImages || []).map(url => ({ type: 'image', url })),
+        ...(project.videoUrls || []).map(url => ({ type: 'video', url })),
+    ] : [];
+    const currentMedia = mediaItems[mediaIndex];
+
     const getPrefillDonorName = () => {
         const firstName = (user as any)?.firstName;
         const lastName = (user as any)?.lastName;
         const combined = `${typeof firstName === 'string' ? firstName : ''} ${typeof lastName === 'string' ? lastName : ''}`.trim();
         const fallback = (user as any)?.name || (user as any)?.fullName;
-        const profileName = (combined || fallback || '').toString().trim();
+        const email = (user as any)?.email;
+        const profileName = (combined || fallback || email || '').toString().trim();
         return profileName;
     };
 
     const openDonateModal = () => {
-        if (!donorName.trim()) {
-            const prefill = getPrefillDonorName();
-            if (prefill) setDonorName(prefill);
+        const prefill = getPrefillDonorName();
+        console.log('[DONATE_DEBUG] user:', user);
+        console.log('[DONATE_DEBUG] prefill name:', prefill);
+        console.log('[DONATE_DEBUG] current donorName:', donorName);
+        if (!donorName.trim() && prefill) {
+            setDonorName(prefill);
         }
         setIsDonateOpen(true);
     };
@@ -69,6 +81,10 @@ export default function ProjectDetailPage() {
         }
     }, [projectId, isCharity]);
 
+    useEffect(() => {
+        setMediaIndex(0);
+    }, [project]);
+
     const loadProject = async () => {
         try {
             setLoading(true);
@@ -76,6 +92,7 @@ export default function ProjectDetailPage() {
             // Handle backend response structure { project, milestones }
             if (data && data.project) {
                 setProject({ ...data.project, milestones: data.milestones || data.project.milestones || [] });
+                console.log('[PROJECT_DEBUG] project.creator:', data.project.creator);
             } else {
                 setProject(data);
             }
@@ -183,13 +200,20 @@ export default function ProjectDetailPage() {
         PENDING_REVIEW: 'bg-amber-500/10 text-amber-400',
         APPROVED: 'bg-blue-500/10 text-blue-400',
         FUNDING: 'bg-emerald-500/10 text-emerald-400',
-        FUNDED: 'bg-purple-500/10 text-purple-400',
+        FUNDED: 'bg-blue-500/10 text-blue-400',
         ACTIVE: 'bg-emerald-500/10 text-emerald-400',
         COMPLETED: 'bg-blue-500/10 text-blue-400',
         REJECTED: 'bg-red-500/10 text-red-400',
     };
     const statusColor = statusColorMap[project.status] || 'bg-gray-500/10 text-gray-400';
     const isOwner = isAuthenticated && (user?.id || user?._id) && (project.creatorId === (user?.id || user?._id));
+
+    const isCharityProject = project.projectType === 'CHARITY' || project.type === 'CHARITY';
+    const accentText = isCharityProject ? 'text-emerald-400' : 'text-blue-400';
+    const accentBorderText = isCharityProject ? 'bg-emerald-500/10 text-emerald-400' : 'bg-blue-500/10 text-blue-400';
+    const accentBg = isCharityProject ? 'bg-emerald-600' : 'bg-blue-600';
+    const accentShadow = isCharityProject ? 'shadow-emerald-500/20' : 'shadow-blue-500/20';
+    const accentGlow = isCharityProject ? 'bg-emerald-500/10' : 'bg-blue-500/10';
 
     return (
         <div className="min-h-screen bg-[var(--background)] text-[var(--text-main)]">
@@ -238,8 +262,8 @@ export default function ProjectDetailPage() {
                             {/* Project Header */}
                             <div>
                                 <div className="flex items-center gap-3 mb-4">
-                                    <span className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${project.projectType === 'CHARITY' ? 'bg-rose-500/10 text-rose-400' : 'bg-amber-500/10 text-amber-400'}`}>
-                                        {project.projectType === 'CHARITY' ? 'Charity' : 'ROI Project'}
+                                    <span className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${accentBorderText}`}>
+                                        {isCharityProject ? 'Charity' : 'ROI Project'}
                                     </span>
                                     <span className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${statusColor}`}>
                                         {project.status}
@@ -258,14 +282,47 @@ export default function ProjectDetailPage() {
                                 </p>
                             </div>
 
-                            {/* Hero Image */}
+                            {/* Media Carousel */}
                             <div className="relative rounded-3xl overflow-hidden bg-[var(--secondary)] aspect-video shadow-2xl">
-                                {project.imageUrl || (project.galleryImages && project.galleryImages[0]) ? (
-                                    <img
-                                        src={project.imageUrl || project.galleryImages[0]}
-                                        alt={project.name}
-                                        className="w-full h-full object-cover"
-                                    />
+                                {mediaItems.length > 0 ? (
+                                    <>
+                                        {currentMedia?.type === 'image' && (
+                                            <img src={currentMedia.url} alt={project.name} className="w-full h-full object-cover" />
+                                        )}
+                                        {currentMedia?.type === 'video' && (
+                                            <video src={currentMedia.url} controls className="w-full h-full object-cover" />
+                                        )}
+                                        {/* Navigation */}
+                                        {mediaItems.length > 1 && (
+                                            <>
+                                                <button
+                                                    onClick={() => setMediaIndex((i) => (i - 1 + mediaItems.length) % mediaItems.length)}
+                                                    className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors"
+                                                    aria-label="Previous"
+                                                >
+                                                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 19l-7-7 7-7" /></svg>
+                                                </button>
+                                                <button
+                                                    onClick={() => setMediaIndex((i) => (i + 1) % mediaItems.length)}
+                                                    className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors"
+                                                    aria-label="Next"
+                                                >
+                                                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 5l7 7-7 7" /></svg>
+                                                </button>
+                                                {/* Dots */}
+                                                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                                                    {mediaItems.map((_, i) => (
+                                                        <button
+                                                            key={i}
+                                                            onClick={() => setMediaIndex(i)}
+                                                            className={`w-2 h-2 rounded-full transition-all ${i === mediaIndex ? 'bg-white w-6' : 'bg-white/50'}`}
+                                                            aria-label={`Go to media ${i + 1}`}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+                                    </>
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center">
                                         <span className="text-8xl font-black italic opacity-10 select-none">TRUDEN</span>
@@ -412,7 +469,7 @@ export default function ProjectDetailPage() {
 
                                 {/* Funding Card */}
                                 <div className="bg-[var(--card)] rounded-3xl p-8 border border-[var(--border)] shadow-2xl relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl -translate-y-24 translate-x-24 pointer-events-none" />
+                                    <div className={`absolute top-0 right-0 w-48 h-48 ${accentGlow} rounded-full blur-3xl -translate-y-24 translate-x-24 pointer-events-none`} />
                                     <div className="relative z-10 space-y-6">
                                         <div>
                                             <p className="text-4xl font-black tracking-tighter">
@@ -430,7 +487,7 @@ export default function ProjectDetailPage() {
                                                     initial={{ width: 0 }}
                                                     animate={{ width: `${percentage}%` }}
                                                     transition={{ duration: 1.5, ease: 'easeOut' }}
-                                                    className="h-full bg-[var(--primary)] rounded-full shadow-[0_0_12px_rgba(59,130,246,0.5)]"
+                                                    className={`h-full ${accentBg} rounded-full`}
                                                 />
                                             </div>
                                             <div className="flex justify-between text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
@@ -456,7 +513,7 @@ export default function ProjectDetailPage() {
                                             {isCharity ? (
                                                 <button
                                                     onClick={openDonateModal}
-                                                    className="w-full py-4 bg-[var(--primary)] text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                                                    className={`w-full py-4 ${accentBg} text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl ${accentShadow} hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2`}
                                                 >
                                                     <Wallet size={16} />
                                                     Donate Now
@@ -464,7 +521,7 @@ export default function ProjectDetailPage() {
                                             ) : (
                                                 <button
                                                     disabled={!isAuthenticated}
-                                                    className="w-full py-4 bg-[var(--primary)] text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                                    className={`w-full py-4 ${accentBg} text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl ${accentShadow} hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
                                                 >
                                                     <Wallet size={16} />
                                                     {isAuthenticated ? 'Invest in Project' : 'Sign In to Invest'}
@@ -490,12 +547,14 @@ export default function ProjectDetailPage() {
                                         {/* Creator */}
                                         <div className="pt-4 border-t border-[var(--border)] flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-full bg-[var(--primary)] flex items-center justify-center text-white font-black text-sm">
-                                                {project.name?.[0]?.toUpperCase() || 'P'}
+                                                {project.creator?.firstName?.[0]?.toUpperCase() || project.creator?.lastName?.[0]?.toUpperCase() || project.creator?.email?.[0]?.toUpperCase() || project.name?.[0]?.toUpperCase() || 'P'}
                                             </div>
                                             <div>
                                                 <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Creator</p>
                                                 <p className="font-bold text-sm flex items-center gap-1">
-                                                    {project.creator?.name || 'Project Creator'}
+                                                    {project.creator?.firstName && project.creator?.lastName
+                                                        ? `${project.creator.firstName} ${project.creator.lastName}`
+                                                        : project.creator?.firstName || project.creator?.lastName || project.creator?.email || 'Project Creator'}
                                                     <CheckCircle2 size={12} className="text-blue-400" />
                                                 </p>
                                             </div>
@@ -603,7 +662,6 @@ export default function ProjectDetailPage() {
                         <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
                             <div>
                                 <h3 className="text-lg font-black">Donate to this project</h3>
-                                <p className="text-xs text-[var(--text-muted)] font-medium mt-1">Anonymous donations are allowed.</p>
                             </div>
                             <button
                                 onClick={() => { setIsDonateOpen(false); setDonationError(''); }}

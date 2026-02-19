@@ -117,7 +117,7 @@ export default function LandingPage() {
               transition={{ delay: 0.2 }}
               className="flex gap-4 justify-center flex-wrap"
             >
-              <Link href="/explore" className="bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-semibold px-8 py-3 rounded-xl transition-colors shadow-sm hover:shadow">
+              <Link href="/explore" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-xl transition-colors shadow-sm hover:shadow">
                 Browse Projects
               </Link>
               <Link href="/create-project" className="bg-white/85 dark:bg-slate-900/65 backdrop-blur text-slate-950 dark:text-white font-semibold px-8 py-3 rounded-xl border border-white/40 dark:border-white/10 hover:bg-white dark:hover:bg-slate-900 transition-colors shadow-sm hover:shadow">
@@ -135,7 +135,7 @@ export default function LandingPage() {
                 onClick={() => setActiveTab('ALL')}
                 className={`px-6 py-2 rounded-lg font-semibold transition-all ${
                   activeTab === 'ALL' 
-                    ? 'bg-[#0ea5e9] text-white' 
+                    ? 'bg-blue-600 text-white' 
                     : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                 }`}
               >
@@ -145,7 +145,7 @@ export default function LandingPage() {
                 onClick={() => setActiveTab('CHARITY')}
                 className={`px-6 py-2 rounded-lg font-semibold transition-all ${
                   activeTab === 'CHARITY' 
-                    ? 'bg-[#0ea5e9] text-white' 
+                    ? 'bg-emerald-600 text-white' 
                     : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                 }`}
               >
@@ -155,7 +155,7 @@ export default function LandingPage() {
                 onClick={() => setActiveTab('ROI')}
                 className={`px-6 py-2 rounded-lg font-semibold transition-all ${
                   activeTab === 'ROI' 
-                    ? 'bg-[#0ea5e9] text-white' 
+                    ? 'bg-blue-600 text-white' 
                     : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                 }`}
               >
@@ -178,8 +178,8 @@ export default function LandingPage() {
               >
                 <div className="text-center space-y-4 max-w-3xl mx-auto">
                   <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-gray-800 border border-[var(--border)]">
-                    <Heart size={16} className="text-[#0ea5e9]" />
-                    <span className="text-sm font-semibold text-[#0ea5e9]">Charity Projects</span>
+                    <Heart size={16} className="text-emerald-600" />
+                    <span className="text-sm font-semibold text-emerald-600">Charity Projects</span>
                   </div>
                   <h2 className="text-3xl md:text-4xl font-bold text-[var(--text-main)]">
                     Make a Difference, One Donation at a Time
@@ -207,9 +207,9 @@ export default function LandingPage() {
 
                 <div className="text-center space-y-4 pt-6">
                   <p className="text-lg font-semibold text-[var(--text-main)]">
-                    Total Impact: <span className="text-[#0ea5e9]">${stats.charity.toLocaleString()}K Raised</span> | {stats.charityCount} Projects Funded
+                    Total Impact: <span className="text-emerald-600">${stats.charity.toLocaleString()}K Raised</span> | {stats.charityCount} Projects Funded
                   </p>
-                  <Link href="/create-project" className="bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-semibold px-8 py-3 rounded-lg inline-flex items-center gap-2 transition-colors">
+                  <Link href="/create-project" className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-8 py-3 rounded-lg inline-flex items-center gap-2 transition-colors">
                     <Plus size={20} />
                     Create Charity Project
                   </Link>
@@ -227,8 +227,8 @@ export default function LandingPage() {
               >
                 <div className="text-center space-y-4 max-w-3xl mx-auto">
                   <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-gray-800 border border-[var(--border)]">
-                    <TrendingUp size={16} className="text-[#0ea5e9]" />
-                    <span className="text-sm font-semibold text-[#0ea5e9]">ROI Projects</span>
+                    <TrendingUp size={16} className="text-blue-600" />
+                    <span className="text-sm font-semibold text-blue-600">ROI Projects</span>
                   </div>
                   <h2 className="text-3xl md:text-4xl font-bold text-[var(--text-main)]">
                     Invest in Innovation, Expect Returns
@@ -256,9 +256,9 @@ export default function LandingPage() {
 
                 <div className="text-center space-y-4 pt-6">
                   <p className="text-lg font-semibold text-[var(--text-main)]">
-                    Total Investment: <span className="text-[#0ea5e9]">${stats.roi.toLocaleString()}M</span> | Avg. ROI: 15%
+                    Total Investment: <span className="text-blue-600">${stats.roi.toLocaleString()}M</span> | Avg. ROI: 15%
                   </p>
-                  <Link href="/create-project" className="bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-semibold px-8 py-3 rounded-lg inline-flex items-center gap-2 transition-colors">
+                  <Link href="/create-project" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg inline-flex items-center gap-2 transition-colors">
                     <Plus size={20} />
                     Create ROI Project
                   </Link>

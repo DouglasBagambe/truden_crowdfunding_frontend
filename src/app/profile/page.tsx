@@ -230,7 +230,7 @@ export default function ProfilePage() {
                   </section> */}
 
                   {/* Save Button */}
-                  <button className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-8 py-3 rounded-xl transition-colors">
+                  <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-xl transition-colors">
                     Save Changes
                   </button>
                 </div>
@@ -284,7 +284,7 @@ export default function ProfilePage() {
                       <div className="p-6 bg-[var(--card)] border border-[var(--border)] rounded-xl">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-purple-600 rounded-xl flex items-center justify-center">
+                            <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
                               <Wallet className="w-6 h-6 text-white" />
                             </div>
                             <div>
@@ -292,7 +292,7 @@ export default function ProfilePage() {
                               <p className="text-sm text-[var(--text-muted)]">Primary Wallet</p>
                             </div>
                           </div>
-                          <span className="px-3 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 text-xs font-semibold rounded-full">
+                          <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-semibold rounded-full">
                             PRIMARY
                           </span>
                         </div>
@@ -357,7 +357,7 @@ export default function ProfilePage() {
                         <p className="text-[var(--text-muted)]">Complete your KYC verification to access all features.</p>
                         <button
                           onClick={() => setIsKYCOpen(true)}
-                          className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-8 py-3 rounded-xl transition-colors"
+                          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-xl transition-colors"
                         >
                           Start Verification
                         </button>

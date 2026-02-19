@@ -60,7 +60,7 @@ export default function WalletPage() {
                 </div>
 
                 {/* Wallet Balance Card */}
-                <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-3xl p-8 text-white shadow-2xl">
+                <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-sky-600 rounded-3xl p-8 text-white shadow-2xl">
                     {/* Decorative elements */}
                     <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32"></div>
                     <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full translate-y-24 -translate-x-24"></div>
@@ -157,7 +157,7 @@ export default function WalletPage() {
                                         {method.type === 'mobile_money' ? (
                                             <Smartphone className="w-6 h-6 text-blue-600" />
                                         ) : (
-                                            <CreditCard className="w-6 h-6 text-purple-600" />
+                                            <CreditCard className="w-6 h-6 text-blue-600" />
                                         )}
                                         <div>
                                             <p className="font-semibold text-gray-900">

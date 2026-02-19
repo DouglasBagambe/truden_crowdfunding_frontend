@@ -419,7 +419,7 @@ const StepTerms = ({ acceptedTerms, setAcceptedTerms, error, onNext, onBack, pro
           <span><strong>Risk Disclosure:</strong> {project.projectType === 'ROI' ? 'This is a high-risk ROI investment. Returns are not guaranteed.' : 'This is a charitable contribution with no expectation of financial return.'}</span>
         </li>
         <li className="flex items-start gap-3">
-          <Shield className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
+          <Shield className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
           <span><strong>Dispute Resolution:</strong> In case of disputes, a decentralized arbitration process will be initiated.</span>
         </li>
       </ul>
@@ -466,7 +466,7 @@ const StepWallet = ({ isConnected, address, error, onNext, onBack }: any) => (
     className="space-y-6"
   >
     <div className="text-center space-y-2">
-      <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto">
+      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-sky-600 rounded-2xl flex items-center justify-center mx-auto">
         <Wallet className="w-8 h-8 text-white" />
       </div>
       <h3 className="text-2xl font-bold text-[var(--text-main)]">Connect Wallet</h3>
@@ -530,7 +530,7 @@ const StepSigning = ({ isContractLoading, isWaitingForTx, error, amount }: any) 
     className="space-y-6"
   >
     <div className="text-center space-y-2">
-      <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto">
+      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto">
         {isWaitingForTx ? (
           <Loader2 className="w-8 h-8 text-white animate-spin" />
         ) : (
@@ -609,7 +609,7 @@ const StepSuccess = ({ project, amount, txHash, onClose }: any) => {
               initial={{ y: -20, x: Math.random() * 400 - 200, opacity: 1 }}
               animate={{ y: 500, opacity: 0 }}
               transition={{ duration: 2, delay: Math.random() * 0.5 }}
-              className="absolute w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
+              className="absolute w-2 h-2 bg-gradient-to-r from-blue-500 to-sky-500 rounded-full"
               style={{ left: '50%' }}
             />
           ))}
@@ -629,8 +629,8 @@ const StepSuccess = ({ project, amount, txHash, onClose }: any) => {
       </div>
 
       {/* NFT Preview */}
-      <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border border-purple-100 dark:border-purple-900/30 rounded-2xl p-6 space-y-3">
-        <div className="flex items-center justify-center gap-2 text-purple-600 dark:text-purple-400">
+      <div className="bg-gradient-to-br from-blue-50 to-sky-50 dark:from-blue-950/20 dark:to-sky-950/20 border border-blue-100 dark:border-blue-900/30 rounded-2xl p-6 space-y-3">
+        <div className="flex items-center justify-center gap-2 text-blue-600 dark:text-blue-400">
           <Sparkles className="w-5 h-5" />
           <span className="font-bold text-sm">Investment NFT Minted</span>
         </div>

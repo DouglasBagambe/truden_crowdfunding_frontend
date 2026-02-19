@@ -45,7 +45,7 @@ function NFTCard({
             className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100"
         >
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4">
+            <div className="bg-gradient-to-r from-blue-600 to-sky-600 p-4">
                 <div className="flex items-center justify-between">
                     <div>
                         <p className="text-white/80 text-sm font-medium">Investment NFT</p>
