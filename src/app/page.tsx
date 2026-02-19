@@ -23,6 +23,16 @@ import ProjectCard from '@/components/dashboard/ProjectCard';
 export default function LandingPage() {
   const { data: projectsData, isLoading } = useProjects();
   const [activeTab, setActiveTab] = useState<'ALL' | 'CHARITY' | 'ROI'>('ALL');
+
+  const ugxFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat('en-UG', {
+        style: 'currency',
+        currency: 'UGX',
+        maximumFractionDigits: 0,
+      }),
+    [],
+  );
   const heroImages = useMemo(
     () => [
       'https://picsum.photos/seed/fundflow-hero-1/1600/900',
@@ -208,7 +218,7 @@ export default function LandingPage() {
 
                 <div className="text-center space-y-4 pt-6">
                   <p className="text-lg font-semibold text-[var(--text-main)]">
-                    Total Impact: <span className="text-emerald-600">${stats.charity.toLocaleString()}K Raised</span> | {stats.charityCount} Projects Funded
+                    Total Impact: <span className="text-emerald-600">{ugxFormatter.format(stats.charity)} Raised</span> | {stats.charityCount} Projects Funded
                   </p>
                   <div className="flex items-center justify-center gap-3 flex-wrap">
                     <Link href="/explore?type=CHARITY" className="px-8 py-3 rounded-lg inline-flex items-center gap-2 font-semibold border border-emerald-600/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-colors">
@@ -263,7 +273,7 @@ export default function LandingPage() {
 
                 <div className="text-center space-y-4 pt-6">
                   <p className="text-lg font-semibold text-[var(--text-main)]">
-                    Total Investment: <span className="text-blue-600">${stats.roi.toLocaleString()}M</span> | Avg. ROI: 15%
+                    Total Investment: <span className="text-blue-600">{ugxFormatter.format(stats.roi)}</span> | Avg. ROI: 15%
                   </p>
                   <div className="flex items-center justify-center gap-3 flex-wrap">
                     <Link href="/explore?type=ROI" className="px-8 py-3 rounded-lg inline-flex items-center gap-2 font-semibold border border-blue-600/30 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-colors">

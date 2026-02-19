@@ -12,6 +12,7 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { projectService } from '@/lib/project-service';
 import { useAuth } from '@/hooks/useAuth';
+import { investmentService } from '@/lib/investment-service';
 
 export default function ProjectDetailPage() {
     const params = useParams();
@@ -32,6 +33,11 @@ export default function ProjectDetailPage() {
     const [donationError, setDonationError] = useState('');
     const [donors, setDonors] = useState<Array<{ id: string; donorName: string; amount: number; createdAt?: string | null }>>([]);
     const [donorsLoading, setDonorsLoading] = useState(false);
+
+    const [isInvestOpen, setIsInvestOpen] = useState(false);
+    const [investmentAmount, setInvestmentAmount] = useState('');
+    const [isInvesting, setIsInvesting] = useState(false);
+    const [investmentError, setInvestmentError] = useState('');
 
     const projectType = project?.projectType || project?.type;
     const isCharity = projectType === 'CHARITY';
@@ -55,6 +61,31 @@ export default function ProjectDetailPage() {
         return profileName;
     };
 
+    const handleInvest = async () => {
+        try {
+            setInvestmentError('');
+            const amountNumber = Number(investmentAmount);
+            if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
+                setInvestmentError('Enter a valid amount');
+                return;
+            }
+            setIsInvesting(true);
+            await investmentService.createInvestment({
+                projectId: projectId,
+                amount: investmentAmount,
+                projectOnchainId: (project as any)?.projectOnchainId,
+            });
+            setIsInvestOpen(false);
+            setInvestmentAmount('');
+            await loadProject();
+        } catch (err: any) {
+            console.error('Investment error:', err);
+            setInvestmentError(err?.response?.data?.message || 'Investment failed');
+        } finally {
+            setIsInvesting(false);
+        }
+    };
+
     const openDonateModal = () => {
         const prefill = getPrefillDonorName();
         console.log('[DONATE_DEBUG] user:', user);
@@ -64,6 +95,11 @@ export default function ProjectDetailPage() {
             setDonorName(prefill);
         }
         setIsDonateOpen(true);
+    };
+
+    const openInvestModal = () => {
+        setInvestmentError('');
+        setIsInvestOpen(true);
     };
 
     useEffect(() => {
@@ -521,6 +557,14 @@ export default function ProjectDetailPage() {
                                             ) : (
                                                 <button
                                                     disabled={!isAuthenticated}
+                                                    onClick={() => {
+                                                        if (!isAuthenticated) {
+                                                            const next = typeof window !== 'undefined' ? window.location.pathname : '/';
+                                                            window.location.href = `/login?next=${encodeURIComponent(next)}`;
+                                                            return;
+                                                        }
+                                                        openInvestModal();
+                                                    }}
                                                     className={`w-full py-4 ${accentBg} text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl ${accentShadow} hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
                                                 >
                                                     <Wallet size={16} />
@@ -713,6 +757,60 @@ export default function ProjectDetailPage() {
                                     disabled={isDonating}
                                 >
                                     {isDonating ? 'Processing...' : 'Donate'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {isRoi && isInvestOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-6">
+                    <div className="w-full max-w-lg bg-[var(--card)] border border-[var(--border)] rounded-3xl overflow-hidden shadow-2xl">
+                        <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-black">Invest in this project</h3>
+                            </div>
+                            <button
+                                onClick={() => { setIsInvestOpen(false); setInvestmentError(''); }}
+                                className="p-2 rounded-xl hover:bg-white/5 transition-all"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Amount ({currency})</label>
+                                <input
+                                    value={investmentAmount}
+                                    onChange={(e) => setInvestmentAmount(e.target.value)}
+                                    type="number"
+                                    min="1"
+                                    placeholder="Enter amount"
+                                    className="input_field"
+                                />
+                            </div>
+
+                            {investmentError && (
+                                <div className="p-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 text-rose-300 text-sm font-medium">
+                                    {investmentError}
+                                </div>
+                            )}
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    onClick={() => { setIsInvestOpen(false); setInvestmentError(''); }}
+                                    className="flex-1 py-3 border border-[var(--border)] rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white/5 transition-all"
+                                    disabled={isInvesting}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleInvest}
+                                    className="flex-1 py-3 bg-[var(--primary)] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-60"
+                                    disabled={isInvesting}
+                                >
+                                    {isInvesting ? 'Processing...' : 'Invest'}
                                 </button>
                             </div>
                         </div>

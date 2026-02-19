@@ -27,12 +27,12 @@ export const userService = {
   },
 
   async submitKyc(data: any) {
-    const response = await apiClient.post('/users/me/kyc', data);
+    const response = await apiClient.patch('/users/me/kyc', data);
     return response.data;
   },
 
   async startSmileKyc(data: any) {
-    const response = await apiClient.post('/users/me/kyc/smile', data);
+    const response = await apiClient.post('/users/me/kyc/session', data);
     return response.data;
   },
 

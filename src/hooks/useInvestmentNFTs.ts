@@ -1,5 +1,5 @@
-import { useQuery, UseQueryResult, useQueryClient } from '@tanstack/react-query';
-import { useAccount, useReadContract, useWatchContractEvent } from 'wagmi';
+import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { useAccount, useReadContract } from 'wagmi';
 import { investmentNFTService, type NFTData, type InvestorNFTsResponse } from '@/lib/investment-nft-service';
 import { INVESTMENT_NFT_ADDRESS, INVESTMENT_NFT_ABI } from '@/constants/contracts';
 
@@ -78,92 +78,26 @@ export function useNFTPortfolioMetrics(investorAddress?: string) {
  */
 export function useInvestmentNFTs() {
   const { address, isConnected } = useAccount();
-  const queryClient = useQueryClient();
 
-  // Fetch NFT balance
-  const { data: balance = 0n } = useReadContract({
-    address: INVESTMENT_NFT_ADDRESS,
-    abi: INVESTMENT_NFT_ABI,
-    functionName: 'balanceOf',
-    args: address ? [address] : undefined,
-    query: {
-      enabled: !!address && isConnected,
-      refetchInterval: 30000, // Refetch every 30 seconds
-    },
-  });
-
-  // Fetch all NFT token IDs owned by the user
-  const { data: nftData, isLoading, error } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['user-nfts', address],
     queryFn: async () => {
-      if (!address || !isConnected || balance === 0n) {
-        return [];
-      }
-
-      const nfts = [];
-      const balanceNumber = Number(balance);
-
-      // Fetch each token ID
-      for (let i = 0; i < balanceNumber; i++) {
-        try {
-          // This would need to be implemented based on your NFT contract
-          // Most NFT contracts have tokenOfOwnerByIndex or similar
-          // For now, we'll return a placeholder structure
-          nfts.push({
-            tokenId: i,
-            owner: address,
-          });
-        } catch (err) {
-          console.error(`Error fetching token ${i}:`, err);
-        }
-      }
-
-      return nfts;
+      if (!address || !isConnected) return { tokenIds: [], count: 0 };
+      return investmentNFTService.getInvestorNFTs(address);
     },
-    enabled: !!address && isConnected && balance > 0n,
+    enabled: !!address && isConnected,
     staleTime: 30000,
   });
 
-  // Watch for NFT transfers TO this address
-  useWatchContractEvent({
-    address: INVESTMENT_NFT_ADDRESS,
-    abi: INVESTMENT_NFT_ABI,
-    eventName: 'Transfer',
-    args: {
-      to: address,
-    },
-    onLogs: (logs) => {
-      console.log('[NFT Sync] Received NFT:', logs);
-      // Invalidate queries to refresh NFT list
-      queryClient.invalidateQueries({ queryKey: ['user-nfts', address] });
-      queryClient.invalidateQueries({ queryKey: ['user-investments', address] });
-    },
-    enabled: !!address && isConnected,
-  });
-
-  // Watch for NFT transfers FROM this address
-  useWatchContractEvent({
-    address: INVESTMENT_NFT_ADDRESS,
-    abi: INVESTMENT_NFT_ABI,
-    eventName: 'Transfer',
-    args: {
-      from: address,
-    },
-    onLogs: (logs) => {
-      console.log('[NFT Sync] Transferred NFT:', logs);
-      // Invalidate queries to refresh NFT list
-      queryClient.invalidateQueries({ queryKey: ['user-nfts', address] });
-      queryClient.invalidateQueries({ queryKey: ['user-investments', address] });
-    },
-    enabled: !!address && isConnected,
-  });
+  const tokenIds = data?.tokenIds ?? [];
+  const balance = tokenIds.length;
 
   return {
-    nfts: nftData || [],
-    balance: Number(balance),
+    nfts: tokenIds.map((tokenId) => ({ tokenId, owner: address })),
+    balance,
     isLoading,
     error,
-    hasNFTs: balance > 0n,
+    hasNFTs: balance > 0,
   };
 }
 
