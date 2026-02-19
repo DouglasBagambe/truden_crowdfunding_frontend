@@ -1,15 +1,15 @@
 import { apiClient } from './api-client';
 
 export enum InvestmentStatus {
-    Pending = 'Pending',
-    Active = 'Active',
-    Completed = 'Completed',
-    Refunded = 'Refunded',
+    Pending = 'pending',
+    Active = 'active',
+    Completed = 'completed',
+    Refunded = 'refunded',
 }
 
 export interface CreateInvestmentDto {
     projectId: string;
-    amount: number;
+    amount: string;
     projectOnchainId?: string;
 }
 

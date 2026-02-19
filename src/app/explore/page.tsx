@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { useProjects } from '@/hooks/useProjects';
@@ -18,19 +18,140 @@ import Link from 'next/link';
 export default function ExplorePage() {
     const searchParams = useSearchParams();
     const router = useRouter();
-    const [search, setSearch] = useState('');
-    const [category, setCategory] = useState(searchParams.get('category') || 'ALL');
-    const [projectType, setProjectType] = useState(searchParams.get('type') || 'ALL');
-    const [statusFilters, setStatusFilters] = useState<string[]>(['APPROVED', 'FUNDING']);
-    const [sortBy, setSortBy] = useState('newest');
-    const [range, setRange] = useState(100);
-
-    const queryParams = {
-        search: search || undefined,
-        category: category !== 'ALL' ? category : undefined,
-        type: projectType !== 'ALL' ? projectType : undefined,
-        statuses: statusFilters.length > 0 ? statusFilters : undefined,
+    const parseStatuses = (raw: string | null) => {
+        if (!raw) return [];
+        const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
+        return parts.length > 0 ? parts : [];
     };
+
+    const initialApplied = useMemo(() => {
+        const initialSearch = searchParams.get('search') || '';
+        const initialCategory = searchParams.get('category') || 'ALL';
+        const initialType = searchParams.get('type') || 'ALL';
+        const initialStatuses = parseStatuses(searchParams.get('statuses'));
+        const initialSort = searchParams.get('sort') || 'newest';
+        return {
+            search: initialSearch,
+            category: initialCategory,
+            projectType: initialType,
+            statuses: initialStatuses,
+            sortBy: initialSort,
+        };
+    }, [searchParams]);
+
+    const [draftSearch, setDraftSearch] = useState(initialApplied.search);
+    const [draftCategory, setDraftCategory] = useState(initialApplied.category);
+    const [draftProjectType, setDraftProjectType] = useState(initialApplied.projectType);
+    const [draftStatusFilters, setDraftStatusFilters] = useState<string[]>(initialApplied.statuses);
+    const [draftSortBy, setDraftSortBy] = useState(initialApplied.sortBy);
+
+    const [appliedSearch, setAppliedSearch] = useState(initialApplied.search);
+    const [appliedCategory, setAppliedCategory] = useState(initialApplied.category);
+    const [appliedProjectType, setAppliedProjectType] = useState(initialApplied.projectType);
+    const [appliedStatusFilters, setAppliedStatusFilters] = useState<string[]>(initialApplied.statuses);
+    const [appliedSortBy, setAppliedSortBy] = useState(initialApplied.sortBy);
+
+    const buildExploreUrl = (next: {
+        search: string;
+        category: string;
+        projectType: string;
+        statuses: string[];
+        sortBy: string;
+    }) => {
+        const sp = new URLSearchParams();
+        if (next.search.trim()) sp.set('search', next.search.trim());
+        if (next.category && next.category !== 'ALL') sp.set('category', next.category);
+        if (next.projectType && next.projectType !== 'ALL') sp.set('type', next.projectType);
+        if (next.statuses && next.statuses.length > 0) sp.set('statuses', next.statuses.join(','));
+        if (next.sortBy && next.sortBy !== 'newest') sp.set('sort', next.sortBy);
+        const qs = sp.toString();
+        return qs ? `/explore?${qs}` : '/explore';
+    };
+
+    const applyFilters = (next?: Partial<{
+        search: string;
+        category: string;
+        projectType: string;
+        statuses: string[];
+        sortBy: string;
+    }>) => {
+        const merged = {
+            search: next?.search ?? draftSearch,
+            category: next?.category ?? draftCategory,
+            projectType: next?.projectType ?? draftProjectType,
+            statuses: next?.statuses ?? draftStatusFilters,
+            sortBy: next?.sortBy ?? draftSortBy,
+        };
+
+        setAppliedSearch(merged.search);
+        setAppliedCategory(merged.category);
+        setAppliedProjectType(merged.projectType);
+        setAppliedStatusFilters(merged.statuses);
+        setAppliedSortBy(merged.sortBy);
+
+        router.replace(buildExploreUrl(merged));
+    };
+
+    const resetAll = () => {
+        const defaults = {
+            search: '',
+            category: 'ALL',
+            projectType: 'ALL',
+            statuses: [],
+            sortBy: 'newest',
+        };
+
+        setDraftSearch(defaults.search);
+        setDraftCategory(defaults.category);
+        setDraftProjectType(defaults.projectType);
+        setDraftStatusFilters(defaults.statuses);
+        setDraftSortBy(defaults.sortBy);
+
+        setAppliedSearch(defaults.search);
+        setAppliedCategory(defaults.category);
+        setAppliedProjectType(defaults.projectType);
+        setAppliedStatusFilters(defaults.statuses);
+        setAppliedSortBy(defaults.sortBy);
+
+        router.replace('/explore');
+    };
+
+    useEffect(() => {
+        const nextSearch = searchParams.get('search') || '';
+        const nextCategory = searchParams.get('category') || 'ALL';
+        const nextType = searchParams.get('type') || 'ALL';
+        const nextStatuses = parseStatuses(searchParams.get('statuses'));
+        const nextSort = searchParams.get('sort') || 'newest';
+
+        setDraftSearch(nextSearch);
+        setDraftCategory(nextCategory);
+        setDraftProjectType(nextType);
+        setDraftStatusFilters(nextStatuses);
+        setDraftSortBy(nextSort);
+
+        setAppliedSearch(nextSearch);
+        setAppliedCategory(nextCategory);
+        setAppliedProjectType(nextType);
+        setAppliedStatusFilters(nextStatuses);
+        setAppliedSortBy(nextSort);
+    }, [searchParams]);
+
+    useEffect(() => {
+        const t = setTimeout(() => {
+            applyFilters({ search: draftSearch });
+        }, 350);
+        return () => clearTimeout(t);
+    }, [draftSearch, draftCategory, draftProjectType, draftStatusFilters, draftSortBy]);
+
+    const queryParams = useMemo(() => {
+        return {
+            search: appliedSearch || undefined,
+            category: appliedCategory !== 'ALL' ? appliedCategory : undefined,
+            type: appliedProjectType !== 'ALL' ? appliedProjectType : undefined,
+            statuses: appliedStatusFilters.length > 0 ? appliedStatusFilters : undefined,
+            sort: appliedSortBy !== 'newest' ? appliedSortBy : undefined,
+        };
+    }, [appliedSearch, appliedCategory, appliedProjectType, appliedStatusFilters, appliedSortBy]);
 
     const { data, isLoading } = useProjects(queryParams);
     const rawProjects = data?.projects || data?.items || [];
@@ -52,12 +173,12 @@ export default function ExplorePage() {
     ];
 
     const toggleStatus = (status: string) => {
-        setStatusFilters(prev => 
+        setDraftStatusFilters(prev =>
             prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
         );
     };
 
-    const isCharitySelected = projectType === 'CHARITY';
+    const isCharitySelected = draftProjectType === 'CHARITY';
     const accent = {
         focusText: isCharitySelected ? 'group-focus-within:text-emerald-500' : 'group-focus-within:text-blue-500',
         focusRing: isCharitySelected ? 'focus:ring-emerald-500/10 focus:border-emerald-500' : 'focus:ring-blue-500/10 focus:border-blue-500',
@@ -81,16 +202,16 @@ export default function ExplorePage() {
                         <input 
                             type="text" 
                             placeholder="Search projects by title or description..." 
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
+                            value={draftSearch}
+                            onChange={(e) => setDraftSearch(e.target.value)}
                             className={`w-full bg-[var(--card)] border border-[var(--border)] rounded-2xl py-4 pl-12 pr-4 focus:ring-4 ${accent.focusRing} outline-none transition-all shadow-sm font-medium`}
                         />
                     </div>
                     
                     <div className="flex items-center gap-4 w-full md:w-auto">
                         <select 
-                            value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value)}
+                            value={draftSortBy}
+                            onChange={(e) => setDraftSortBy(e.target.value)}
                             className={`bg-[var(--card)] border border-[var(--border)] rounded-xl py-3 px-4 text-sm font-bold text-[var(--text-muted)] outline-none transition-all shadow-sm cursor-pointer ${accent.hoverBorder}`}
                         >
                             <option value="newest">Newest First</option>
@@ -109,6 +230,36 @@ export default function ExplorePage() {
                     <aside className="lg:w-80 space-y-8 flex-shrink-0">
                         <div className="bg-[var(--card)] border border-[var(--border)] rounded-[2rem] p-8 space-y-10 shadow-sm">
                             <h2 className="text-xl font-black tracking-tight border-b border-[var(--border)] pb-4">Filters</h2>
+
+                            {/* Active Filters */}
+                            {(appliedSearch.trim() || appliedCategory !== 'ALL' || appliedProjectType !== 'ALL' || appliedStatusFilters.length > 0 || appliedSortBy !== 'newest') && (
+                                <div className="flex flex-wrap gap-2">
+                                    {appliedProjectType !== 'ALL' && (
+                                        <button
+                                            onClick={() => applyFilters({ projectType: 'ALL' })}
+                                            className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[var(--secondary)] text-[var(--text-main)] border border-[var(--border)] hover:opacity-90"
+                                        >
+                                            Type: {appliedProjectType}
+                                        </button>
+                                    )}
+                                    {appliedCategory !== 'ALL' && (
+                                        <button
+                                            onClick={() => applyFilters({ category: 'ALL' })}
+                                            className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[var(--secondary)] text-[var(--text-main)] border border-[var(--border)] hover:opacity-90"
+                                        >
+                                            Category: {appliedCategory}
+                                        </button>
+                                    )}
+                                    {appliedSearch.trim() && (
+                                        <button
+                                            onClick={() => applyFilters({ search: '' })}
+                                            className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[var(--secondary)] text-[var(--text-main)] border border-[var(--border)] hover:opacity-90"
+                                        >
+                                            Search: “{appliedSearch.trim()}”
+                                        </button>
+                                    )}
+                                </div>
+                            )}
                             
                             {/* Project Type */}
                             <div className="space-y-4">
@@ -116,17 +267,17 @@ export default function ExplorePage() {
                                 <div className="space-y-3">
                                     {['ALL', 'ROI', 'CHARITY'].map((type) => (
                                         <label key={type} className="flex items-center gap-3 cursor-pointer group">
-                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${projectType === type ? accent.radioOn : `border-[var(--border)] ${accent.radioOff}`}`}>
-                                                {projectType === type && <div className="w-2 h-2 rounded-full bg-white" />}
+                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${draftProjectType === type ? accent.radioOn : `border-[var(--border)] ${accent.radioOff}`}`}>
+                                                {draftProjectType === type && <div className="w-2 h-2 rounded-full bg-white" />}
                                             </div>
                                             <input 
                                                 type="radio" 
                                                 className="hidden" 
                                                 name="projectType" 
-                                                checked={projectType === type}
-                                                onChange={() => setProjectType(type)}
+                                                checked={draftProjectType === type}
+                                                onChange={() => setDraftProjectType(type)}
                                             />
-                                            <span className={`text-sm font-bold transition-colors ${projectType === type ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-main)]'}`}>
+                                            <span className={`text-sm font-bold transition-colors ${draftProjectType === type ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-main)]'}`}>
                                                 {type === 'ALL' ? 'All Projects' : type === 'ROI' ? 'ROI Projects' : 'Charity Projects'}
                                             </span>
                                         </label>
@@ -145,16 +296,16 @@ export default function ExplorePage() {
                                         { id: 'COMPLETED', label: 'Completed' },
                                     ].map((status) => (
                                         <label key={status.id} className="flex items-center gap-3 cursor-pointer group">
-                                            <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${statusFilters.includes(status.id) ? accent.checkboxOn : `border-[var(--border)] ${accent.checkboxOff}`}`}>
-                                                {statusFilters.includes(status.id) && <Plus size={14} className="text-white" />}
+                                            <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${draftStatusFilters.includes(status.id) ? accent.checkboxOn : `border-[var(--border)] ${accent.checkboxOff}`}`}>
+                                                {draftStatusFilters.includes(status.id) && <Plus size={14} className="text-white" />}
                                             </div>
                                             <input 
                                                 type="checkbox" 
                                                 className="hidden" 
-                                                checked={statusFilters.includes(status.id)}
+                                                checked={draftStatusFilters.includes(status.id)}
                                                 onChange={() => toggleStatus(status.id)}
                                             />
-                                            <span className={`text-sm font-bold transition-colors ${statusFilters.includes(status.id) ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-main)]'}`}>
+                                            <span className={`text-sm font-bold transition-colors ${draftStatusFilters.includes(status.id) ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-main)]'}`}>
                                                 {status.label}
                                             </span>
                                         </label>
@@ -166,8 +317,8 @@ export default function ExplorePage() {
                             <div className="space-y-4">
                                 <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Category</h3>
                                 <select 
-                                    value={category}
-                                    onChange={(e) => setCategory(e.target.value)}
+                                    value={draftCategory}
+                                    onChange={(e) => setDraftCategory(e.target.value)}
                                     className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm font-bold text-slate-700 outline-none focus:border-blue-500 transition-all cursor-pointer"
                                 >
                                     {categories.map((cat) => (
@@ -176,34 +327,17 @@ export default function ExplorePage() {
                                 </select>
                             </div>
 
-                            {/* Range Slider */}
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Target Reached</h3>
-                                    <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md">{range}%</span>
-                                </div>
-                                <input 
-                                    type="range" 
-                                    min="0" 
-                                    max="100" 
-                                    value={range}
-                                    onChange={(e) => setRange(parseInt(e.target.value))}
-                                    className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                                />
-                                <div className="flex justify-between text-[10px] font-black text-slate-300">
-                                    <span>0%</span>
-                                    <span>100%</span>
-                                </div>
-                            </div>
-
                             <div className="pt-6 border-t border-slate-100 flex gap-3">
                                 <button 
-                                    onClick={() => { setSearch(''); setCategory('ALL'); setProjectType('ALL'); setStatusFilters(['APPROVED', 'FUNDING']); setRange(100); }}
+                                    onClick={resetAll}
                                     className="flex-1 py-3 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors uppercase tracking-widest"
                                 >
                                     Reset
                                 </button>
-                                <button className="flex-1 py-3 bg-slate-900 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-md">
+                                <button
+                                    onClick={() => applyFilters()}
+                                    className="flex-1 py-3 bg-slate-900 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-md"
+                                >
                                     Apply
                                 </button>
                             </div>
@@ -274,7 +408,7 @@ export default function ExplorePage() {
                                     <p className="text-slate-500 font-medium max-w-sm">We couldn't find any results for your current filters. Try resetting them or searching for something else.</p>
                                 </div>
                                 <button 
-                                    onClick={() => { setSearch(''); setCategory('ALL'); setProjectType('ALL'); }}
+                                    onClick={resetAll}
                                     className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20 hover:scale-105"
                                 >
                                     Reset All Filters

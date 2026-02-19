@@ -14,7 +14,8 @@ import {
   Leaf,
   Palette,
   FlaskConical,
-  Plus
+  Plus,
+  ArrowRight
 } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import ProjectCard from '@/components/dashboard/ProjectCard';
@@ -209,10 +210,16 @@ export default function LandingPage() {
                   <p className="text-lg font-semibold text-[var(--text-main)]">
                     Total Impact: <span className="text-emerald-600">${stats.charity.toLocaleString()}K Raised</span> | {stats.charityCount} Projects Funded
                   </p>
-                  <Link href="/create-project" className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-8 py-3 rounded-lg inline-flex items-center gap-2 transition-colors">
-                    <Plus size={20} />
-                    Create Charity Project
-                  </Link>
+                  <div className="flex items-center justify-center gap-3 flex-wrap">
+                    <Link href="/explore?type=CHARITY" className="px-8 py-3 rounded-lg inline-flex items-center gap-2 font-semibold border border-emerald-600/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-colors">
+                      Explore more charity
+                      <ArrowRight size={18} />
+                    </Link>
+                    <Link href="/create-project" className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-8 py-3 rounded-lg inline-flex items-center gap-2 transition-colors">
+                      <Plus size={20} />
+                      Create Charity Project
+                    </Link>
+                  </div>
                 </div>
               </motion.section>
             )}
@@ -258,10 +265,16 @@ export default function LandingPage() {
                   <p className="text-lg font-semibold text-[var(--text-main)]">
                     Total Investment: <span className="text-blue-600">${stats.roi.toLocaleString()}M</span> | Avg. ROI: 15%
                   </p>
-                  <Link href="/create-project" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg inline-flex items-center gap-2 transition-colors">
-                    <Plus size={20} />
-                    Create ROI Project
-                  </Link>
+                  <div className="flex items-center justify-center gap-3 flex-wrap">
+                    <Link href="/explore?type=ROI" className="px-8 py-3 rounded-lg inline-flex items-center gap-2 font-semibold border border-blue-600/30 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-colors">
+                      Explore more ROI
+                      <ArrowRight size={18} />
+                    </Link>
+                    <Link href="/create-project" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg inline-flex items-center gap-2 transition-colors">
+                      <Plus size={20} />
+                      Create ROI Project
+                    </Link>
+                  </div>
                 </div>
               </motion.section>
             )}

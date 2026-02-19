@@ -357,7 +357,7 @@ export default function ProjectDetailPage() {
                                         <div className="bg-[var(--card)] p-8 rounded-3xl border border-[var(--border)] leading-loose text-lg space-y-4">
                                             {project.story
                                                 ? project.story.split('\n').map((para: string, i: number) => (
-                                                    <p key={i} className="text-[var(--text-main)]">{para}</p>
+                                                    <p key={i} className="text-[var(--text-main)] break-words whitespace-pre-wrap">{para}</p>
                                                 ))
                                                 : <p className="text-[var(--text-muted)]">No story provided yet.</p>
                                             }

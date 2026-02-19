@@ -76,7 +76,7 @@ const InvestModal = ({ isOpen, onClose, project }: InvestModalProps) => {
         try {
           await investmentService.createInvestment({
             projectId: project.id || project._id,
-            amount: Number(amount),
+            amount: amount,
             projectOnchainId: project.projectOnchainId
           });
           setSuccess(true);

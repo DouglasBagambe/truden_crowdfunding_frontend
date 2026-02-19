@@ -13,6 +13,7 @@ import Footer from '@/components/layout/Footer';
 import { useInvestmentNFTs } from '@/hooks/useInvestmentNFTs';
 import { projectService } from '@/lib/project-service';
 import { useRouter } from 'next/navigation';
+import { investmentService, InvestmentStatus } from '@/lib/investment-service';
 
 export default function InvestorDashboard() {
   const { address, isConnected } = useAccount();
@@ -23,9 +24,7 @@ export default function InvestorDashboard() {
   const { data: investments, isLoading: investmentsLoading } = useQuery({
     queryKey: ['user-investments', address],
     queryFn: async () => {
-      // This would call your backend API
-      // For now, return mock data
-      return [];
+      return investmentService.getMyInvestments();
     },
     enabled: !!address && isConnected,
   });
@@ -47,7 +46,7 @@ export default function InvestorDashboard() {
   }
 
   const totalInvested = investments?.reduce((sum: number, inv: any) => sum + (inv.amount || 0), 0) || 0;
-  const activeInvestments = investments?.filter((inv: any) => inv.status === 'active')?.length || 0;
+  const activeInvestments = investments?.filter((inv: any) => inv.status === InvestmentStatus.Active)?.length || 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
