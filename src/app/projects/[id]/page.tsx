@@ -70,10 +70,17 @@ export default function ProjectDetailPage() {
                 return;
             }
             setIsInvesting(true);
+            const resolvedProjectId =
+                (project as any)?.id || (project as any)?._id || projectId;
+            const normalizedAmount = String(amountNumber);
+            const rawOnchainId = (project as any)?.projectOnchainId;
             await investmentService.createInvestment({
-                projectId: projectId,
-                amount: investmentAmount,
-                projectOnchainId: (project as any)?.projectOnchainId,
+                projectId: String(resolvedProjectId),
+                amount: normalizedAmount,
+                projectOnchainId:
+                    rawOnchainId === undefined || rawOnchainId === null
+                        ? undefined
+                        : String(rawOnchainId),
             });
             setIsInvestOpen(false);
             setInvestmentAmount('');
