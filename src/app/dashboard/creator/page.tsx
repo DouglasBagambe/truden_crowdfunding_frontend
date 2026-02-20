@@ -25,11 +25,11 @@ export default function CreatorDashboard() {
     queryKey: ['creator-projects'],
     queryFn: async () => {
       // This would fetch from your backend
-      return await projectService.getAllProjects();
+      return await projectService.getMyProjects();
     },
   });
 
-  const myProjects = projects?.projects || projects?.items || [];
+  const myProjects = Array.isArray(projects) ? projects : (projects?.projects || projects?.items || []);
   const activeProjects = myProjects.filter((p: any) => p.status === 'ACTIVE' || p.status === 'Active').length;
   const totalRaised = myProjects.reduce((sum: number, p: any) => sum + (p.raisedAmount || 0), 0);
   const totalBackers = myProjects.reduce((sum: number, p: any) => sum + (p.backerCount || 0), 0);
@@ -243,7 +243,7 @@ const ProjectCard = ({ project, onView, onEdit }: any) => {
           <span className="font-semibold text-gray-900">{Math.round(percentage)}%</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-          <div 
+          <div
             className="h-full bg-blue-600 rounded-full transition-all duration-300"
             style={{ width: `${percentage}%` }}
           />

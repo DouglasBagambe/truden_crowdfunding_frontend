@@ -22,7 +22,7 @@ export function useWalletSync() {
       domainHost = u.host;
       appOrigin = u.origin;
     }
-  } catch {}
+  } catch { }
 
   useEffect(() => {
     const syncWallet = async () => {
@@ -36,9 +36,10 @@ export function useWalletSync() {
       // If the currently connected wallet is not the primary AND not in linked wallets
       if (!wasAttempted && normalizedAddress !== currentPrimary && !linkedWallets.includes(normalizedAddress)) {
         console.log('Detected unlinked wallet:', address);
+        let tId: string | undefined;
         try {
           setIsLinking(true);
-          const tId = toast.loading('Linking wallet...');
+          tId = toast.loading('Linking wallet...');
 
           const nonce = await userService.getSiweNonce(address);
           const siweMessage = new SiweMessage({
@@ -64,7 +65,7 @@ export function useWalletSync() {
             message: err?.message,
           });
           attemptedRef.current.add(normalizedAddress);
-          try { setTimeout(() => attemptedRef.current.delete(normalizedAddress), 30000); } catch {}
+          try { setTimeout(() => attemptedRef.current.delete(normalizedAddress), 30000); } catch { }
           const msg = err?.response?.data?.message || 'Failed to link wallet';
           toast.error(msg, { id: tId });
         } finally {

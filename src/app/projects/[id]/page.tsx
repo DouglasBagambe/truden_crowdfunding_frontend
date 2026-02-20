@@ -46,8 +46,8 @@ export default function ProjectDetailPage() {
     const [mediaIndex, setMediaIndex] = useState(0);
     const mediaItems = project ? [
         ...(project.imageUrl ? [{ type: 'image', url: project.imageUrl }] : []),
-        ...(project.galleryImages || []).map(url => ({ type: 'image', url })),
-        ...(project.videoUrls || []).map(url => ({ type: 'video', url })),
+        ...(project.galleryImages || []).map((url: string) => ({ type: 'image', url })),
+        ...(project.videoUrls || []).map((url: string) => ({ type: 'video', url })),
     ] : [];
     const currentMedia = mediaItems[mediaIndex];
 

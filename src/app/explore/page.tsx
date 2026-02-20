@@ -1,21 +1,21 @@
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, Suspense } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { useProjects } from '@/hooks/useProjects';
 import ProjectCard from '@/components/dashboard/ProjectCard';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { 
-    Search, Filter, SlidersHorizontal, 
-    Heart, TrendingUp, Zap, Globe, 
+import {
+    Search, Filter, SlidersHorizontal,
+    Heart, TrendingUp, Zap, Globe,
     ChevronDown, LayoutGrid, List,
     Loader2, Plus, ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 
-export default function ExplorePage() {
+function ExplorePageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const parseStatuses = (raw: string | null) => {
@@ -155,7 +155,7 @@ export default function ExplorePage() {
 
     const { data, isLoading } = useProjects(queryParams);
     const rawProjects = data?.projects || data?.items || [];
-    
+
     const projects = rawProjects.map((project: any) => ({
         ...project,
         id: project.id || project._id
@@ -199,17 +199,17 @@ export default function ExplorePage() {
                 <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
                     <div className="relative w-full md:max-w-xl group">
                         <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)] ${accent.focusText} transition-colors`} />
-                        <input 
-                            type="text" 
-                            placeholder="Search projects by title or description..." 
+                        <input
+                            type="text"
+                            placeholder="Search projects by title or description..."
                             value={draftSearch}
                             onChange={(e) => setDraftSearch(e.target.value)}
                             className={`w-full bg-[var(--card)] border border-[var(--border)] rounded-2xl py-4 pl-12 pr-4 focus:ring-4 ${accent.focusRing} outline-none transition-all shadow-sm font-medium`}
                         />
                     </div>
-                    
+
                     <div className="flex items-center gap-4 w-full md:w-auto">
-                        <select 
+                        <select
                             value={draftSortBy}
                             onChange={(e) => setDraftSortBy(e.target.value)}
                             className={`bg-[var(--card)] border border-[var(--border)] rounded-xl py-3 px-4 text-sm font-bold text-[var(--text-muted)] outline-none transition-all shadow-sm cursor-pointer ${accent.hoverBorder}`}
@@ -260,7 +260,7 @@ export default function ExplorePage() {
                                     )}
                                 </div>
                             )}
-                            
+
                             {/* Project Type */}
                             <div className="space-y-4">
                                 <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Project Type</h3>
@@ -270,10 +270,10 @@ export default function ExplorePage() {
                                             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${draftProjectType === type ? accent.radioOn : `border-[var(--border)] ${accent.radioOff}`}`}>
                                                 {draftProjectType === type && <div className="w-2 h-2 rounded-full bg-white" />}
                                             </div>
-                                            <input 
-                                                type="radio" 
-                                                className="hidden" 
-                                                name="projectType" 
+                                            <input
+                                                type="radio"
+                                                className="hidden"
+                                                name="projectType"
                                                 checked={draftProjectType === type}
                                                 onChange={() => setDraftProjectType(type)}
                                             />
@@ -299,9 +299,9 @@ export default function ExplorePage() {
                                             <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${draftStatusFilters.includes(status.id) ? accent.checkboxOn : `border-[var(--border)] ${accent.checkboxOff}`}`}>
                                                 {draftStatusFilters.includes(status.id) && <Plus size={14} className="text-white" />}
                                             </div>
-                                            <input 
-                                                type="checkbox" 
-                                                className="hidden" 
+                                            <input
+                                                type="checkbox"
+                                                className="hidden"
                                                 checked={draftStatusFilters.includes(status.id)}
                                                 onChange={() => toggleStatus(status.id)}
                                             />
@@ -316,7 +316,7 @@ export default function ExplorePage() {
                             {/* Category Dropdown */}
                             <div className="space-y-4">
                                 <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Category</h3>
-                                <select 
+                                <select
                                     value={draftCategory}
                                     onChange={(e) => setDraftCategory(e.target.value)}
                                     className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm font-bold text-slate-700 outline-none focus:border-blue-500 transition-all cursor-pointer"
@@ -328,7 +328,7 @@ export default function ExplorePage() {
                             </div>
 
                             <div className="pt-6 border-t border-slate-100 flex gap-3">
-                                <button 
+                                <button
                                     onClick={resetAll}
                                     className="flex-1 py-3 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors uppercase tracking-widest"
                                 >
@@ -370,7 +370,7 @@ export default function ExplorePage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
                                     <AnimatePresence mode="popLayout">
                                         {projects.map((project: any, idx: number) => (
-                                            <motion.div 
+                                            <motion.div
                                                 key={project.id || idx}
                                                 initial={{ opacity: 0, scale: 0.95 }}
                                                 animate={{ opacity: 1, scale: 1 }}
@@ -382,7 +382,7 @@ export default function ExplorePage() {
                                         ))}
                                     </AnimatePresence>
                                 </div>
-                                
+
                                 {/* Pagination */}
                                 <div className="flex justify-center items-center gap-3 pt-8 pb-12">
                                     <button className="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-600 transition-all shadow-sm">
@@ -407,7 +407,7 @@ export default function ExplorePage() {
                                     <h3 className="text-2xl font-black tracking-tight text-slate-900">No projects match your search.</h3>
                                     <p className="text-slate-500 font-medium max-w-sm">We couldn't find any results for your current filters. Try resetting them or searching for something else.</p>
                                 </div>
-                                <button 
+                                <button
                                     onClick={resetAll}
                                     className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20 hover:scale-105"
                                 >
@@ -424,8 +424,16 @@ export default function ExplorePage() {
     );
 }
 
+export default function ExplorePage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center p-8 text-slate-500 font-bold">Loading Explore...</div>}>
+            <ExplorePageContent />
+        </Suspense>
+    );
+}
+
 const FilterButton = ({ active, onClick, label, icon }: any) => (
-    <button 
+    <button
         onClick={onClick}
         className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all ${active ? 'bg-[var(--primary)] text-white shadow-lg shadow-blue-500/10' : 'bg-[var(--card)] text-[var(--text-muted)] border border-[var(--border)] hover:border-[var(--primary)]/50'}`}
     >

@@ -76,7 +76,7 @@ export const useProjectStatusSync = (options: ProjectStatusSyncOptions = {}) => 
     try {
       const { args } = log;
       const onChainProjectId = args?.projectId?.toString();
-      
+
       // Invalidate queries to refetch fresh data
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       if (onChainProjectId) {
@@ -280,14 +280,14 @@ export const useInvestmentEventsWatch = (userAddress?: string) => {
     abi: ESCROW_ABI,
     eventName: 'FundsDeposited',
     onLogs(logs) {
-      logs.forEach((log) => {
+      logs.forEach((log: any) => {
         const { args } = log;
         if (userAddress && args?.investor?.toLowerCase() === userAddress.toLowerCase()) {
           showSuccess(
             'Investment Confirmed! 🎉',
             `Your contribution of ${args?.amount ? Number(args.amount) / 1e18 : '?'} CELO has been confirmed on-chain.`
           );
-          
+
           // Refresh user's investments
           queryClient.invalidateQueries({ queryKey: ['investments', userAddress] });
         }
@@ -300,14 +300,14 @@ export const useInvestmentEventsWatch = (userAddress?: string) => {
     abi: ESCROW_ABI,
     eventName: 'FundsRefunded',
     onLogs(logs) {
-      logs.forEach((log) => {
+      logs.forEach((log: any) => {
         const { args } = log;
         if (userAddress && args?.investor?.toLowerCase() === userAddress.toLowerCase()) {
           showError(
             'Refund Processed',
             `Your investment of ${args?.amount ? Number(args.amount) / 1e18 : '?'} CELO has been refunded.`
           );
-          
+
           queryClient.invalidateQueries({ queryKey: ['investments', userAddress] });
         }
       });
