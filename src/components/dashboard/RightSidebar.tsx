@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Vote, Zap, ShieldCheck } from 'lucide-react';
 
@@ -52,13 +53,9 @@ const RightSidebar = ({ onTriggerCreate }: RightSidebarProps) => {
             Submit your project and get funded by a global network of backers.
           </p>
         </div>
-        
-        <button 
-          onClick={onTriggerCreate}
-          className="relative z-10 w-full bg-white text-[var(--primary)] font-bold py-4 rounded-xl hover:bg-gray-100 transition-all active:scale-95"
-        >
-          SUBMIT PROJECT
-        </button>
+        <Link href="/create-project" className="relative z-10 w-full bg-white text-[var(--primary)] font-bold py-3.5 px-6 rounded-xl hover:bg-gray-50 transition-all active:scale-95 shadow-lg hover:shadow-xl text-lg tracking-wide">
+            SUBMIT PROJECT
+        </Link>
       </div>
 
       {/* Verified Info */}

@@ -1,12 +1,13 @@
 'use client';
 
-import React from 'react';
-import { useAccount } from 'wagmi';
-import { useInvestorNFTsWithData } from '@/hooks/useInvestmentNFTs';
-import { TrendingUp, TrendingDown, ExternalLink, Loader2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { TrendingUp, TrendingDown, ExternalLink, Loader2, Wallet, Copy, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/hooks/useAuth';
+import { apiClient } from '@/lib/api-client';
 
-interface NFTCardProps {
+// ─── Types ────────────────────────────────────────────────────
+interface NFTItem {
     tokenId: number;
     projectId: string;
     initialAmount: string;
@@ -17,253 +18,223 @@ interface NFTCardProps {
     investmentDate: Date;
 }
 
-function NFTCard({
-    tokenId,
-    projectId,
-    initialAmount,
-    currentValue,
-    profitLoss,
-    roiPercentage,
-    isActive,
-    investmentDate,
-}: NFTCardProps) {
-    const isProfit = parseFloat(profitLoss) >= 0;
+interface CustodialInfo {
+    address: string;
+    nfts: NFTItem[];
+}
 
-    const handleViewOnOpenSea = () => {
-        // TODO: Replace with actual OpenSea link when contract is deployed
-        const contractAddress = process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS || '0x...';
-        window.open(
-            `https://testnets.opensea.io/assets/sepolia/${contractAddress}/${tokenId}`,
-            '_blank'
-        );
+// ─── Subcomponents ────────────────────────────────────────────
+function WalletBadge({ address }: { address: string }) {
+    const [copied, setCopied] = useState(false);
+    const short = `${address.slice(0, 6)}...${address.slice(-4)}`;
+
+    const copy = () => {
+        navigator.clipboard?.writeText(address).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        });
     };
+
+    return (
+        <div className="flex items-center gap-3 bg-[var(--secondary)] border border-[var(--border)] rounded-2xl px-4 py-3">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                <Wallet className="w-4 h-4 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Your Custodial Wallet</p>
+                <p className="font-mono text-sm font-bold text-[var(--text-main)] truncate">{short}</p>
+            </div>
+            <button
+                onClick={copy}
+                className="p-2 rounded-xl hover:bg-white/10 transition-colors text-[var(--text-muted)] hover:text-[var(--text-main)]"
+                title="Copy address"
+            >
+                {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+            </button>
+        </div>
+    );
+}
+
+function NFTCard({ nft }: { nft: NFTItem }) {
+    const isProfit = parseFloat(nft.profitLoss) >= 0;
+    const contractAddress = process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS || '0x';
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100"
+            className="bg-[var(--card)] rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-[var(--border)]"
         >
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-sky-600 p-4">
+            <div className="bg-gradient-to-r from-blue-600 to-violet-600 p-4">
                 <div className="flex items-center justify-between">
                     <div>
-                        <p className="text-white/80 text-sm font-medium">Investment NFT</p>
-                        <h3 className="text-white text-xl font-bold">#{tokenId}</h3>
+                        <p className="text-white/70 text-xs font-bold uppercase tracking-widest">Investment NFT</p>
+                        <h3 className="text-white text-xl font-black">#{nft.tokenId}</h3>
                     </div>
-                    <div className={`px-3 py-1 rounded-full text-xs font-semibold ${isActive
-                            ? 'bg-green-400/20 text-green-100'
-                            : 'bg-gray-400/20 text-gray-100'
-                        }`}>
-                        {isActive ? 'Active' : 'Inactive'}
-                    </div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${nft.isActive
+                        ? 'bg-emerald-400/20 text-emerald-100'
+                        : 'bg-gray-400/20 text-gray-100'}`}>
+                        {nft.isActive ? 'Active' : 'Inactive'}
+                    </span>
                 </div>
             </div>
 
-            {/* Content */}
-            <div className="p-6 space-y-4">
-                {/* Investment Details */}
-                <div className="grid grid-cols-2 gap-4">
+            <div className="p-5 space-y-4">
+                <div className="grid grid-cols-2 gap-3">
                     <div>
-                        <p className="text-sm text-gray-500 mb-1">Initial Investment</p>
-                        <p className="text-lg font-bold text-gray-900">
-                            {parseFloat(initialAmount).toLocaleString()} UGX
-                        </p>
+                        <p className="text-xs text-[var(--text-muted)] mb-1 font-medium">Invested</p>
+                        <p className="text-base font-black">{parseFloat(nft.initialAmount).toLocaleString()} UGX</p>
                     </div>
                     <div>
-                        <p className="text-sm text-gray-500 mb-1">Current Value</p>
-                        <p className="text-lg font-bold text-gray-900">
-                            {parseFloat(currentValue).toLocaleString()} UGX
-                        </p>
+                        <p className="text-xs text-[var(--text-muted)] mb-1 font-medium">Current</p>
+                        <p className="text-base font-black">{parseFloat(nft.currentValue).toLocaleString()} UGX</p>
                     </div>
                 </div>
 
-                {/* ROI */}
-                <div className="bg-gray-50 rounded-lg p-4">
+                <div className="bg-[var(--secondary)] rounded-xl p-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            {isProfit ? (
-                                <TrendingUp className="w-5 h-5 text-green-600" />
-                            ) : (
-                                <TrendingDown className="w-5 h-5 text-red-600" />
-                            )}
-                            <span className="text-sm font-medium text-gray-700">
-                                Return on Investment
-                            </span>
+                            {isProfit
+                                ? <TrendingUp className="w-4 h-4 text-emerald-400" />
+                                : <TrendingDown className="w-4 h-4 text-rose-400" />}
+                            <span className="text-xs font-bold text-[var(--text-muted)]">ROI</span>
                         </div>
-                        <div className={`text-lg font-bold ${isProfit ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                            {isProfit ? '+' : ''}{roiPercentage.toFixed(2)}%
-                        </div>
-                    </div>
-                    <div className="mt-2 text-sm text-gray-600">
-                        {isProfit ? 'Profit' : 'Loss'}: {' '}
-                        <span className={`font-semibold ${isProfit ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                            {isProfit ? '+' : ''}{parseFloat(profitLoss).toLocaleString()} UGX
+                        <span className={`text-base font-black ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {isProfit ? '+' : ''}{nft.roiPercentage.toFixed(2)}%
                         </span>
                     </div>
                 </div>
 
-                {/* Investment Date */}
-                <div className="text-sm text-gray-500">
-                    Invested on {new Date(investmentDate).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    })}
-                </div>
+                <p className="text-xs text-[var(--text-muted)] font-medium">
+                    Invested {new Date(nft.investmentDate).toLocaleDateString('en-UG', { year: 'numeric', month: 'short', day: 'numeric' })}
+                </p>
 
-                {/* Actions */}
-                <div className="flex gap-2 pt-2">
-                    <button
-                        onClick={handleViewOnOpenSea}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                    >
-                        <ExternalLink className="w-4 h-4" />
-                        View on OpenSea
-                    </button>
-                    <button
-                        className="px-4 py-2.5 border-2 border-gray-200 text-gray-700 rounded-lg hover:border-blue-600 hover:text-blue-600 transition-colors font-medium"
-                    >
-                        Transfer
-                    </button>
-                </div>
+                <a
+                    href={`https://testnets.opensea.io/assets/sepolia/${contractAddress}/${nft.tokenId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:opacity-90 transition-all"
+                >
+                    <ExternalLink className="w-3.5 h-3.5" /> View NFT
+                </a>
             </div>
         </motion.div>
     );
 }
 
+// ─── Main Component ───────────────────────────────────────────
 export function NFTPortfolio() {
-    const { address } = useAccount();
-    const { data: nfts, isLoading, error } = useInvestorNFTsWithData(address);
+    const { user, isAuthenticated } = useAuth();
+    const [info, setInfo] = useState<CustodialInfo | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
-    if (!address) {
+    useEffect(() => {
+        if (!isAuthenticated) return;
+        setLoading(true);
+        setError('');
+
+        apiClient
+            .get<{ custodialWalletAddress?: string; nfts?: NFTItem[] }>('/users/me/wallet')
+            .then((res) => {
+                const addr = res.data?.custodialWalletAddress;
+                const nfts = res.data?.nfts ?? [];
+                if (addr) {
+                    setInfo({ address: addr, nfts });
+                }
+            })
+            .catch(() => {
+                setError('Could not load wallet information');
+            })
+            .finally(() => setLoading(false));
+    }, [isAuthenticated]);
+
+    if (!isAuthenticated) {
         return (
-            <div className="text-center py-16">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
-                    <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
+            <div className="text-center py-16 space-y-4">
+                <div className="w-16 h-16 bg-[var(--secondary)] rounded-full flex items-center justify-center mx-auto border border-[var(--border)]">
+                    <Wallet className="w-8 h-8 text-[var(--text-muted)]" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Connect Your Wallet</h3>
-                <p className="text-gray-600">
-                    Please connect your wallet to view your investment NFTs
+                <h3 className="text-lg font-black">Sign In to View NFTs</h3>
+                <p className="text-sm text-[var(--text-muted)] font-medium">
+                    Log in to see your investment NFTs and custodial wallet.
                 </p>
             </div>
         );
     }
 
-    if (isLoading) {
+    if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center py-16">
-                <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-                <p className="text-gray-600">Loading your NFT portfolio...</p>
+            <div className="flex flex-col items-center justify-center py-16 gap-4">
+                <Loader2 className="w-10 h-10 text-[var(--primary)] animate-spin" />
+                <p className="text-[var(--text-muted)] font-medium">Loading your NFT portfolio…</p>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="text-center py-16">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
-                    <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Failed to Load NFTs</h3>
-                <p className="text-gray-600 mb-4">
-                    There was an error loading your NFT portfolio
-                </p>
-                <button
-                    onClick={() => window.location.reload()}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
+            <div className="text-center py-16 space-y-4">
+                <p className="text-rose-400 font-medium">{error}</p>
+                <button onClick={() => window.location.reload()} className="px-6 py-2.5 bg-[var(--primary)] text-white rounded-xl text-sm font-black">
                     Retry
                 </button>
             </div>
         );
     }
 
-    if (!nfts || nfts.length === 0) {
-        return (
-            <div className="text-center py-16">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
-                    <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                    </svg>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Investment NFTs Yet</h3>
-                <p className="text-gray-600 mb-6">
-                    When you invest in projects, you'll receive NFTs representing your investments
-                </p>
-                <a
-                    href="/explore"
-                    className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                >
-                    Explore Projects
-                </a>
-            </div>
-        );
-    }
-
-    // Calculate totals
-    const totalInitial = nfts.reduce((sum, nft) => sum + parseFloat(nft.initialAmount), 0);
-    const totalCurrent = nfts.reduce((sum, nft) => sum + parseFloat(nft.currentValue), 0);
-    const totalProfit = totalCurrent - totalInitial;
-    const avgROI = nfts.reduce((sum, nft) => sum + nft.roiPercentage, 0) / nfts.length;
+    const nfts = info?.nfts ?? [];
 
     return (
         <div className="space-y-6">
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-lg shadow p-6">
-                    <p className="text-sm text-gray-500 mb-1">Total NFTs</p>
-                    <p className="text-3xl font-bold text-gray-900">{nfts.length}</p>
-                </div>
-                <div className="bg-white rounded-lg shadow p-6">
-                    <p className="text-sm text-gray-500 mb-1">Total Invested</p>
-                    <p className="text-3xl font-bold text-gray-900">
-                        {totalInitial.toLocaleString()}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">UGX</p>
-                </div>
-                <div className="bg-white rounded-lg shadow p-6">
-                    <p className="text-sm text-gray-500 mb-1">Current Value</p>
-                    <p className="text-3xl font-bold text-gray-900">
-                        {totalCurrent.toLocaleString()}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">UGX</p>
-                </div>
-                <div className="bg-white rounded-lg shadow p-6">
-                    <p className="text-sm text-gray-500 mb-1">Average ROI</p>
-                    <p className={`text-3xl font-bold ${avgROI >= 0 ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                        {avgROI >= 0 ? '+' : ''}{avgROI.toFixed(1)}%
-                    </p>
-                    <p className={`text-xs mt-1 ${totalProfit >= 0 ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                        {totalProfit >= 0 ? '+' : ''}{totalProfit.toLocaleString()} UGX
-                    </p>
-                </div>
-            </div>
+            {/* Wallet Address */}
+            {info?.address && <WalletBadge address={info.address} />}
 
-            {/* NFT Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {nfts.map((nft) => (
-                    <NFTCard
-                        key={nft.tokenId}
-                        tokenId={nft.tokenId}
-                        projectId={nft.projectId}
-                        initialAmount={nft.initialAmount}
-                        currentValue={nft.currentValue}
-                        profitLoss={nft.profitLoss}
-                        roiPercentage={nft.roiPercentage}
-                        isActive={nft.isActive}
-                        investmentDate={nft.investmentDate}
-                    />
-                ))}
-            </div>
+            {nfts.length === 0 ? (
+                <div className="text-center py-12 space-y-4">
+                    <div className="w-16 h-16 bg-[var(--secondary)] rounded-full flex items-center justify-center mx-auto border border-[var(--border)]">
+                        <svg className="w-8 h-8 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                    </div>
+                    <h3 className="font-black text-lg">No Investment NFTs Yet</h3>
+                    <p className="text-sm text-[var(--text-muted)] font-medium max-w-xs mx-auto">
+                        When you invest in a project, you'll receive an NFT certificate representing your stake.
+                    </p>
+                    <a href="/explore" className="inline-block px-6 py-3 bg-[var(--primary)] text-white rounded-xl text-xs font-black uppercase tracking-widest hover:opacity-90 transition-all">
+                        Explore Projects
+                    </a>
+                </div>
+            ) : (
+                <>
+                    {/* Summary */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {[
+                            { label: 'Total NFTs', value: String(nfts.length) },
+                            { label: 'Total Invested', value: `${nfts.reduce((s, n) => s + parseFloat(n.initialAmount), 0).toLocaleString()} UGX` },
+                            { label: 'Current Value', value: `${nfts.reduce((s, n) => s + parseFloat(n.currentValue), 0).toLocaleString()} UGX` },
+                            {
+                                label: 'Avg ROI',
+                                value: `${(nfts.reduce((s, n) => s + n.roiPercentage, 0) / nfts.length).toFixed(1)}%`,
+                                green: nfts.reduce((s, n) => s + n.roiPercentage, 0) / nfts.length >= 0,
+                            },
+                        ].map((card) => (
+                            <div key={card.label} className="bg-[var(--card)] rounded-2xl p-4 border border-[var(--border)]">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-1">{card.label}</p>
+                                <p className={`text-xl font-black ${card.green !== undefined ? (card.green ? 'text-emerald-400' : 'text-rose-400') : ''}`}>
+                                    {card.value}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* NFT Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {nfts.map((nft) => <NFTCard key={nft.tokenId} nft={nft} />)}
+                    </div>
+                </>
+            )}
         </div>
     );
 }
+

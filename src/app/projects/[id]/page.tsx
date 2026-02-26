@@ -6,13 +6,14 @@ import { motion } from 'framer-motion';
 import {
     ArrowLeft, Calendar, Users, Clock, CheckCircle, AlertCircle,
     Heart, Share2, Bookmark, Globe, TrendingUp, BarChart3,
-    Flag, Wallet, Loader2, CheckCircle2, ExternalLink, X
+    Flag, Wallet, Loader2, CheckCircle2, ExternalLink, X, Smartphone
 } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { projectService } from '@/lib/project-service';
 import { useAuth } from '@/hooks/useAuth';
 import { investmentService } from '@/lib/investment-service';
+import DPOPaymentModal from '@/components/payments/DPOPaymentModal';
 
 export default function ProjectDetailPage() {
     const params = useParams();
@@ -38,6 +39,7 @@ export default function ProjectDetailPage() {
     const [investmentAmount, setInvestmentAmount] = useState('');
     const [isInvesting, setIsInvesting] = useState(false);
     const [investmentError, setInvestmentError] = useState('');
+    const [isDPOOpen, setIsDPOOpen] = useState(false);
 
     const projectType = project?.projectType || project?.type;
     const isCharity = projectType === 'CHARITY';
@@ -562,21 +564,32 @@ export default function ProjectDetailPage() {
                                                     Donate Now
                                                 </button>
                                             ) : (
-                                                <button
-                                                    disabled={!isAuthenticated}
-                                                    onClick={() => {
-                                                        if (!isAuthenticated) {
-                                                            const next = typeof window !== 'undefined' ? window.location.pathname : '/';
-                                                            window.location.href = `/login?next=${encodeURIComponent(next)}`;
-                                                            return;
-                                                        }
-                                                        openInvestModal();
-                                                    }}
-                                                    className={`w-full py-4 ${accentBg} text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl ${accentShadow} hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
-                                                >
-                                                    <Wallet size={16} />
-                                                    {isAuthenticated ? 'Invest in Project' : 'Sign In to Invest'}
-                                                </button>
+                                                <>
+                                                    <button
+                                                        disabled={!isAuthenticated}
+                                                        onClick={() => {
+                                                            if (!isAuthenticated) {
+                                                                const next = typeof window !== 'undefined' ? window.location.pathname : '/';
+                                                                window.location.href = `/login?next=${encodeURIComponent(next)}`;
+                                                                return;
+                                                            }
+                                                            openInvestModal();
+                                                        }}
+                                                        className={`w-full py-4 ${accentBg} text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl ${accentShadow} hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
+                                                    >
+                                                        <Wallet size={16} />
+                                                        {isAuthenticated ? 'Invest in Project' : 'Sign In to Invest'}
+                                                    </button>
+                                                    {isAuthenticated && (
+                                                        <button
+                                                            onClick={() => setIsDPOOpen(true)}
+                                                            className="w-full py-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-orange-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                                                        >
+                                                            <Smartphone size={16} />
+                                                            Pay via Mobile Money
+                                                        </button>
+                                                    )}
+                                                </>
                                             )}
                                             <div className="flex gap-3">
                                                 <button
@@ -823,6 +836,15 @@ export default function ProjectDetailPage() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* DPO Payment Modal */}
+            {project && (
+                <DPOPaymentModal
+                    isOpen={isDPOOpen}
+                    onClose={() => setIsDPOOpen(false)}
+                    project={project}
+                />
             )}
         </div>
     );
