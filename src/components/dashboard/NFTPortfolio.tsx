@@ -83,11 +83,11 @@ function NFTCard({ nft }: { nft: NFTItem }) {
                 <div className="grid grid-cols-2 gap-3">
                     <div>
                         <p className="text-xs text-[var(--text-muted)] mb-1 font-medium">Invested</p>
-                        <p className="text-base font-black">{parseFloat(nft.initialAmount).toLocaleString()} UGX</p>
+                        <p className="text-base font-black">UGX {parseFloat(nft.initialAmount).toLocaleString()}</p>
                     </div>
                     <div>
                         <p className="text-xs text-[var(--text-muted)] mb-1 font-medium">Current</p>
-                        <p className="text-base font-black">{parseFloat(nft.currentValue).toLocaleString()} UGX</p>
+                        <p className="text-base font-black">UGX {parseFloat(nft.currentValue).toLocaleString()}</p>
                     </div>
                 </div>
 

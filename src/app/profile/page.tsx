@@ -5,8 +5,8 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/hooks/useAuth';
 import { motion } from 'framer-motion';
-import { 
-  Wallet, User, ShieldCheck, Mail, Bell, 
+import {
+  Wallet, User, ShieldCheck, Mail, Bell,
   HelpCircle, Lock, Settings as SettingsIcon, CreditCard
 } from 'lucide-react';
 import { userService } from '@/lib/user-service';
@@ -23,6 +23,14 @@ export default function ProfilePage() {
   const { user, refetchUser, isAuthenticated, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
   const [isKYCOpen, setIsKYCOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Profile Form State
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const { address, isConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
@@ -32,20 +40,71 @@ export default function ProfilePage() {
   React.useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push('/login');
+    } else if (user) {
+      const p = user.profile || {};
+      let fn = p.firstName || user.firstName || '';
+      let ln = p.lastName || user.lastName || '';
+      const dn = p.displayName || user.displayName || '';
+
+      // Fallback: If names are blank but we have a display name that isn't the email
+      if (!fn && !ln && dn && dn !== user.email) {
+        if (dn.includes(' ')) {
+          const parts = dn.split(' ');
+          fn = parts[0];
+          ln = parts.slice(1).join(' ');
+        } else {
+          fn = dn;
+          ln = '';
+        }
+      }
+
+      setFirstName(fn || '');
+      setLastName(ln || '');
+      setEmail(user.email || '');
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated, router, user]);
+
+  const handleUpdateProfile = async () => {
+    setIsSaving(true);
+    try {
+      const updateData: any = {};
+      const actualFirstName = user?.profile?.firstName || user?.firstName;
+      const actualLastName = user?.profile?.lastName || user?.lastName;
+
+      if (firstName !== actualFirstName) updateData.firstName = firstName;
+      if (lastName !== actualLastName) updateData.lastName = lastName;
+      if (email !== user?.email) updateData.email = email;
+      if (password) updateData.password = password;
+
+      if (Object.keys(updateData).length === 0) {
+        toast.success("No changes to save");
+        setIsSaving(false);
+        return;
+      }
+
+      await userService.updateProfile(updateData);
+      toast.success("Profile updated successfully");
+      refetchUser();
+      setPassword(''); // clear password field
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Failed to update profile");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleLinkWallet = async () => {
     if (!isConnected) {
       open();
       return;
     }
-    
+
     if (!address) return;
 
-    const alreadyLinked = user?.primaryWallet === address.toLowerCase() || 
-                        user?.linkedWallets?.includes(address.toLowerCase());
-    
+    const alreadyLinked = user?.primaryWallet === address.toLowerCase() ||
+      user?.linkedWallets?.includes(address.toLowerCase());
+
     if (alreadyLinked) {
       toast.error("This wallet is already linked to your account");
       return;
@@ -60,19 +119,19 @@ export default function ProfilePage() {
         statement: 'Link this wallet to your TruFund account',
         uri: window.location.origin,
         version: '1',
-        chainId: chainId || 1, 
+        chainId: chainId || 1,
         nonce: nonce,
       });
-      
+
       const message = siweMessage.prepareMessage();
       const signature = await signMessageAsync({ message });
-      
+
       await userService.linkWallet({
         wallet: address,
         message,
         signature
       });
-      
+
       toast.success("Wallet linked successfully", { id: tId });
       refetchUser();
     } catch (e: any) {
@@ -83,29 +142,26 @@ export default function ProfilePage() {
 
   const handleUnlink = async (walletAddress: string) => {
     if (confirm(`Unlink wallet ${walletAddress.slice(0, 6)}...?`)) {
-        try {
-            await userService.unlinkWallet(walletAddress);
-            toast.success("Wallet unlinked");
-            refetchUser();
-        } catch (e: any) {
-            toast.error(e.response?.data?.message || "Failed to unlink");
-        }
+      try {
+        await userService.unlinkWallet(walletAddress);
+        toast.success("Wallet unlinked");
+        refetchUser();
+      } catch (e: any) {
+        toast.error(e.response?.data?.message || "Failed to unlink");
+      }
     }
   };
 
   const menuItems = [
     { id: 'profile', label: 'Profile', icon: User },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'preferences', label: 'Preferences', icon: SettingsIcon },
-    { id: 'wallet', label: 'Wallet Information', icon: CreditCard },
-    { id: 'legal', label: 'Legal,Disclaimer & KYC Notice', icon: Lock },
     { id: 'help', label: 'Help & Support', icon: HelpCircle },
   ];
 
   return (
     <div className="pt-24 bg-[var(--background)] min-h-screen">
       <Navbar />
-      
+
       <main className="max-w-7xl mx-auto px-6 pb-24">
         {isLoading ? (
           <div className="h-48 bg-[var(--card)] rounded-2xl border border-[var(--border)] animate-pulse" />
@@ -122,11 +178,10 @@ export default function ProfilePage() {
                       <button
                         key={item.id}
                         onClick={() => setActiveTab(item.id)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                          activeTab === item.id
-                            ? 'bg-[var(--secondary)] text-[var(--text-main)]'
-                            : 'text-[var(--text-muted)] hover:bg-[var(--secondary)]'
-                        }`}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${activeTab === item.id
+                          ? 'bg-[var(--secondary)] text-[var(--text-main)]'
+                          : 'text-[var(--text-muted)] hover:bg-[var(--secondary)]'
+                          }`}
                       >
                         <Icon size={18} />
                         {item.label}
@@ -165,22 +220,35 @@ export default function ProfilePage() {
                   {/* Personal Information */}
                   <section className="space-y-6">
                     <h3 className="text-lg font-semibold text-[var(--text-main)]">Personal Information</h3>
-                    
+
                     <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-[var(--text-main)] mb-2">Name</label>
-                        <input
-                          type="text"
-                          defaultValue={`${user?.firstName || ''} ${user?.lastName || ''}`}
-                          className="w-full px-4 py-3 bg-[var(--secondary)] border border-[var(--border)] rounded-xl text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
-                        />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-[var(--text-main)] mb-2">First Name</label>
+                          <input
+                            type="text"
+                            value={firstName}
+                            onChange={e => setFirstName(e.target.value)}
+                            className="w-full px-4 py-3 bg-[var(--secondary)] border border-[var(--border)] rounded-xl text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-[var(--text-main)] mb-2">Last Name</label>
+                          <input
+                            type="text"
+                            value={lastName}
+                            onChange={e => setLastName(e.target.value)}
+                            className="w-full px-4 py-3 bg-[var(--secondary)] border border-[var(--border)] rounded-xl text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                          />
+                        </div>
                       </div>
 
                       <div>
                         <label className="block text-sm font-medium text-[var(--text-main)] mb-2">Email</label>
                         <input
                           type="email"
-                          defaultValue={user?.email || ''}
+                          value={email}
+                          onChange={e => setEmail(e.target.value)}
                           className="w-full px-4 py-3 bg-[var(--secondary)] border border-[var(--border)] rounded-xl text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
                         />
                       </div>
@@ -189,15 +257,27 @@ export default function ProfilePage() {
                         <label className="block text-sm font-medium text-[var(--text-main)] mb-2">Password</label>
                         <div className="relative">
                           <input
-                            type="password"
-                            defaultValue="••••••••"
-                            className="w-full px-4 py-3 bg-[var(--secondary)] border border-[var(--border)] rounded-xl text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                            type={showPassword ? 'text' : 'password'}
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
+                            placeholder="Leave blank to keep unchanged"
+                            className="w-full px-4 py-3 bg-[var(--secondary)] border border-[var(--border)] rounded-xl text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] pr-12"
                           />
-                          <button className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-main)]">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                              <circle cx="12" cy="12" r="3"/>
-                            </svg>
+                          <button
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
+                          >
+                            {showPassword ? (
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                              </svg>
+                            ) : (
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                              </svg>
+                            )}
                           </button>
                         </div>
                       </div>
@@ -230,8 +310,12 @@ export default function ProfilePage() {
                   </section> */}
 
                   {/* Save Button */}
-                  <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-xl transition-colors">
-                    Save Changes
+                  <button
+                    onClick={handleUpdateProfile}
+                    disabled={isSaving}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    {isSaving ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
               )}
@@ -255,114 +339,27 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {activeTab === 'wallet' && (
+
+
+
+
+              {activeTab === 'help' && (
                 <div className="space-y-8">
                   <div>
-                    <h1 className="text-3xl font-bold text-[var(--text-main)] mb-2">Wallet Information</h1>
-                    <p className="text-[var(--text-muted)]">Manage your connected wallets and transactions.</p>
+                    <h1 className="text-3xl font-bold text-[var(--text-main)] mb-2">Help & Support</h1>
+                    <p className="text-[var(--text-muted)]">Get assistance with your account and projects.</p>
                   </div>
-
-                  <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5">
-                    <div className="flex items-center justify-between gap-6">
-                      <div>
-                        <p className="text-sm font-semibold text-[var(--text-main)]">Wallet status</p>
-                        <p className="text-sm text-[var(--text-muted)]">
-                          {isConnected && address ? `Connected: ${address.slice(0, 6)}...${address.slice(-4)}` : 'No wallet connected'}
-                        </p>
-                      </div>
-                      <button
-                        onClick={handleLinkWallet}
-                        className="bg-[var(--primary)] hover:opacity-90 text-white font-semibold px-5 py-2.5 rounded-xl transition-all"
-                      >
-                        Link Wallet
-                      </button>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-6 bg-[var(--card)] border border-[var(--border)] rounded-xl hover:border-[var(--primary)]/30 transition-all cursor-pointer">
+                      <Mail className="w-8 h-8 text-[var(--primary)] mb-4" />
+                      <h3 className="text-lg font-bold mb-2">Contact Support</h3>
+                      <p className="text-sm text-[var(--text-muted)]">Send us an email directly to resolve any major account issues.</p>
                     </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    {user?.primaryWallet && (
-                      <div className="p-6 bg-[var(--card)] border border-[var(--border)] rounded-xl">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
-                              <Wallet className="w-6 h-6 text-white" />
-                            </div>
-                            <div>
-                              <p className="font-semibold text-[var(--text-main)]">{user.primaryWallet.slice(0, 8)}...{user.primaryWallet.slice(-6)}</p>
-                              <p className="text-sm text-[var(--text-muted)]">Primary Wallet</p>
-                            </div>
-                          </div>
-                          <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-semibold rounded-full">
-                            PRIMARY
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    {user?.linkedWallets?.map((wallet: string, idx: number) => (
-                      <div key={idx} className="p-6 bg-[var(--card)] border border-[var(--border)] rounded-xl">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-[var(--secondary)] rounded-xl flex items-center justify-center">
-                              <Wallet className="w-6 h-6 text-[var(--text-muted)]" />
-                            </div>
-                            <div>
-                              <p className="font-semibold text-[var(--text-main)]">{wallet.slice(0, 8)}...{wallet.slice(-6)}</p>
-                              <p className="text-sm text-[var(--text-muted)]">Linked Wallet</p>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => handleUnlink(wallet)}
-                            className="px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                          >
-                            Unlink
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-
-                    <button
-                      onClick={handleLinkWallet}
-                      className="w-full p-6 bg-[var(--secondary)] border border-[var(--border)] rounded-xl hover:border-[var(--primary)] transition-colors text-left"
-                    >
-                      <p className="text-[var(--text-main)] font-semibold">+ Link another wallet</p>
-                      <p className="text-sm text-[var(--text-muted)] mt-1">You’ll sign a message to verify wallet ownership.</p>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'legal' && (
-                <div className="space-y-8">
-                  <div>
-                    <h1 className="text-3xl font-bold text-[var(--text-main)] mb-2">KYC Verification</h1>
-                    <p className="text-[var(--text-muted)]">Complete your identity verification to unlock all features.</p>
-                  </div>
-
-                  <div className="p-8 bg-[var(--card)] border border-[var(--border)] rounded-xl">
-                    {user?.kycStatus === 'VERIFIED' ? (
-                      <div className="text-center space-y-4">
-                        <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto">
-                          <ShieldCheck className="w-8 h-8 text-green-600 dark:text-green-400" />
-                        </div>
-                        <h3 className="text-xl font-bold text-[var(--text-main)]">Verified</h3>
-                        <p className="text-[var(--text-muted)]">Your identity has been successfully verified.</p>
-                      </div>
-                    ) : (
-                      <div className="text-center space-y-4">
-                        <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/20 rounded-full flex items-center justify-center mx-auto">
-                          <ShieldCheck className="w-8 h-8 text-amber-600 dark:text-amber-400" />
-                        </div>
-                        <h3 className="text-xl font-bold text-[var(--text-main)]">Not Verified</h3>
-                        <p className="text-[var(--text-muted)]">Complete your KYC verification to access all features.</p>
-                        <button
-                          onClick={() => setIsKYCOpen(true)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-xl transition-colors"
-                        >
-                          Start Verification
-                        </button>
-                      </div>
-                    )}
+                    <div className="p-6 bg-[var(--card)] border border-[var(--border)] rounded-xl hover:border-[var(--primary)]/30 transition-all cursor-pointer">
+                      <HelpCircle className="w-8 h-8 text-[var(--primary)] mb-4" />
+                      <h3 className="text-lg font-bold mb-2">FAQ Database</h3>
+                      <p className="text-sm text-[var(--text-muted)]">Browse our knowledge base for quick answers and guides.</p>
+                    </div>
                   </div>
                 </div>
               )}

@@ -127,12 +127,12 @@ const Navbar = () => {
                   <User size={20} />
                 </button>
 
-                <div className="absolute right-0 mt-2 w-48 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+                <div className="absolute right-0 mt-2 w-52 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                   <Link href="/dashboard" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold hover:bg-[var(--secondary)] transition-colors">
                     <LayoutDashboard size={16} /> Dashboard
                   </Link>
                   <Link href="/profile" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold hover:bg-[var(--secondary)] transition-colors">
-                    <User size={16} /> My Profile
+                    <User size={16} /> Profile
                   </Link>
                   <Link href="/settings" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold hover:bg-[var(--secondary)] transition-colors">
                     <Settings size={16} /> Settings
@@ -145,6 +145,7 @@ const Navbar = () => {
                   </button>
                 </div>
               </div>
+
             </div>
           ) : (
             <div className="flex items-center gap-4">

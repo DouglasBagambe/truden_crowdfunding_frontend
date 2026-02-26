@@ -15,7 +15,7 @@ interface CreateProjectWizardProps {
   onClose: () => void;
 }
 
-type Step = 'basics' | 'details' | 'funding' | 'milestones' | 'review';
+type Step = 'type' | 'basics' | 'details' | 'funding' | 'milestones' | 'review';
 
 const isProbablyUrl = (value: unknown): value is string => {
   if (typeof value !== 'string') return false;
@@ -31,8 +31,9 @@ const isProbablyUrl = (value: unknown): value is string => {
 
 export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWizardProps) {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState<Step>('basics');
+  const [currentStep, setCurrentStep] = useState<Step>('type');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showTypeConfirmation, setShowTypeConfirmation] = useState(false);
 
   const [formData, setFormData] = useState({
     // Basics
@@ -56,7 +57,7 @@ export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWi
     milestones: [] as Array<{ title: string; description: string; amount: string; dueDate: string }>,
   });
 
-  const steps: Step[] = ['basics', 'details', 'funding', 'milestones', 'review'];
+  const steps: Step[] = ['type', 'basics', 'details', 'funding', 'milestones', 'review'];
   const currentStepIndex = steps.indexOf(currentStep);
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
@@ -65,10 +66,19 @@ export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWi
   };
 
   const nextStep = () => {
+    if (currentStep === 'type') {
+      setShowTypeConfirmation(true);
+      return;
+    }
     const nextIndex = currentStepIndex + 1;
     if (nextIndex < steps.length) {
       setCurrentStep(steps[nextIndex]);
     }
+  };
+
+  const confirmTypeAndProceed = () => {
+    setShowTypeConfirmation(false);
+    setCurrentStep('basics');
   };
 
   const prevStep = () => {
@@ -181,6 +191,9 @@ export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWi
           {/* Content */}
           <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
             <AnimatePresence mode="wait">
+              {currentStep === 'type' && (
+                <TypeStep formData={formData} updateFormData={updateFormData} />
+              )}
               {currentStep === 'basics' && (
                 <BasicsStep formData={formData} updateFormData={updateFormData} />
               )}
@@ -231,11 +244,109 @@ export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWi
           </div>
         </motion.div>
       </div>
+
+      {/* Type Confirmation Modal */}
+      <AnimatePresence>
+        {showTypeConfirmation && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
+            >
+              <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mb-4">
+                <Target className="w-6 h-6 text-amber-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Confirm Project Type</h3>
+              <p className="text-gray-600 mb-6">
+                You are about to create an <strong>{formData.projectType === 'ROI' ? 'ROI Investment' : 'Charity'}</strong> project.
+                {formData.projectType === 'ROI'
+                  ? ' Please note that investors will expect financial returns or equity as defined by your milestones.'
+                  : ' This is a donation-based model where backers do not expect direct financial returns.'}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowTypeConfirmation(false)}
+                  className="flex-1 py-2.5 px-4 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmTypeAndProceed}
+                  className="flex-1 py-2.5 px-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors"
+                >
+                  Yes, Continue
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
 // Step Components
+const TypeStep = ({ formData, updateFormData }: any) => (
+  <motion.div
+    initial={{ opacity: 0, x: 20 }}
+    animate={{ opacity: 1, x: 0 }}
+    exit={{ opacity: 0, x: -20 }}
+    className="space-y-6"
+  >
+    <div className="text-center mb-8">
+      <h3 className="text-xl font-bold text-gray-900">What kind of project are you creating?</h3>
+      <p className="text-sm text-gray-500 mt-2">Choose the funding model that best suits your goals.</p>
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <button
+        type="button"
+        onClick={() => updateFormData('projectType', 'ROI')}
+        className={`p-6 border-2 rounded-xl text-left transition-all ${formData.projectType === 'ROI'
+          ? 'border-blue-600 bg-blue-50 relative overflow-hidden'
+          : 'border-gray-200 hover:border-gray-300'
+          }`}
+      >
+        <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center mb-4 shadow-sm">
+          <DollarSign className="w-6 h-6" />
+        </div>
+        <h4 className="font-bold text-lg text-gray-900 mb-2">ROI Investment</h4>
+        <p className="text-sm text-gray-600 leading-relaxed font-medium">
+          Standard investment projects where backers expect a financial return. This is ideal for startups, businesses, or revenue-generating projects. You will share a percentage of revenue or pay back the principal with interest over your selected milestones, creating a sustainable ecosystem for your growth and investor profits.
+        </p>
+        <div className={`absolute top-4 right-4 transition-all duration-300 ${formData.projectType === 'ROI' ? 'opacity-100 scale-100 text-blue-600' : 'opacity-0 scale-50'}`}>
+          <CheckCircle className="w-6 h-6" />
+        </div>
+      </button>
+
+      <button
+        type="button"
+        onClick={() => updateFormData('projectType', 'CHARITY')}
+        className={`p-6 border-2 rounded-xl text-left transition-all ${formData.projectType === 'CHARITY'
+          ? 'border-emerald-600 bg-emerald-50 relative overflow-hidden'
+          : 'border-gray-200 hover:border-gray-300'
+          }`}
+      >
+        <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center mb-4 shadow-sm">
+          <Target className="w-6 h-6" />
+        </div>
+        <h4 className="font-bold text-lg text-gray-900 mb-2">Charity & Donation</h4>
+        <p className="text-sm text-gray-600 leading-relaxed font-medium">
+          Projects focused on social good, community drives, or non-profit goals. Backers donate funds purely for impact and social rewards. This model is perfect for medical emergencies, community infrastructure, or environmental causes where the "return" is the positive change you create in the world.
+        </p>
+        <div className={`absolute top-4 right-4 transition-all duration-300 ${formData.projectType === 'CHARITY' ? 'opacity-100 scale-100 text-emerald-600' : 'opacity-0 scale-50'}`}>
+          <CheckCircle className="w-6 h-6" />
+        </div>
+      </button>
+    </div>
+  </motion.div>
+);
 const BasicsStep = ({ formData, updateFormData }: any) => (
   <motion.div
     initial={{ opacity: 0, x: 20 }}
@@ -272,36 +383,6 @@ const BasicsStep = ({ formData, updateFormData }: any) => (
         <option value="ENVIRONMENT">Environment</option>
         <option value="COMMUNITY">Community</option>
       </select>
-    </div>
-
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Project Type *
-      </label>
-      <div className="grid grid-cols-2 gap-4">
-        <button
-          type="button"
-          onClick={() => updateFormData('projectType', 'ROI')}
-          className={`p-4 border-2 rounded-lg transition-all ${formData.projectType === 'ROI'
-            ? 'border-blue-600 bg-blue-50'
-            : 'border-gray-300 hover:border-gray-400'
-            }`}
-        >
-          <p className="font-semibold text-gray-900">ROI Investment</p>
-          <p className="text-sm text-gray-600 mt-1">Investors receive returns</p>
-        </button>
-        <button
-          type="button"
-          onClick={() => updateFormData('projectType', 'CHARITY')}
-          className={`p-4 border-2 rounded-lg transition-all ${formData.projectType === 'CHARITY'
-            ? 'border-pink-600 bg-pink-50'
-            : 'border-gray-300 hover:border-gray-400'
-            }`}
-        >
-          <p className="font-semibold text-gray-900">Charity</p>
-          <p className="text-sm text-gray-600 mt-1">Donation-based funding</p>
-        </button>
-      </div>
     </div>
 
     <div>
@@ -641,7 +722,7 @@ const ReviewStep = ({ formData }: any) => (
         </div>
         <div className="flex justify-between">
           <dt className="text-gray-600">Goal:</dt>
-          <dd className="font-medium text-gray-900">${formData.goalAmount || '0'}</dd>
+          <dd className="font-medium text-gray-900">UGX {parseFloat(formData.goalAmount || '0').toLocaleString()}</dd>
         </div>
         <div className="flex justify-between">
           <dt className="text-gray-600">Deadline:</dt>
@@ -659,6 +740,7 @@ const ReviewStep = ({ formData }: any) => (
 // Helper function
 const getStepTitle = (step: Step): string => {
   const titles: Record<Step, string> = {
+    type: 'Project Type',
     basics: 'Basic Information',
     details: 'Project Details',
     funding: 'Funding Goals',

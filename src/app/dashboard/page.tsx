@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import ProjectCard from '@/components/dashboard/ProjectCard';
@@ -8,11 +8,15 @@ import RightSidebar from '@/components/dashboard/RightSidebar';
 import CreateProjectWizard from '@/components/dashboard/CreateProjectWizard';
 import InvestModal from '@/components/dashboard/InvestModal';
 import { NFTPortfolio } from '@/components/dashboard/NFTPortfolio';
+import { WalletView } from '@/components/dashboard/WalletView';
+import { KYCView } from '@/components/dashboard/KYCView';
+import { NotificationsView } from '@/components/dashboard/NotificationsView';
+import KYCModal from '@/components/dashboard/KYCModal';
 import { motion } from 'framer-motion';
 import { useProjects, useMyProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
 import { useInvestments } from '@/hooks/useInvestments';
-import { Search, TrendingUp, ArrowUpRight, Shield, PlusCircle, LayoutDashboard, Wallet, Rocket, Target, Hexagon } from 'lucide-react';
+import { Search, LineChart, ArrowUpRight, Shield, PlusCircle, LayoutDashboard, Wallet, Briefcase, Activity, Image as ImageIcon, ShieldCheck, Bell } from 'lucide-react';
 import Link from 'next/link';
 
 interface Project {
@@ -49,9 +53,21 @@ export default function DashboardPage() {
 
     const [isInvestModalOpen, setIsInvestModalOpen] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isKYCModalOpen, setIsKYCModalOpen] = useState(false);
     const [selectedProject, setSelectedProject] = useState<any>(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeTab, setActiveTab] = useState<'investments' | 'campaigns' | 'nfts'>('investments');
+    const [activeTab, setActiveTab] = useState<'investments' | 'donations' | 'campaigns' | 'nfts' | 'wallet' | 'kyc' | 'notifications'>('investments');
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('create') === 'true') {
+                setIsCreateModalOpen(true);
+                // Clean up the URL
+                window.history.replaceState({}, '', '/dashboard');
+            }
+        }
+    }, []);
 
     const allFetchedProjects = projectsData?.items || [];
 
@@ -61,39 +77,77 @@ export default function DashboardPage() {
         return Array.isArray(myProjectsData) ? myProjectsData : [];
     }, [myProjectsData]);
 
-    // Get projects user has invested in
+    // Get projects user has interacted with
     const myInvestmentProjects = useMemo(() => {
         if (!investmentsData || investmentsData.length === 0) return [];
 
-        const investedProjectIds = new Set(investmentsData.map((inv: any) => inv.projectId));
-        return allFetchedProjects.filter((p: Project) =>
-            investedProjectIds.has(p.id || p._id!)
-        );
+        const projectMap = new Map(allFetchedProjects.map((p: any) => [p.id || p._id, p]));
+
+        const projects = investmentsData.map((inv: any) => {
+            const p = projectMap.get(inv.projectId);
+            if (p) return p;
+            if (inv.project) {
+                return {
+                    id: inv.projectId,
+                    _id: inv.projectId,
+                    name: inv.project.title,
+                    title: inv.project.title,
+                    category: inv.project.category,
+                    type: inv.project.type,
+                    creatorId: inv.project.creatorId,
+                    raisedAmount: 0,
+                    goalAmount: 0,
+                    status: inv.status
+                };
+            }
+            return null;
+        }).filter(Boolean);
+
+        const uniqueIds = new Set();
+        return projects.filter((p: any) => {
+            const id = p.id || p._id;
+            if (uniqueIds.has(id)) return false;
+            uniqueIds.add(id);
+            return true;
+        });
     }, [allFetchedProjects, investmentsData]);
 
-    // Apply search filter
-    const filteredInvestments = useMemo(() => {
-        return myInvestmentProjects.filter((p: Project) =>
-            (p.name || p.title || '').toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }, [myInvestmentProjects, searchQuery]);
+    const myInvestments = useMemo(() => myInvestmentProjects.filter(p => !p.type || p.type !== 'CHARITY'), [myInvestmentProjects]);
+    const myDonations = useMemo(() => myInvestmentProjects.filter(p => p.type === 'CHARITY'), [myInvestmentProjects]);
 
     const filteredCampaigns = useMemo(() => {
-        return myCampaigns.filter((p: Project) =>
-            (p.name || p.title || '').toLowerCase().includes(searchQuery.toLowerCase())
-        );
+        if (!searchQuery.trim()) return myCampaigns;
+        return myCampaigns.filter(p => {
+            const name = p.name || p.title || '';
+            return name.toLowerCase().includes(searchQuery.toLowerCase());
+        });
     }, [myCampaigns, searchQuery]);
 
-    const displayedProjects = activeTab === 'investments' ? filteredInvestments : filteredCampaigns;
+    const displayedProjects = useMemo(() => {
+        if (activeTab === 'investments') return myInvestments;
+        if (activeTab === 'donations') return myDonations;
+        return filteredCampaigns;
+    }, [activeTab, myInvestments, myDonations, filteredCampaigns]);
     const isDataLoading = isLoading || isLoadingInvestments;
 
-    // Calculate portfolio stats
-    const portfolioValue = useMemo(() => {
-        if (!investmentsData) return 0;
-        return investmentsData.reduce((sum: number, inv: any) => sum + inv.amount, 0);
+    // Calculate portfolio and donation stats
+    const stats = useMemo(() => {
+        if (!investmentsData) return { invested: 0, donated: 0, pos: 0, don: 0 };
+        return investmentsData.reduce((acc: any, inv: any) => {
+            const isDonation = inv.project?.type === 'CHARITY';
+            if (isDonation) {
+                acc.donated += inv.amount;
+                acc.don += 1;
+            } else {
+                acc.invested += inv.amount;
+                acc.pos += 1;
+            }
+            return acc;
+        }, { invested: 0, donated: 0, pos: 0, don: 0 });
     }, [investmentsData]);
 
-    const activePositions = investmentsData?.length || 0;
+    const campaignsCreated = myCampaigns?.length || 0;
+    const totalRaised = myCampaigns?.reduce((sum: number, p: any) => sum + (p.raisedAmount || 0), 0) || 0;
 
     const handleProjectClick = (project: any) => {
         setSelectedProject(project);
@@ -108,25 +162,72 @@ export default function DashboardPage() {
                 <div className="flex flex-col lg:flex-row gap-10">
 
                     <div className="flex-1 space-y-8">
+                        {/* KYC Banner */}
+                        {user && user.kycStatus !== 'VERIFIED' && (
+                            <div className="bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                                        <Shield size={24} className="text-white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold">Complete KYC Verification</h3>
+                                        <p className="text-amber-100 text-sm">Verify your identity to unlock investing and withdrawing funds.</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setIsKYCModalOpen(true)}
+                                    className="bg-white text-amber-600 px-6 py-2.5 rounded-xl font-bold shadow-sm hover:shadow-md transition-all whitespace-nowrap"
+                                >
+                                    Verify Identity
+                                </button>
+                            </div>
+                        )}
+
                         {/* Header / KPI Row */}
-                        {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
                             <KPICard
-                                label="Portfolio Value"
-                                value={`$${portfolioValue.toFixed(2)}`}
-                                trend={portfolioValue > 0 ? "+12.5%" : undefined}
-                                icon={<TrendingUp size={16} className="text-emerald-500" />}
+                                label="Total Invested (UGX)"
+                                value={`${(stats.invested || 0).toLocaleString()}`}
+                                icon={<LineChart size={16} className="text-emerald-500" />}
                             />
                             <KPICard
-                                label="Active Positions"
-                                value={activePositions.toString()}
+                                label="Total Donated (UGX)"
+                                value={`${(stats.donated || 0).toLocaleString()}`}
+                                icon={<Activity size={16} className="text-pink-500" />}
+                            />
+                            <KPICard
+                                label="Active Investments"
+                                value={stats.pos.toString()}
                                 icon={<LayoutDashboard size={16} className="text-blue-500" />}
                             />
                             <KPICard
-                                label="My Campaigns"
-                                value={myCampaigns.length.toString()}
-                                icon={<Rocket size={16} className="text-indigo-500" />}
+                                label="Campaigns Created"
+                                value={campaignsCreated.toString()}
+                                icon={<Briefcase size={16} className="text-indigo-500" />}
                             />
-                        </div> */}
+                        </div>
+
+                        {/* Secondary KPI Row */}
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="bg-[var(--card)] p-6 rounded-2xl border border-[var(--border)] flex items-center justify-between shadow-sm">
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-1">Total Raised from My Campaigns</p>
+                                    <h4 className="text-2xl font-black text-[var(--text-main)]">UGX {totalRaised.toLocaleString()}</h4>
+                                </div>
+                                <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center">
+                                    <Activity className="text-blue-500" size={20} />
+                                </div>
+                            </div>
+                            <div className="bg-[var(--card)] p-6 rounded-2xl border border-[var(--border)] flex items-center justify-between shadow-sm">
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-1">Charity Donations Made</p>
+                                    <h4 className="text-2xl font-black text-[var(--text-main)]">{stats.don} Contributions</h4>
+                                </div>
+                                <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center">
+                                    <Shield className="text-emerald-500" size={20} />
+                                </div>
+                            </div>
+                        </div>
 
                         {/* Main Dashboard Container */}
                         <div className="bg-[var(--card)] rounded-[2rem] border border-[var(--border)] overflow-hidden shadow-sm transition-colors duration-300">
@@ -134,13 +235,17 @@ export default function DashboardPage() {
                                 <div className="flex items-center justify-between">
                                     <nav className="flex gap-10">
                                         {[
-                                            { key: 'investments', label: 'My Investments', icon: <Target size={14} /> },
-                                            { key: 'campaigns', label: 'My Campaigns', icon: <Rocket size={14} /> },
-                                            { key: 'nfts', label: 'My NFTs', icon: <Hexagon size={14} /> }
+                                            { key: 'investments', label: 'Investments', icon: <Activity size={14} /> },
+                                            { key: 'donations', label: 'Donations', icon: <Shield size={14} /> },
+                                            { key: 'campaigns', label: 'My Studio', icon: <Briefcase size={14} /> },
+                                            { key: 'wallet', label: 'Wallet', icon: <Wallet size={14} /> },
+                                            { key: 'kyc', label: 'Identity', icon: <ShieldCheck size={14} /> },
+                                            { key: 'notifications', label: 'Alerts', icon: <Bell size={14} /> },
+                                            { key: 'nfts', label: 'My NFTs', icon: <ImageIcon size={14} /> }
                                         ].map(tab => (
                                             <button
                                                 key={tab.key}
-                                                onClick={() => setActiveTab(tab.key as 'investments' | 'campaigns' | 'nfts')}
+                                                onClick={() => setActiveTab(tab.key as any)}
                                                 className={`py-6 text-sm font-bold border-b-2 transition-all relative flex items-center gap-2 ${activeTab === tab.key
                                                     ? 'border-[var(--primary)] text-[var(--primary)]'
                                                     : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'
@@ -166,10 +271,12 @@ export default function DashboardPage() {
                             </div>
 
                             <div className="p-8">
-                                {activeTab === 'investments' ? (
+                                {activeTab === 'investments' || activeTab === 'donations' ? (
                                     <div className="space-y-6">
                                         <div className="flex items-center justify-between">
-                                            <h3 className="text-lg font-bold tracking-tight">Your Investment Portfolio</h3>
+                                            <h3 className="text-lg font-bold tracking-tight">
+                                                {activeTab === 'investments' ? 'Your Investment Portfolio' : 'Your Charity Contributions'}
+                                            </h3>
                                             <Link href="/explore" className="flex items-center gap-2 text-[var(--primary)] font-bold text-sm hover:underline">
                                                 <PlusCircle size={16} /> Discover Projects
                                             </Link>
@@ -192,11 +299,13 @@ export default function DashboardPage() {
                                         ) : (
                                             <div className="py-24 text-center space-y-4">
                                                 <div className="w-16 h-16 bg-[var(--background)] rounded-2xl flex items-center justify-center mx-auto border border-[var(--border)] opacity-50">
-                                                    <Target className="text-[var(--text-muted)]" size={24} />
+                                                    <Activity className="text-[var(--text-muted)]" size={24} />
                                                 </div>
-                                                <h4 className="text-lg font-bold">No Investments Yet</h4>
+                                                <h4 className="text-lg font-bold">No {activeTab} yet</h4>
                                                 <p className="text-sm text-[var(--text-muted)] font-medium max-w-xs mx-auto">
-                                                    Start backing innovative projects and grow your portfolio.
+                                                    {activeTab === 'investments'
+                                                        ? 'Start backing innovative projects and grow your portfolio.'
+                                                        : 'Support causes that matter and make a difference.'}
                                                 </p>
                                                 <Link href="/explore" className="button_primary inline-flex items-center gap-2 mt-4">
                                                     <PlusCircle size={16} /> Explore Projects
@@ -211,16 +320,22 @@ export default function DashboardPage() {
                                         </div>
                                         <NFTPortfolio />
                                     </div>
+                                ) : activeTab === 'wallet' ? (
+                                    <WalletView />
+                                ) : activeTab === 'kyc' ? (
+                                    <KYCView />
+                                ) : activeTab === 'notifications' ? (
+                                    <NotificationsView />
                                 ) : (
                                     <div className="space-y-6">
                                         <div className="flex items-center justify-between">
-                                            <h3 className="text-lg font-bold tracking-tight">Your Campaigns</h3>
-                                            <Link
-                                                href="/create-project"
+                                            <h3 className="text-lg font-bold tracking-tight">Your Studio</h3>
+                                            <button
+                                                onClick={() => setIsCreateModalOpen(true)}
                                                 className="flex items-center gap-2 text-[var(--primary)] font-bold text-sm hover:underline"
                                             >
                                                 <PlusCircle size={16} /> Create Campaign
-                                            </Link>
+                                            </button>
                                         </div>
 
                                         {isDataLoading ? (
@@ -240,15 +355,15 @@ export default function DashboardPage() {
                                         ) : (
                                             <div className="py-24 text-center space-y-4">
                                                 <div className="w-16 h-16 bg-[var(--background)] rounded-2xl flex items-center justify-center mx-auto border border-[var(--border)] opacity-50">
-                                                    <Rocket className="text-[var(--text-muted)]" size={24} />
+                                                    <Briefcase className="text-[var(--text-muted)]" size={24} />
                                                 </div>
                                                 <h4 className="text-lg font-bold">No Campaigns Yet</h4>
                                                 <p className="text-sm text-[var(--text-muted)] font-medium max-w-xs mx-auto">
                                                     Launch your first campaign and bring your innovation to life.
                                                 </p>
-                                                <Link href="/create-project" className="button_primary inline-flex items-center gap-2 mt-4">
-                                                    <Rocket size={16} /> Create Campaign
-                                                </Link>
+                                                <button onClick={() => setIsCreateModalOpen(true)} className="button_primary inline-flex items-center gap-2 mt-4">
+                                                    <PlusCircle size={16} /> Create Campaign
+                                                </button>
                                             </div>
                                         )}
                                     </div>
@@ -258,42 +373,14 @@ export default function DashboardPage() {
                     </div>
 
                     <aside className="w-full lg:w-[380px] space-y-8">
-                        <div className="grid grid-cols-1 gap-6">
-                            <KPICard
-                                label="Portfolio Value"
-                                value={`$${portfolioValue.toFixed(2)}`}
-                                trend={portfolioValue > 0 ? "+12.5%" : undefined}
-                                icon={<TrendingUp size={16} className="text-emerald-500" />}
-                            />
-                            <KPICard
-                                label="Active Positions"
-                                value={activePositions.toString()}
-                                icon={<LayoutDashboard size={16} className="text-blue-500" />}
-                            />
-                            <KPICard
-                                label="My Campaigns"
-                                value={myCampaigns.length.toString()}
-                                icon={<Rocket size={16} className="text-indigo-500" />}
-                            />
-                        </div>
-
                         <RightSidebar onTriggerCreate={() => setIsCreateModalOpen(true)} />
-
-                        {/* Recent Activity - Alternative View */}
-                        {/* <div className="bg-[var(--card)] rounded-[2rem] border border-[var(--border)] p-8 space-y-6 shadow-sm transition-colors duration-300">
-                            <h3 className="text-lg font-bold tracking-tight text-[var(--text-main)]">Global Activity</h3>
-                            <div className="space-y-6">
-                                <ActivityEntry label="Escrow Verified" time="2h ago" desc="Alpha project release" type="finance" />
-                                <ActivityEntry label="Proposal Passing" time="1d ago" desc="Staking rewards v2" type="governance" />
-                                <ActivityEntry label="Security Update" time="3d ago" desc="Audit hash updated" type="success" />
-                            </div>
-                        </div> */}
                     </aside>
 
                 </div>
             </main>
 
             <CreateProjectWizard isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+            <KYCModal isOpen={isKYCModalOpen} onClose={() => setIsKYCModalOpen(false)} />
             <InvestModal
                 isOpen={isInvestModalOpen}
                 onClose={() => setIsInvestModalOpen(false)}
