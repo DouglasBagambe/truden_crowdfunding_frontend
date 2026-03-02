@@ -27,6 +27,7 @@ export interface Investment {
         id: string;
         title?: string;
         category?: string;
+        type?: string;
         creatorId?: string;
     };
     investor?: {
@@ -41,49 +42,31 @@ export interface Investment {
 }
 
 export const investmentService = {
-    /**
-     * Create a new investment
-     */
     async createInvestment(data: CreateInvestmentDto): Promise<Investment> {
         const response = await apiClient.post('/investments/invest', data);
         return response.data;
     },
 
-    /**
-     * Get user's investments
-     */
+    async getMyInvestments(): Promise<Investment[]> {
+        const response = await apiClient.get('/investments/me'); // ← was '/investments/my'
+        return response.data;
+    },
+
     async getUserInvestments(userId: string): Promise<Investment[]> {
         const response = await apiClient.get(`/investments/user/${userId}`);
         return response.data;
     },
 
-    /**
-     * Get my investments (current user)
-     */
-    async getMyInvestments(): Promise<Investment[]> {
-        const response = await apiClient.get('/investments/my');
-        return response.data;
-    },
-
-    /**
-     * Get investments for a specific project
-     */
     async getProjectInvestments(projectId: string): Promise<Investment[]> {
         const response = await apiClient.get(`/investments/project/${projectId}`);
         return response.data;
     },
 
-    /**
-     * Get a single investment by ID
-     */
     async getInvestment(id: string): Promise<Investment> {
         const response = await apiClient.get(`/investments/${id}`);
         return response.data;
     },
 
-    /**
-     * List all investments (admin only)
-     */
     async listInvestments(params?: {
         userId?: string;
         projectId?: string;

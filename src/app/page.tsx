@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Heart, 
-  TrendingUp, 
+import {
+  Heart,
+  TrendingUp,
   Lightbulb,
   GraduationCap,
   UtensilsCrossed,
@@ -15,12 +16,14 @@ import {
   Palette,
   FlaskConical,
   Plus,
-  ArrowRight
+  ArrowRight,
+  Zap
 } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import ProjectCard from '@/components/dashboard/ProjectCard';
 
 export default function LandingPage() {
+  const router = useRouter();
   const { data: projectsData, isLoading } = useProjects();
   const [activeTab, setActiveTab] = useState<'ALL' | 'CHARITY' | 'ROI'>('ALL');
 
@@ -53,18 +56,18 @@ export default function LandingPage() {
 
   const projects = projectsData?.items || [];
 
-  const charity = useMemo(() => 
-    projects.filter((p: any) => p.projectType === 'CHARITY'), 
-  [projects]);
+  const charity = useMemo(() =>
+    projects.filter((p: any) => p.projectType === 'CHARITY'),
+    [projects]);
 
-  const roi = useMemo(() => 
-    projects.filter((p: any) => p.projectType === 'ROI'), 
-  [projects]);
+  const roi = useMemo(() =>
+    projects.filter((p: any) => p.projectType === 'ROI'),
+    [projects]);
 
   const stats = useMemo(() => {
     const charityTotal = charity.reduce((acc: number, p: any) => acc + (p.raisedAmount || 0), 0);
     const roiTotal = roi.reduce((acc: number, p: any) => acc + (p.raisedAmount || 0), 0);
-    
+
     return {
       charity: charityTotal,
       roi: roiTotal,
@@ -73,10 +76,14 @@ export default function LandingPage() {
     };
   }, [charity, roi]);
 
+  const handleTriggerCreate = () => {
+    router.push('/dashboard/create-project');
+  };
+
   return (
     <div className="bg-[var(--background)] min-h-screen flex flex-col pt-[72px] transition-colors duration-300">
       <Navbar />
-      
+
       <main className="flex-grow">
         {/* Hero Section */}
         <section className="relative py-20 lg:py-32 overflow-hidden">
@@ -121,17 +128,17 @@ export default function LandingPage() {
                 Ignite your dreams and bring impactful projects to life with the support of a global community. FundFlow makes crowdfunding simple and accessible.
               </p>
             </motion.div>
-            
+
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
               className="flex gap-4 justify-center flex-wrap"
             >
-              <Link href="/explore" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-xl transition-colors shadow-sm hover:shadow">
-                Browse Projects
+              <Link href="/dashboard/create-project" className="relative z-10 w-full bg-white text-[var(--primary)] font-bold py-3.5 px-6 rounded-xl hover:bg-gray-50 transition-all active:scale-95 shadow-lg hover:shadow-xl text-lg tracking-wide">
+                SUBMIT PROJECT
               </Link>
-              <Link href="/create-project" className="bg-white/85 dark:bg-slate-900/65 backdrop-blur text-slate-950 dark:text-white font-semibold px-8 py-3 rounded-xl border border-white/40 dark:border-white/10 hover:bg-white dark:hover:bg-slate-900 transition-colors shadow-sm hover:shadow">
+              <Link href="/dashboard/create-project" className="bg-white/85 dark:bg-slate-900/65 backdrop-blur text-slate-950 dark:text-white font-semibold px-8 py-3 rounded-xl border border-white/40 dark:border-white/10 hover:bg-white dark:hover:bg-slate-900 transition-colors shadow-sm hover:shadow">
                 Create a Campaign
               </Link>
             </motion.div>
@@ -144,31 +151,28 @@ export default function LandingPage() {
             <div className="inline-flex gap-2">
               <button
                 onClick={() => setActiveTab('ALL')}
-                className={`px-6 py-2 rounded-lg font-semibold transition-all ${
-                  activeTab === 'ALL' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
-                }`}
+                className={`px-6 py-2 rounded-lg font-semibold transition-all ${activeTab === 'ALL'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                  }`}
               >
                 All
               </button>
               <button
                 onClick={() => setActiveTab('CHARITY')}
-                className={`px-6 py-2 rounded-lg font-semibold transition-all ${
-                  activeTab === 'CHARITY' 
-                    ? 'bg-emerald-600 text-white' 
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
-                }`}
+                className={`px-6 py-2 rounded-lg font-semibold transition-all ${activeTab === 'CHARITY'
+                  ? 'bg-emerald-600 text-white'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                  }`}
               >
                 Charity
               </button>
               <button
                 onClick={() => setActiveTab('ROI')}
-                className={`px-6 py-2 rounded-lg font-semibold transition-all ${
-                  activeTab === 'ROI' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
-                }`}
+                className={`px-6 py-2 rounded-lg font-semibold transition-all ${activeTab === 'ROI'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                  }`}
               >
                 ROI
               </button>
@@ -178,10 +182,10 @@ export default function LandingPage() {
 
         <div className="bg-[var(--background)]">
           <div className="container mx-auto px-6 py-16 space-y-20">
-            
+
             {/* Charity Section */}
             {(activeTab === 'ALL' || activeTab === 'CHARITY') && (
-              <motion.section 
+              <motion.section
                 initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -225,7 +229,7 @@ export default function LandingPage() {
                       Explore more charity
                       <ArrowRight size={18} />
                     </Link>
-                    <Link href="/create-project" className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-8 py-3 rounded-lg inline-flex items-center gap-2 transition-colors">
+                    <Link href="/dashboard/create-project" className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-8 py-3 rounded-lg inline-flex items-center gap-2 transition-colors">
                       <Plus size={20} />
                       Create Charity Project
                     </Link>
@@ -236,7 +240,7 @@ export default function LandingPage() {
 
             {/* ROI Section */}
             {(activeTab === 'ALL' || activeTab === 'ROI') && (
-              <motion.section 
+              <motion.section
                 initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -280,9 +284,9 @@ export default function LandingPage() {
                       Explore more ROI
                       <ArrowRight size={18} />
                     </Link>
-                    <Link href="/create-project" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg inline-flex items-center gap-2 transition-colors">
-                      <Plus size={20} />
-                      Create ROI Project
+                    <Link href="/dashboard/create-project" className="button_primary inline-flex items-center gap-3 mt-6">
+                      <Zap size={18} />
+                      Submit Your Project
                     </Link>
                   </div>
                 </div>
@@ -297,41 +301,41 @@ export default function LandingPage() {
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-                <Category 
-                  icon={<Lightbulb className="w-8 h-8" />} 
-                  label="Technology" 
+                <Category
+                  icon={<Lightbulb className="w-8 h-8" />}
+                  label="Technology"
                   href="/explore?category=TECHNOLOGY"
-                  color="blue" 
+                  color="blue"
                 />
-                <Category 
-                  icon={<GraduationCap className="w-8 h-8" />} 
-                  label="Education" 
+                <Category
+                  icon={<GraduationCap className="w-8 h-8" />}
+                  label="Education"
                   href="/explore?category=EDUCATION"
-                  color="indigo" 
+                  color="indigo"
                 />
-                <Category 
-                  icon={<UtensilsCrossed className="w-8 h-8" />} 
-                  label="Food & Craft" 
+                <Category
+                  icon={<UtensilsCrossed className="w-8 h-8" />}
+                  label="Food & Craft"
                   href="/explore?category=COMMUNITY"
-                  color="amber" 
+                  color="amber"
                 />
-                <Category 
-                  icon={<Leaf className="w-8 h-8" />} 
-                  label="Environment" 
+                <Category
+                  icon={<Leaf className="w-8 h-8" />}
+                  label="Environment"
                   href="/explore?category=ENVIRONMENT"
-                  color="emerald" 
+                  color="emerald"
                 />
-                <Category 
-                  icon={<Palette className="w-8 h-8" />} 
-                  label="Arts & Culture" 
+                <Category
+                  icon={<Palette className="w-8 h-8" />}
+                  label="Arts & Culture"
                   href="/explore?category=COMMUNITY"
-                  color="rose" 
+                  color="rose"
                 />
-                <Category 
-                  icon={<FlaskConical className="w-8 h-8" />} 
-                  label="Health" 
+                <Category
+                  icon={<FlaskConical className="w-8 h-8" />}
+                  label="Health"
                   href="/explore?category=HEALTH"
-                  color="cyan" 
+                  color="cyan"
                 />
               </div>
             </section>
@@ -345,7 +349,7 @@ export default function LandingPage() {
                 <p className="text-[var(--text-muted)] text-base">
                   FundFlow provides the tools and community support you need to turn your innovative ideas into reality. Start your crowdfunding journey today.
                 </p>
-                <Link href="/create-project" className="bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-semibold px-8 py-3 rounded-lg inline-block transition-colors">
+                <Link href="/dashboard/create-project" className="bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-semibold px-8 py-3 rounded-lg inline-block transition-colors">
                   Start Your Campaign
                 </Link>
               </div>

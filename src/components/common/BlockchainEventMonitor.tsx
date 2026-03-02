@@ -41,8 +41,8 @@ export function BlockchainEventMonitor() {
       }
     };
 
-    poll();
-    intervalRef.current = setInterval(poll, 30_000);
+    // poll();
+    // intervalRef.current = setInterval(poll, 30_000);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };

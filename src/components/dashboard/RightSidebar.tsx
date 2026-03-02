@@ -43,7 +43,7 @@ const RightSidebar = ({ onTriggerCreate }: RightSidebarProps) => {
       {/* Submission CTA */}
       <div className="bg-[var(--primary)] rounded-2xl p-10 text-center space-y-6 shadow-xl relative overflow-hidden group">
         <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 blur-2xl -mr-24 -mt-24 rounded-full" />
-        
+
         <div className="relative z-10 space-y-2">
           <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/10">
             <Zap className="text-white" size={24} />
@@ -53,21 +53,10 @@ const RightSidebar = ({ onTriggerCreate }: RightSidebarProps) => {
             Submit your project and get funded by a global network of backers.
           </p>
         </div>
-        <Link href="/create-project" className="relative z-10 w-full bg-white text-[var(--primary)] font-bold py-3.5 px-6 rounded-xl hover:bg-gray-50 transition-all active:scale-95 shadow-lg hover:shadow-xl text-lg tracking-wide">
-            SUBMIT PROJECT
+        <Link href="/dashboard/create-project" className="relative z-10 w-full bg-white text-[var(--primary)] font-bold py-3.5 px-6 rounded-xl hover:bg-gray-50 transition-all active:scale-95 shadow-lg hover:shadow-xl text-lg tracking-wide">
+          SUBMIT PROJECT
         </Link>
       </div>
-
-      {/* Verified Info */}
-      {/* <div className="bg-gray-50 dark:bg-[#1a1a1a] rounded-2xl p-6 border border-gray-200 dark:border-[#333] flex items-center gap-4">
-        <div className="p-2.5 bg-white dark:bg-[#111] border border-gray-200 dark:border-[#262626] rounded-xl text-emerald-600">
-          <ShieldCheck size={20} />
-        </div>
-        <div>
-          <h4 className="font-bold text-sm">Escrow Protected</h4>
-          <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest">Audited Smart Contracts</p>
-        </div>
-      </div> */}
     </div>
   );
 };

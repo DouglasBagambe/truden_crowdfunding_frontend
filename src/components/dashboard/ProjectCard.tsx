@@ -17,6 +17,7 @@ interface ProjectCardProps {
     raisedAmount?: number;
     goalAmount?: number;
     projectType?: 'CHARITY' | 'ROI';
+    type?: string;
     status?: string;
     galleryImages?: string[];
   };
@@ -44,7 +45,8 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
     }
   };
 
-  const isCharity = project.projectType === 'CHARITY';
+  const projectType = (project.projectType || project.type || '').toUpperCase();
+  const isCharity = projectType === 'CHARITY';
   const accentBg = isCharity ? 'bg-emerald-600' : 'bg-blue-600';
   const accentText = isCharity ? 'text-emerald-600' : 'text-blue-600';
   const accentHoverText = isCharity ? 'group-hover:text-emerald-600' : 'group-hover:text-blue-600';
@@ -78,7 +80,7 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
           {/* Project Type & Status Badge */}
           <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
             <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg ${accentBg} text-white`}>
-              {project.projectType === 'CHARITY' ? 'Charity' : 'ROI'}
+              {isCharity ? 'Charity' : 'ROI'}
             </span>
             {project.status && project.status !== 'APPROVED' && project.status !== 'FUNDING' && (
               <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-black/60 text-white backdrop-blur-md shadow-lg border border-white/20">

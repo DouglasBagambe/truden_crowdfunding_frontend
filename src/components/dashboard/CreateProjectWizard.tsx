@@ -39,6 +39,10 @@ export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWi
     // Basics
     name: '',
     category: '',
+    subcategory: '', // Added subcategory
+    industry: '',
+    country: 'Uganda',
+    beneficiary: '',
     projectType: 'ROI',
     summary: '',
 
@@ -51,10 +55,12 @@ export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWi
     // Funding
     goalAmount: '',
     deadline: '',
+    currency: 'UGX',
+    paymentMethod: 'Mobile Money',
     useOfFunds: [] as Array<{ item: string; amount: string; percentage: string }>,
 
     // Milestones
-    milestones: [] as Array<{ title: string; description: string; amount: string; dueDate: string }>,
+    milestones: [] as Array<{ title: string; description: string; amount: string; payoutPercentage: string; dueDate: string }>,
   });
 
   const steps: Step[] = ['type', 'basics', 'details', 'funding', 'milestones', 'review'];
@@ -91,29 +97,39 @@ export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWi
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // Convert form data to API format
+      // Convert form data to API format matching CreateProjectDto
       const projectData: any = {
         name: formData.name,
-        category: formData.category,
-        projectType: formData.projectType,
+        type: formData.projectType, // Backend expects 'type'
         summary: formData.summary,
-        description: formData.description,
-        story: formData.story,
-        website: formData.website,
-        imageUrl: formData.imageUrl,
-        goalAmount: parseFloat(formData.goalAmount),
-        targetAmount: parseFloat(formData.goalAmount),
-        deadline: formData.deadline,
+        story: formData.story || formData.description, // Backend story is mandatory
+        country: formData.country,
+        beneficiary: formData.beneficiary,
+        paymentMethod: formData.paymentMethod,
+        targetAmount: parseFloat(formData.goalAmount), // Backend expects 'targetAmount'
+        currency: formData.currency,
+        fundingEndDate: formData.deadline ? new Date(formData.deadline).toISOString() : undefined,
+
+        // Conditional category/industry
+        ...(formData.projectType === 'ROI'
+          ? { industry: formData.industry || 'technology' }
+          : {
+            category: formData.category || 'community_group',
+            subcategory: formData.subcategory || 'outreach'
+          }
+        ),
+
         useOfFunds: formData.useOfFunds.map(item => ({
           item: item.item,
-          amount: parseFloat(item.amount),
-          percentage: parseFloat(item.percentage),
+          amount: parseFloat(item.amount || '0'),
+          percentage: parseFloat(item.percentage || '0'),
         })),
+
         milestones: formData.milestones.map(m => ({
           title: m.title,
           description: m.description,
-          amount: parseFloat(m.amount),
-          dueDate: m.dueDate,
+          payoutPercentage: parseFloat(m.payoutPercentage || '0'), // Backend expects payoutPercentage
+          dueDate: m.dueDate ? new Date(m.dueDate).toISOString() : undefined,
         })),
       };
 
@@ -133,9 +149,14 @@ export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWi
         router.push('/dashboard');
       }
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('[CREATE_PROJECT_WIZARD_DEBUG] Error creating project:', error);
-      alert('Failed to create project. Please try again.');
+      console.error('[CREATE_PROJECT_WIZARD_DEBUG] Error Response:', error.response?.data);
+
+      const errorMessage = error.response?.data?.message;
+      const errorDetail = Array.isArray(errorMessage) ? errorMessage.join(', ') : errorMessage;
+
+      alert(errorDetail ? `Failed to create project: ${errorDetail}` : 'Failed to create project. Please check if all fields are correctly filled.');
     } finally {
       setIsSubmitting(false);
     }
@@ -362,27 +383,9 @@ const BasicsStep = ({ formData, updateFormData }: any) => (
         type="text"
         value={formData.name}
         onChange={(e) => updateFormData('name', e.target.value)}
-        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
         placeholder="Enter project name"
       />
-    </div>
-
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Category *
-      </label>
-      <select
-        value={formData.category}
-        onChange={(e) => updateFormData('category', e.target.value)}
-        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-      >
-        <option value="">Select category</option>
-        <option value="TECHNOLOGY">Technology</option>
-        <option value="EDUCATION">Education</option>
-        <option value="HEALTH">Health</option>
-        <option value="ENVIRONMENT">Environment</option>
-        <option value="COMMUNITY">Community</option>
-      </select>
     </div>
 
     <div>
@@ -393,12 +396,103 @@ const BasicsStep = ({ formData, updateFormData }: any) => (
         value={formData.summary}
         onChange={(e) => updateFormData('summary', e.target.value)}
         rows={3}
-        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        placeholder="Brief description of your project (max 200 characters)"
+        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+        placeholder="Brief description (max 200 characters)"
         maxLength={200}
       />
       <p className="text-sm text-gray-500 mt-1">{formData.summary.length}/200 characters</p>
     </div>
+
+    <div className="grid grid-cols-2 gap-6">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Country *
+        </label>
+        <input
+          type="text"
+          value={formData.country}
+          onChange={(e) => updateFormData('country', e.target.value)}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          placeholder="e.g. Uganda"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Beneficiary *
+        </label>
+        <input
+          type="text"
+          value={formData.beneficiary}
+          onChange={(e) => updateFormData('beneficiary', e.target.value)}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          placeholder="Who receives funds?"
+        />
+      </div>
+    </div>
+
+    {formData.projectType === 'ROI' ? (
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Industry *
+        </label>
+        <select
+          value={formData.industry}
+          onChange={(e) => updateFormData('industry', e.target.value)}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Select industry</option>
+          <option value="technology">Technology</option>
+          <option value="agriculture">Agriculture</option>
+          <option value="real_estate">Real Estate</option>
+          <option value="financial_services">Finance</option>
+          <option value="energy">Energy</option>
+          <option value="manufacturing">Manufacturing</option>
+          <option value="transport">Transport</option>
+          <option value="education">Education</option>
+          <option value="health">Health</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+    ) : (
+      <div className="grid grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Category *
+          </label>
+          <select
+            value={formData.category}
+            onChange={(e) => updateFormData('category', e.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Select category</option>
+            <option value="school">School</option>
+            <option value="church">Church</option>
+            <option value="community_group">Community Group</option>
+            <option value="ngo">NGO</option>
+            <option value="individual">Individual</option>
+            <option value="family">Family</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Subcategory *
+          </label>
+          <select
+            value={formData.subcategory}
+            onChange={(e) => updateFormData('subcategory', e.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Select subcategory</option>
+            <option value="health">Health</option>
+            <option value="education">Education</option>
+            <option value="evangelical_mission">Evangelical Mission</option>
+            <option value="outreach">Outreach</option>
+            <option value="relief">Relief</option>
+            <option value="infrastructure">Infrastructure</option>
+          </select>
+        </div>
+      </div>
+    )}
   </motion.div>
 );
 
@@ -531,13 +625,18 @@ const FundingStep = ({ formData, updateFormData }: any) => {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Funding Goal *
           </label>
-          <input
-            type="number"
-            value={formData.goalAmount}
-            onChange={(e) => updateFormData('goalAmount', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="100000"
-          />
+          <div className="relative">
+            <span className="absolute left-4 top-3.5 text-gray-400 font-bold">
+              {formData.currency}
+            </span>
+            <input
+              type="number"
+              value={formData.goalAmount}
+              onChange={(e) => updateFormData('goalAmount', e.target.value)}
+              className="w-full pl-16 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="100000"
+            />
+          </div>
         </div>
 
         <div>
@@ -550,6 +649,38 @@ const FundingStep = ({ formData, updateFormData }: any) => {
             onChange={(e) => updateFormData('deadline', e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Currency *
+          </label>
+          <select
+            value={formData.currency}
+            onChange={(e) => updateFormData('currency', e.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="UGX">Ugandan Shilling (UGX)</option>
+            <option value="USD">US Dollar (USD)</option>
+            <option value="KES">Kenyan Shilling (KES)</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Payment Method *
+          </label>
+          <select
+            value={formData.paymentMethod}
+            onChange={(e) => updateFormData('paymentMethod', e.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="Mobile Money">Mobile Money (M-Pesa/Airtel)</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+            <option value="Credit Card">Credit Card</option>
+            <option value="Crypto">Crypto (USDC)</option>
+          </select>
         </div>
       </div>
 
@@ -604,7 +735,7 @@ const MilestonesStep = ({ formData, updateFormData }: any) => {
   const addMilestone = () => {
     updateFormData('milestones', [
       ...formData.milestones,
-      { title: '', description: '', amount: '', dueDate: '' }
+      { title: '', description: '', amount: '', payoutPercentage: '', dueDate: '' }
     ]);
   };
 
@@ -677,13 +808,16 @@ const MilestonesStep = ({ formData, updateFormData }: any) => {
                 onChange={(e) => updateMilestone(index, 'dueDate', e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-              <input
-                type="number"
-                value={milestone.amount}
-                onChange={(e) => updateMilestone(index, 'amount', e.target.value)}
-                placeholder="Amount"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+              <div className="relative">
+                <input
+                  type="number"
+                  value={milestone.payoutPercentage}
+                  onChange={(e) => updateMilestone(index, 'payoutPercentage', e.target.value)}
+                  placeholder="Payout %"
+                  className="w-full pr-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <span className="absolute right-4 top-2.5 text-gray-400">%</span>
+              </div>
             </div>
           </div>
         ))}
@@ -707,30 +841,42 @@ const ReviewStep = ({ formData }: any) => (
 
     <div>
       <h3 className="text-lg font-semibold text-gray-900 mb-3">Project Overview</h3>
-      <dl className="space-y-2">
-        <div className="flex justify-between">
+      <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+        <div className="flex justify-between border-b border-gray-100 py-1">
           <dt className="text-gray-600">Name:</dt>
           <dd className="font-medium text-gray-900">{formData.name || 'Not set'}</dd>
         </div>
-        <div className="flex justify-between">
-          <dt className="text-gray-600">Category:</dt>
-          <dd className="font-medium text-gray-900">{formData.category || 'Not set'}</dd>
-        </div>
-        <div className="flex justify-between">
+        <div className="flex justify-between border-b border-gray-100 py-1">
           <dt className="text-gray-600">Type:</dt>
           <dd className="font-medium text-gray-900">{formData.projectType}</dd>
         </div>
-        <div className="flex justify-between">
-          <dt className="text-gray-600">Goal:</dt>
-          <dd className="font-medium text-gray-900">UGX {parseFloat(formData.goalAmount || '0').toLocaleString()}</dd>
+        <div className="flex justify-between border-b border-gray-100 py-1">
+          <dt className="text-gray-600">{formData.projectType === 'ROI' ? 'Industry:' : 'Category:'}</dt>
+          <dd className="font-medium text-gray-900">{formData.projectType === 'ROI' ? formData.industry : formData.category || 'Not set'}</dd>
         </div>
-        <div className="flex justify-between">
+        <div className="flex justify-between border-b border-gray-100 py-1">
+          <dt className="text-gray-600">Country:</dt>
+          <dd className="font-medium text-gray-900">{formData.country}</dd>
+        </div>
+        <div className="flex justify-between border-b border-gray-100 py-1">
+          <dt className="text-gray-600">Beneficiary:</dt>
+          <dd className="font-medium text-gray-900">{formData.beneficiary || 'Not set'}</dd>
+        </div>
+        <div className="flex justify-between border-b border-gray-100 py-1">
+          <dt className="text-gray-600">Goal:</dt>
+          <dd className="font-medium text-gray-900">{formData.currency} {parseFloat(formData.goalAmount || '0').toLocaleString()}</dd>
+        </div>
+        <div className="flex justify-between border-b border-gray-100 py-1">
           <dt className="text-gray-600">Deadline:</dt>
           <dd className="font-medium text-gray-900">{formData.deadline || 'Not set'}</dd>
         </div>
-        <div className="flex justify-between">
+        <div className="flex justify-between border-b border-gray-100 py-1">
+          <dt className="text-gray-600">Payment:</dt>
+          <dd className="font-medium text-gray-900">{formData.paymentMethod}</dd>
+        </div>
+        <div className="flex justify-between border-b border-gray-100 py-1 col-span-2">
           <dt className="text-gray-600">Milestones:</dt>
-          <dd className="font-medium text-gray-900">{formData.milestones.length}</dd>
+          <dd className="font-medium text-gray-900">{formData.milestones.length} milestones defined</dd>
         </div>
       </dl>
     </div>

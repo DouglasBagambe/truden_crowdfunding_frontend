@@ -3,16 +3,13 @@ import { investmentService, Investment } from '@/lib/investment-service';
 import { useAuth } from './useAuth';
 
 export function useInvestments() {
-    const { user } = useAuth();
+    const { isAuthenticated } = useAuth();
 
     return useQuery<Investment[], Error>({
-        queryKey: ['investments', user?.id],
-        queryFn: async () => {
-            if (!user?.id) return [];
-            return await investmentService.getUserInvestments(user.id);
-        },
-        enabled: !!user?.id,
-        staleTime: 30000, // 30 seconds
+        queryKey: ['investments', 'me'],
+        queryFn: () => investmentService.getMyInvestments(), // ← calls GET /investments/me
+        enabled: !!isAuthenticated,
+        staleTime: 30_000,
     });
 }
 

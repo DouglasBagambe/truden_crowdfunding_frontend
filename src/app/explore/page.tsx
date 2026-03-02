@@ -218,7 +218,7 @@ function ExplorePageContent() {
                             <option value="ending">Ending Soon</option>
                             <option value="funded">Most Funded</option>
                         </select>
-                        <Link href="/create-project" className={`${accent.newButton} text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2 transition-all shadow-lg text-sm whitespace-nowrap`}>
+                        <Link href="/dashboard/create-project" className={`${accent.newButton} text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2 transition-all shadow-lg text-sm whitespace-nowrap`}>
                             <Plus size={18} />
                             <span>New Project</span>
                         </Link>
