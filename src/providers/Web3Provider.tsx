@@ -14,7 +14,7 @@ const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID || '8e562725807968565257
 const metadata = {
   name: 'TruFund',
   description: 'Decentralized Milestone-Based Crowdfunding',
-  url: typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+  url: typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'production' ? 'https://trufund.netlify.app' : 'http://localhost:3000')),
   icons: ['https://avatars.githubusercontent.com/u/37784886']
 };
 
