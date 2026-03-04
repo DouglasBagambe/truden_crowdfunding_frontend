@@ -13,7 +13,7 @@ import Footer from '@/components/layout/Footer';
 import { projectService } from '@/lib/project-service';
 import { useAuth } from '@/hooks/useAuth';
 import { investmentService } from '@/lib/investment-service';
-import DPOPaymentModal from '@/components/payments/DPOPaymentModal';
+import { paymentService } from '@/lib/payment-service';
 
 export default function ProjectDetailPage() {
     const params = useParams();
@@ -27,19 +27,11 @@ export default function ProjectDetailPage() {
     const [activeTab, setActiveTab] = useState<'story' | 'timeline' | 'updates'>('story');
     const [bookmarked, setBookmarked] = useState(false);
     const [isSubmittingForReview, setIsSubmittingForReview] = useState(false);
-    const [isDonateOpen, setIsDonateOpen] = useState(false);
-    const [donationAmount, setDonationAmount] = useState('');
-    const [donorName, setDonorName] = useState('');
-    const [isDonating, setIsDonating] = useState(false);
-    const [donationError, setDonationError] = useState('');
-    const [donors, setDonors] = useState<Array<{ id: string; donorName: string; amount: number; createdAt?: string | null }>>([]);
-    const [donorsLoading, setDonorsLoading] = useState(false);
-
-    const [isInvestOpen, setIsInvestOpen] = useState(false);
-    const [investmentAmount, setInvestmentAmount] = useState('');
-    const [isInvesting, setIsInvesting] = useState(false);
-    const [investmentError, setInvestmentError] = useState('');
-    const [isDPOOpen, setIsDPOOpen] = useState(false);
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [paymentMode, setPaymentMode] = useState<'donate' | 'invest'>('donate');
+    const [paymentAmount, setPaymentAmount] = useState('');
+    const [isInitiatingPayment, setIsInitiatingPayment] = useState(false);
+    const [paymentError, setPaymentError] = useState('');
 
     const projectType = project?.projectType || project?.type;
     const isCharity = projectType === 'CHARITY';
@@ -63,52 +55,59 @@ export default function ProjectDetailPage() {
         return profileName;
     };
 
-    const handleInvest = async () => {
-        try {
-            setInvestmentError('');
-            const amountNumber = Number(investmentAmount);
-            if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
-                setInvestmentError('Enter a valid amount');
-                return;
-            }
-            setIsInvesting(true);
-            const resolvedProjectId =
-                (project as any)?.id || (project as any)?._id || projectId;
-            const normalizedAmount = String(amountNumber);
-            const rawOnchainId = (project as any)?.projectOnchainId;
-            await investmentService.createInvestment({
-                projectId: String(resolvedProjectId),
-                amount: normalizedAmount,
-                projectOnchainId:
-                    rawOnchainId === undefined || rawOnchainId === null
-                        ? undefined
-                        : String(rawOnchainId),
-            });
-            setIsInvestOpen(false);
-            setInvestmentAmount('');
-            await loadProject();
-        } catch (err: any) {
-            console.error('Investment error:', err);
-            setInvestmentError(err?.response?.data?.message || 'Investment failed');
-        } finally {
-            setIsInvesting(false);
-        }
-    };
-
     const openDonateModal = () => {
-        const prefill = getPrefillDonorName();
-        console.log('[DONATE_DEBUG] user:', user);
-        console.log('[DONATE_DEBUG] prefill name:', prefill);
-        console.log('[DONATE_DEBUG] current donorName:', donorName);
-        if (!donorName.trim() && prefill) {
-            setDonorName(prefill);
+        if (!isAuthenticated) {
+            window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+            return;
         }
-        setIsDonateOpen(true);
+        setPaymentMode('donate');
+        setPaymentAmount('');
+        setPaymentError('');
+        setIsPaymentModalOpen(true);
     };
 
     const openInvestModal = () => {
-        setInvestmentError('');
-        setIsInvestOpen(true);
+        if (!isAuthenticated) {
+            window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+            return;
+        }
+        setPaymentMode('invest');
+        setPaymentAmount('');
+        setPaymentError('');
+        setIsPaymentModalOpen(true);
+    };
+
+    const handleDPOPayment = async () => {
+        const amount = Number(paymentAmount);
+        if (!Number.isFinite(amount) || amount <= 0) {
+            setPaymentError('Please enter a valid amount (minimum 1 UGX)');
+            return;
+        }
+        try {
+            setPaymentError('');
+            setIsInitiatingPayment(true);
+            const resolvedProjectId = (project as any)?.id || (project as any)?._id || projectId;
+            const projectType = isCharityProject ? 'CHARITY' : 'ROI';
+            const description = paymentMode === 'donate'
+                ? `Donation to ${project?.name} - TruFund`
+                : `Investment in ${project?.name} - TruFund`;
+
+            const result = await paymentService.initializeDPOPayment({
+                projectId: String(resolvedProjectId),
+                amount,
+                currency: currency,
+                paymentMethod: 'card',
+                projectType,
+                description,
+            });
+
+            // Redirect user to DPO hosted payment page
+            window.location.href = result.redirectUrl;
+        } catch (err: any) {
+            setPaymentError(err?.response?.data?.message || 'Failed to initialize payment. Please try again.');
+        } finally {
+            setIsInitiatingPayment(false);
+        }
     };
 
     useEffect(() => {
@@ -720,67 +719,111 @@ export default function ProjectDetailPage() {
 
             <Footer />
 
-            {isCharity && isDonateOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-6">
-                    <div className="w-full max-w-lg bg-[var(--card)] border border-[var(--border)] rounded-3xl overflow-hidden shadow-2xl">
+
+            {/* ── DPO Payment Modal ── */}
+            {isPaymentModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-6">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        className="w-full max-w-md bg-[var(--card)] border border-[var(--border)] rounded-3xl overflow-hidden shadow-2xl"
+                    >
+                        {/* Header */}
                         <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
                             <div>
-                                <h3 className="text-lg font-black">Donate to this project</h3>
+                                <h3 className="text-lg font-black">
+                                    {paymentMode === 'donate' ? '💚 Donate to Project' : '📈 Invest in Project'}
+                                </h3>
+                                <p className="text-xs text-[var(--text-muted)] font-medium mt-0.5">
+                                    Secured by DPO Pay · Mobile Money &amp; Card accepted
+                                </p>
                             </div>
                             <button
-                                onClick={() => { setIsDonateOpen(false); setDonationError(''); }}
+                                onClick={() => setIsPaymentModalOpen(false)}
                                 className="p-2 rounded-xl hover:bg-white/5 transition-all"
                             >
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        <div className="p-6 space-y-4">
+
+                        {/* Body */}
+                        <div className="p-6 space-y-5">
+                            {/* Amount */}
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Amount ({currency})</label>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                                    Amount ({currency})
+                                </label>
                                 <input
-                                    value={donationAmount}
-                                    onChange={(e) => setDonationAmount(e.target.value)}
+                                    value={paymentAmount}
+                                    onChange={(e) => setPaymentAmount(e.target.value)}
                                     type="number"
                                     min="1"
-                                    placeholder="Enter amount"
+                                    step="500"
+                                    placeholder={paymentMode === 'donate' ? 'e.g. 10000' : 'e.g. 100000'}
                                     className="input_field"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Name (optional)</label>
-                                <input
-                                    value={donorName}
-                                    onChange={(e) => setDonorName(e.target.value)}
-                                    type="text"
-                                    placeholder="Anonymous"
-                                    className="input_field"
+                                    autoFocus
                                 />
                             </div>
 
-                            {donationError && (
+                            {/* Quick amounts */}
+                            <div className="flex gap-2 flex-wrap">
+                                {(paymentMode === 'donate' ? [5000, 10000, 50000, 100000] : [50000, 100000, 500000, 1000000]).map(amt => (
+                                    <button
+                                        key={amt}
+                                        onClick={() => setPaymentAmount(String(amt))}
+                                        className={`px-3 py-1.5 rounded-xl text-xs font-black border transition-all ${paymentAmount === String(amt)
+                                                ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
+                                                : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--primary)]/50'
+                                            }`}
+                                    >
+                                        {amt.toLocaleString()}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* DPO logos */}
+                            <div className="p-4 bg-[var(--secondary)] rounded-2xl">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-3">Accepted payments</p>
+                                <div className="flex gap-3 items-center flex-wrap">
+                                    <span className="text-xs font-black text-white bg-yellow-500/20 border border-yellow-500/30 px-3 py-1 rounded-lg">📱 MTN Mobile Money</span>
+                                    <span className="text-xs font-black text-white bg-red-500/20 border border-red-500/30 px-3 py-1 rounded-lg">📱 Airtel Money</span>
+                                    <span className="text-xs font-black text-white bg-blue-500/20 border border-blue-500/30 px-3 py-1 rounded-lg">💳 Visa / Mastercard</span>
+                                </div>
+                            </div>
+
+                            {paymentError && (
                                 <div className="p-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 text-rose-300 text-sm font-medium">
-                                    {donationError}
+                                    {paymentError}
                                 </div>
                             )}
 
-                            <div className="flex gap-3 pt-2">
+                            <div className="flex gap-3 pt-1">
                                 <button
-                                    onClick={() => { setIsDonateOpen(false); setDonationError(''); }}
-                                    className="flex-1 py-3 border border-[var(--border)] rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white/5 transition-all"
-                                    disabled={isDonating}
+                                    onClick={() => setIsPaymentModalOpen(false)}
+                                    disabled={isInitiatingPayment}
+                                    className="flex-1 py-3 border border-[var(--border)] rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white/5 transition-all disabled:opacity-50"
                                 >
                                     Cancel
                                 </button>
                                 <button
-                                    onClick={handleDonate}
-                                    className="flex-1 py-3 bg-[var(--primary)] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-60"
-                                    disabled={isDonating}
+                                    onClick={handleDPOPayment}
+                                    disabled={isInitiatingPayment || !paymentAmount}
+                                    className={`flex-1 py-3 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2 ${paymentMode === 'donate' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-blue-600 hover:bg-blue-500'
+                                        }`}
                                 >
-                                    {isDonating ? 'Processing...' : 'Donate'}
+                                    {isInitiatingPayment ? (
+                                        <><Loader2 size={14} className="animate-spin" /> Connecting to DPO...</>
+                                    ) : (
+                                        <>{paymentMode === 'donate' ? '💚 Donate Now' : '📈 Invest Now'} →</>
+                                    )}
                                 </button>
                             </div>
+
+                            <p className="text-[10px] text-center text-[var(--text-muted)] font-medium">
+                                You will be redirected to DPO Pay's secure payment page to complete your transaction.
+                            </p>
                         </div>
-                    </div>
+                    </motion.div>
                 </div>
             )}
 
