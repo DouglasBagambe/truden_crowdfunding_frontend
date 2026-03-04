@@ -346,18 +346,66 @@ export default function DashboardPage() {
                                         </div>
 
                                         {isDataLoading ? (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                {[1, 2].map(i => <div key={i} className="h-48 bg-[var(--background)] rounded-2xl animate-pulse" />)}
+                                            <div className="space-y-4">
+                                                {[1, 2].map(i => <div key={i} className="h-28 bg-[var(--background)] rounded-2xl animate-pulse" />)}
                                             </div>
                                         ) : displayedProjects.length > 0 ? (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                {displayedProjects.map((project: Project) => (
-                                                    <ProjectCard
-                                                        key={project.id || project._id}
-                                                        project={project}
-                                                        onClick={() => handleProjectClick(project)}
-                                                    />
-                                                ))}
+                                            <div className="space-y-4">
+                                                {displayedProjects.map((project: Project) => {
+                                                    const raised = (project as any).raisedAmount || 0;
+                                                    const target = (project as any).targetAmount || (project as any).goalAmount || 1;
+                                                    const pct = Math.min((raised / target) * 100, 100);
+                                                    const pId = project.id || project._id;
+                                                    const pName = encodeURIComponent((project as any).name || 'Project');
+                                                    const isCharity = (project as any).projectType === 'CHARITY' || (project as any).type === 'CHARITY';
+                                                    return (
+                                                        <div key={pId} className="bg-[var(--background)] border border-[var(--border)] rounded-2xl p-5 hover:border-[var(--primary)]/30 transition-all">
+                                                            <div className="flex items-start gap-4">
+                                                                {/* Icon */}
+                                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${isCharity ? 'bg-emerald-500/10' : 'bg-blue-500/10'
+                                                                    }`}>
+                                                                    {isCharity ? '💚' : '📈'}
+                                                                </div>
+                                                                {/* Info */}
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                                        <p className="font-black text-sm truncate">{(project as any).name}</p>
+                                                                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${(project as any).status === 'FUNDING' || (project as any).status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400'
+                                                                                : (project as any).status === 'DRAFT' ? 'bg-gray-500/10 text-gray-400'
+                                                                                    : 'bg-blue-500/10 text-blue-400'
+                                                                            }`}>{(project as any).status}</span>
+                                                                    </div>
+                                                                    {/* Progress */}
+                                                                    <div className="flex items-center gap-3 mb-3">
+                                                                        <div className="flex-1 h-1.5 bg-[var(--border)] rounded-full overflow-hidden">
+                                                                            <div className={`h-full rounded-full ${isCharity ? 'bg-emerald-500' : 'bg-blue-500'}`} style={{ width: `${pct}%` }} />
+                                                                        </div>
+                                                                        <span className="text-[10px] font-black text-[var(--text-muted)] whitespace-nowrap">
+                                                                            UGX {raised.toLocaleString()} / {target.toLocaleString()}
+                                                                        </span>
+                                                                    </div>
+                                                                    {/* Actions */}
+                                                                    <div className="flex gap-2 flex-wrap">
+                                                                        <Link
+                                                                            href={`/projects/${pId}`}
+                                                                            className="px-3 py-1.5 rounded-lg bg-[var(--secondary)] text-xs font-black text-[var(--text-muted)] hover:text-white border border-[var(--border)] hover:border-white/20 transition-all"
+                                                                        >
+                                                                            View →
+                                                                        </Link>
+                                                                        {raised > 0 && (
+                                                                            <Link
+                                                                                href={`/dashboard/withdraw?projectId=${pId}&projectName=${pName}`}
+                                                                                className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs font-black text-emerald-400 hover:bg-emerald-500/20 transition-all flex items-center gap-1"
+                                                                            >
+                                                                                💰 Withdraw Funds
+                                                                            </Link>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         ) : (
                                             <div className="py-24 text-center space-y-4">
