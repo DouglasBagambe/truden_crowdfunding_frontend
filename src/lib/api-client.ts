@@ -5,21 +5,31 @@ import axios, { InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 // 2. If running in a browser on a non-localhost domain, auto-point to Render
 // 3. Fall back to localhost for local dev
 const resolveApiUrl = (): string => {
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
+  // 1. Explicit env var (if fully baked in via build)
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (envUrl && envUrl.startsWith('http')) {
+    return envUrl;
   }
-  // SSR fallback: if building for production, point to Render
-  if (process.env.NODE_ENV === 'production') {
+
+  // 2. Browser runtime: if we're clearly running locally, use localhost
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    // Local dev
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return 'http://localhost:3000/api';
+    }
+    // Any live domain (Netlify, Vercel, Custom) -> use Render
     return 'https://trufund.onrender.com/api';
   }
-  // Runtime fallback: detect if we're on the production domain
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    if (!hostname.includes('localhost') && !hostname.includes('127.0.0.1')) {
-      return 'https://trufund.onrender.com/api';
-    }
+
+  // 3. Server-Side Rendering (SSR) fallback
+  // In Next.js, process.env.NODE_ENV is 'development' during local `npm run dev`
+  if (process.env.NODE_ENV === 'development') {
+    return 'http://localhost:3000/api';
   }
-  return 'http://localhost:3000/api';
+
+  // Default to production API if unsure (best for live deployments)
+  return 'https://trufund.onrender.com/api';
 };
 
 const API_URL = resolveApiUrl();
