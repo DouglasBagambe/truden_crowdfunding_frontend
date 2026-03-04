@@ -14,7 +14,7 @@ const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID || '8e562725807968565257
 const metadata = {
   name: 'TruFund',
   description: 'Decentralized Milestone-Based Crowdfunding',
-  url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+  url: typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   icons: ['https://avatars.githubusercontent.com/u/37784886']
 };
 
@@ -25,25 +25,25 @@ const envCurrencySymbol = process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || 'CELO';
 
 const customChain = envChainId && envRpc
   ? defineChain({
-      id: envChainId,
-      name: envChainName,
-      nativeCurrency: { name: envCurrencySymbol, symbol: envCurrencySymbol, decimals: 18 },
-      rpcUrls: {
-        default: { http: [envRpc] },
-        public: { http: [envRpc] },
-      },
-      blockExplorers: process.env.NEXT_PUBLIC_BLOCK_EXPLORER_URL
-        ? {
-            default: { name: 'Explorer', url: process.env.NEXT_PUBLIC_BLOCK_EXPLORER_URL }
-          }
-        : undefined,
-    })
+    id: envChainId,
+    name: envChainName,
+    nativeCurrency: { name: envCurrencySymbol, symbol: envCurrencySymbol, decimals: 18 },
+    rpcUrls: {
+      default: { http: [envRpc] },
+      public: { http: [envRpc] },
+    },
+    blockExplorers: process.env.NEXT_PUBLIC_BLOCK_EXPLORER_URL
+      ? {
+        default: { name: 'Explorer', url: process.env.NEXT_PUBLIC_BLOCK_EXPLORER_URL }
+      }
+      : undefined,
+  })
   : null;
 
 const chains = [customChain ?? celoAlfajores] as const;
-const wagmiConfig = defaultWagmiConfig({ 
-  chains, 
-  projectId, 
+const wagmiConfig = defaultWagmiConfig({
+  chains,
+  projectId,
   metadata,
   enableWalletConnect: true,
   enableInjected: true,
@@ -52,9 +52,9 @@ const wagmiConfig = defaultWagmiConfig({
 });
 
 // 3. Create modal
-createWeb3Modal({ 
-  wagmiConfig, 
-  projectId, 
+createWeb3Modal({
+  wagmiConfig,
+  projectId,
   themeMode: 'light',
   themeVariables: {
     '--w3m-accent': '#0c3b92',
