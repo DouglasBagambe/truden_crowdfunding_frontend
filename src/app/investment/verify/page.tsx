@@ -142,7 +142,7 @@ function VerifyPaymentPageContent() {
 
 export default function VerifyPaymentPage() {
     return (
-        <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">Loading verification...</div>}>
+        <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">Loading verification..</div>}>
             <VerifyPaymentPageContent />
         </Suspense>
     );
