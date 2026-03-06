@@ -74,7 +74,7 @@ export default function LoginPage() {
                 Welcome Back
             </h2>
             <p className="text-sm text-[var(--text-muted)] font-medium">
-                Log in to manage your TruFund portfolio.
+                Log in to manage your Keibo portfolio.
             </p>
         </header>
 

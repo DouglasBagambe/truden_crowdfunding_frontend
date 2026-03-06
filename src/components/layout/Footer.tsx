@@ -31,16 +31,16 @@ const Footer = () => {
           </FooterSection>
 
           <FooterSection title="Connect">
-            <FooterLink href="https://twitter.com/trufund">X / Twitter</FooterLink>
-            <FooterLink href="https://discord.gg/trufund">Discord</FooterLink>
-            <FooterLink href="https://github.com/trufund">GitHub</FooterLink>
-            <FooterLink href="mailto:hello@trufund.io">Email Support</FooterLink>
+            <FooterLink href="https://twitter.com/keibo">X / Twitter</FooterLink>
+            <FooterLink href="https://discord.gg/keibo">Discord</FooterLink>
+            <FooterLink href="https://github.com/keibo">GitHub</FooterLink>
+            <FooterLink href="mailto:hello@keibo.io">Email Support</FooterLink>
           </FooterSection>
         </div>
 
         <div className="pt-8 border-t border-[var(--border)] flex flex-col md:flex-row justify-between items-center gap-6">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--text-muted)] opacity-60">
-            © 2026 TruFund. Build trust, fund the future.
+            © 2026 Keibo. Build trust, fund the future.
           </p>
           <div className="flex gap-8">
             <button className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors">Network Status</button>

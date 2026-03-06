@@ -33,6 +33,19 @@ export default function ProjectDetailPage() {
     const [isInitiatingPayment, setIsInitiatingPayment] = useState(false);
     const [paymentError, setPaymentError] = useState('');
 
+    // Donors (charity projects)
+    const [donors, setDonors] = useState<any[]>([]);
+    const [donorsLoading, setDonorsLoading] = useState(false);
+
+    // Donate modal
+    const [isDonateOpen, setIsDonateOpen] = useState(false);
+    const [donationAmount, setDonationAmount] = useState('');
+    const [donorName, setDonorName] = useState('');
+    const [donationError, setDonationError] = useState('');
+    const [isDonating, setIsDonating] = useState(false);
+
+    // Donate/Invest combined modal handled above
+
     const projectType = project?.projectType || project?.type;
     const isCharity = projectType === 'CHARITY';
     const isRoi = projectType === 'ROI';
@@ -62,6 +75,7 @@ export default function ProjectDetailPage() {
         }
         setPaymentMode('donate');
         setPaymentAmount('');
+        setDonorName(getPrefillDonorName() || '');
         setPaymentError('');
         setIsPaymentModalOpen(true);
     };
@@ -89,8 +103,8 @@ export default function ProjectDetailPage() {
             const resolvedProjectId = (project as any)?.id || (project as any)?._id || projectId;
             const projectType = isCharityProject ? 'CHARITY' : 'ROI';
             const description = paymentMode === 'donate'
-                ? `Donation to ${project?.name} - TruFund`
-                : `Investment in ${project?.name} - TruFund`;
+                ? `Donation to ${project?.name} - Keibo`
+                : `Investment in ${project?.name} - Keibo`;
 
             const result = await paymentService.initializeDPOPayment({
                 projectId: String(resolvedProjectId),
@@ -99,6 +113,7 @@ export default function ProjectDetailPage() {
                 paymentMethod: 'card',
                 projectType,
                 description,
+                donorName: paymentMode === 'donate' ? (donorName?.trim() || 'Anonymous') : undefined,
             });
 
             // Redirect user to DPO hosted payment page
@@ -369,7 +384,7 @@ export default function ProjectDetailPage() {
                                     </>
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center">
-                                        <span className="text-8xl font-black italic opacity-10 select-none">TRUDEN</span>
+                                        <span className="text-8xl font-black italic opacity-10 select-none">KEIBO</span>
                                     </div>
                                 )}
                             </div>
@@ -579,15 +594,6 @@ export default function ProjectDetailPage() {
                                                         <Wallet size={16} />
                                                         {isAuthenticated ? 'Invest in Project' : 'Sign In to Invest'}
                                                     </button>
-                                                    {isAuthenticated && (
-                                                        <button
-                                                            onClick={() => setIsDPOOpen(true)}
-                                                            className="w-full py-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-orange-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                                                        >
-                                                            <Smartphone size={16} />
-                                                            Pay via Mobile Money
-                                                        </button>
-                                                    )}
                                                 </>
                                             )}
                                             <div className="flex gap-3">
@@ -707,8 +713,8 @@ export default function ProjectDetailPage() {
                                     </div>
                                     <p className="text-xs text-[var(--text-muted)] leading-relaxed">
                                         {isCharity
-                                            ? "Truden facilitates fundraising but doesn't guarantee project delivery or outcomes. Donations are non-refundable unless explicitly stated. Contribute what you can afford."
-                                            : "Truden facilitates crowdfunding but doesn't guarantee project delivery. Investments carry risks. Only contribute what you can afford to lose."}
+                                            ? "Keibo facilitates fundraising but doesn't guarantee project delivery or outcomes. Donations are non-refundable unless explicitly stated. Contribute what you can afford."
+                                            : "Keibo facilitates crowdfunding but doesn't guarantee project delivery. Investments carry risks. Only contribute what you can afford to lose."}
                                     </p>
                                 </div>
                             </div>
@@ -732,11 +738,8 @@ export default function ProjectDetailPage() {
                         <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
                             <div>
                                 <h3 className="text-lg font-black">
-                                    {paymentMode === 'donate' ? '💚 Donate to Project' : '📈 Invest in Project'}
+                                    {paymentMode === 'donate' ? 'Donate to Project' : 'Invest in Project'}
                                 </h3>
-                                <p className="text-xs text-[var(--text-muted)] font-medium mt-0.5">
-                                    Secured by DPO Pay · Mobile Money &amp; Card accepted
-                                </p>
                             </div>
                             <button
                                 onClick={() => setIsPaymentModalOpen(false)}
@@ -748,6 +751,22 @@ export default function ProjectDetailPage() {
 
                         {/* Body */}
                         <div className="p-6 space-y-5">
+                            {/* Donor Name (Only for donation) */}
+                            {paymentMode === 'donate' && (
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                                        Your Name
+                                    </label>
+                                    <input
+                                        value={donorName}
+                                        onChange={(e) => setDonorName(e.target.value)}
+                                        type="text"
+                                        placeholder="Leave as is or change"
+                                        className="input_field"
+                                    />
+                                </div>
+                            )}
+
                             {/* Amount */}
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
@@ -772,23 +791,13 @@ export default function ProjectDetailPage() {
                                         key={amt}
                                         onClick={() => setPaymentAmount(String(amt))}
                                         className={`px-3 py-1.5 rounded-xl text-xs font-black border transition-all ${paymentAmount === String(amt)
-                                                ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
-                                                : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--primary)]/50'
+                                            ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
+                                            : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--primary)]/50'
                                             }`}
                                     >
                                         {amt.toLocaleString()}
                                     </button>
                                 ))}
-                            </div>
-
-                            {/* DPO logos */}
-                            <div className="p-4 bg-[var(--secondary)] rounded-2xl">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-3">Accepted payments</p>
-                                <div className="flex gap-3 items-center flex-wrap">
-                                    <span className="text-xs font-black text-white bg-yellow-500/20 border border-yellow-500/30 px-3 py-1 rounded-lg">📱 MTN Mobile Money</span>
-                                    <span className="text-xs font-black text-white bg-red-500/20 border border-red-500/30 px-3 py-1 rounded-lg">📱 Airtel Money</span>
-                                    <span className="text-xs font-black text-white bg-blue-500/20 border border-blue-500/30 px-3 py-1 rounded-lg">💳 Visa / Mastercard</span>
-                                </div>
                             </div>
 
                             {paymentError && (
@@ -812,83 +821,17 @@ export default function ProjectDetailPage() {
                                         }`}
                                 >
                                     {isInitiatingPayment ? (
-                                        <><Loader2 size={14} className="animate-spin" /> Connecting to DPO...</>
+                                        <><Loader2 size={14} className="animate-spin" /> Processing...</>
                                     ) : (
-                                        <>{paymentMode === 'donate' ? '💚 Donate Now' : '📈 Invest Now'} →</>
+                                        <>{paymentMode === 'donate' ? 'Donate Now' : 'Invest Now'} →</>
                                     )}
                                 </button>
                             </div>
-
-                            <p className="text-[10px] text-center text-[var(--text-muted)] font-medium">
-                                You will be redirected to DPO Pay's secure payment page to complete your transaction.
-                            </p>
                         </div>
                     </motion.div>
                 </div>
             )}
 
-            {isRoi && isInvestOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-6">
-                    <div className="w-full max-w-lg bg-[var(--card)] border border-[var(--border)] rounded-3xl overflow-hidden shadow-2xl">
-                        <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
-                            <div>
-                                <h3 className="text-lg font-black">Invest in this project</h3>
-                            </div>
-                            <button
-                                onClick={() => { setIsInvestOpen(false); setInvestmentError(''); }}
-                                className="p-2 rounded-xl hover:bg-white/5 transition-all"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-                        <div className="p-6 space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Amount ({currency})</label>
-                                <input
-                                    value={investmentAmount}
-                                    onChange={(e) => setInvestmentAmount(e.target.value)}
-                                    type="number"
-                                    min="1"
-                                    placeholder="Enter amount"
-                                    className="input_field"
-                                />
-                            </div>
-
-                            {investmentError && (
-                                <div className="p-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 text-rose-300 text-sm font-medium">
-                                    {investmentError}
-                                </div>
-                            )}
-
-                            <div className="flex gap-3 pt-2">
-                                <button
-                                    onClick={() => { setIsInvestOpen(false); setInvestmentError(''); }}
-                                    className="flex-1 py-3 border border-[var(--border)] rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white/5 transition-all"
-                                    disabled={isInvesting}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleInvest}
-                                    className="flex-1 py-3 bg-[var(--primary)] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-60"
-                                    disabled={isInvesting}
-                                >
-                                    {isInvesting ? 'Processing...' : 'Invest'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* DPO Payment Modal */}
-            {project && (
-                <DPOPaymentModal
-                    isOpen={isDPOOpen}
-                    onClose={() => setIsDPOOpen(false)}
-                    project={project}
-                />
-            )}
         </div>
     );
 }

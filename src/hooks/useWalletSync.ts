@@ -14,8 +14,8 @@ export function useWalletSync() {
   const chainId = useChainId();
   const attemptedRef = useRef<Set<string>>(new Set());
   const appUrlEnv = process.env.NEXT_PUBLIC_APP_URL;
-  let domainHost = typeof window !== 'undefined' ? window.location.host : 'localhost';
-  let appOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+  let domainHost = typeof window !== 'undefined' ? window.location.host : (process.env.NODE_ENV === 'production' ? 'keibo.netlify.app' : 'localhost');
+  let appOrigin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'production' ? 'https://keibo.netlify.app' : 'http://localhost:3000'));
   try {
     if (appUrlEnv) {
       const u = new URL(appUrlEnv);
@@ -45,7 +45,7 @@ export function useWalletSync() {
           const siweMessage = new SiweMessage({
             domain: domainHost,
             address,
-            statement: 'Link this wallet to your TruFund account',
+            statement: 'Link this wallet to your Keibo account',
             uri: appOrigin,
             version: '1',
             chainId: chainId || 1,

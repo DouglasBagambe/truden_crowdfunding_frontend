@@ -97,7 +97,7 @@ export default function RegisterPage() {
         {/* Header */}
         <header className="space-y-2">
           <h2 className="text-3xl font-black tracking-tight text-[var(--text-main)]">
-            Join TruFund
+            Join Keibo
           </h2>
           <p className="text-sm text-[var(--text-muted)] font-medium">
             Start your journey as an innovator or backer today.

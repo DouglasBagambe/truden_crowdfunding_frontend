@@ -10,7 +10,7 @@ import { BlockchainEventMonitor } from "@/components/common/BlockchainEventMonit
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "TruFund | Decentralized Crowdfunding",
+  title: "Keibo | Decentralized Crowdfunding",
   description: "Secure, transparent, and borderless funding for global innovation.",
 };
 

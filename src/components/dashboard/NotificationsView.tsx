@@ -8,7 +8,7 @@ export function NotificationsView() {
     const notifications = [
         {
             id: '1',
-            title: 'Welcome to TruFund!',
+            title: 'Welcome to Keibo!',
             message: 'Start your journey by exploring innovative projects in Uganda.',
             type: 'info',
             time: '2 hours ago',

@@ -63,7 +63,7 @@ export function WalletView() {
                                 <div className="p-3 bg-white/20 backdrop-blur-md rounded-2xl border border-white/20">
                                     <Wallet className="w-6 h-6" />
                                 </div>
-                                <h2 className="text-2xl font-black tracking-tight">TruFund Wallet</h2>
+                                <h2 className="text-2xl font-black tracking-tight">Keibo Wallet</h2>
                             </div>
 
                             <div className="space-y-1">

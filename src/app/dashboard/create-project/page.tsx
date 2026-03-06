@@ -579,7 +579,7 @@ export default function CreateProjectPage() {
                                                 value={formData.website}
                                                 onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                                                 className="w-full pl-12 pr-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-gray-900 outline-none"
-                                                placeholder="https://truden.com"
+                                                placeholder="https://keibo.com"
                                             />
                                         </div>
                                     </div>
@@ -855,7 +855,7 @@ export default function CreateProjectPage() {
                                     <CheckCircle2 size={48} />
                                 </div>
                                 <h2 className="text-5xl font-black text-gray-900 tracking-tight">Perfectly Ready!</h2>
-                                <p className="text-gray-500 font-medium text-lg max-w-lg mx-auto">One last look at your vision before it goes live to the Truden community.</p>
+                                <p className="text-gray-500 font-medium text-lg max-w-lg mx-auto">One last look at your vision before it goes live to the Keibo community.</p>
                             </div>
 
                             <div className="space-y-8 text-left max-w-2xl mx-auto">

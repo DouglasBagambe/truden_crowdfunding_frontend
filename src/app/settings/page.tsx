@@ -39,7 +39,7 @@ export default function SettingsPage() {
         <div className="max-w-5xl mx-auto space-y-10">
           <header className="space-y-1">
             <h1 className="text-4xl font-bold tracking-tight">Account Settings</h1>
-            <p className="text-[var(--text-muted)] font-medium">Manage your TruFund profile and security preferences.</p>
+            <p className="text-[var(--text-muted)] font-medium">Manage your Keibo profile and security preferences.</p>
           </header>
 
           <div className="flex border-b border-gray-200 dark:border-[#262626] overflow-x-auto scrollbar-hide">
@@ -165,7 +165,7 @@ export default function SettingsPage() {
                 <div className="bg-white dark:bg-[#111] rounded-2xl border border-gray-200 dark:border-[#262626] p-8 space-y-8 shadow-sm">
                     <NotificationItem label="Investment Alerts" desc="Email updates for your contributions." checked />
                     <NotificationItem label="Project Milestones" desc="Get notified when targets are met." checked />
-                    <NotificationItem label="Marketing & Tips" desc="New opportunities from the TruFund network." />
+                    <NotificationItem label="Marketing & Tips" desc="New opportunities from the Keibo network." />
                 </div>
               )}
             </div>

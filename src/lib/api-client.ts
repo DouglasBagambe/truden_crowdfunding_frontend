@@ -19,7 +19,7 @@ const resolveApiUrl = (): string => {
       return 'http://localhost:3000/api';
     }
     // Any live domain (Netlify, Vercel, Custom) -> use Render
-    return 'https://trufund.onrender.com/api';
+    return 'https://keibo.onrender.com/api';
   }
 
   // 3. Server-Side Rendering (SSR) fallback
@@ -29,7 +29,7 @@ const resolveApiUrl = (): string => {
   }
 
   // Default to production API if unsure (best for live deployments)
-  return 'https://trufund.onrender.com/api';
+  return 'https://keibo.onrender.com/api';
 };
 
 const API_URL = resolveApiUrl();

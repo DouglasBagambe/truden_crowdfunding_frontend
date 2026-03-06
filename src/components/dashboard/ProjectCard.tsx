@@ -73,7 +73,7 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-              <div className="text-4xl opacity-10 italic font-black tracking-tighter text-gray-900">TRUDEN</div>
+              <div className="text-4xl opacity-10 italic font-black tracking-tighter text-gray-900">KEIBO</div>
             </div>
           )}
 

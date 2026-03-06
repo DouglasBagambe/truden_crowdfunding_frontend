@@ -55,7 +55,7 @@ export const Logo = ({ size = 24, className = "" }: { size?: number, className?:
         </svg>
       </div>
       <span className="text-xl font-bold tracking-tight text-[var(--text-main)]">
-        TruFund
+        Keibo
       </span>
     </div>
   );

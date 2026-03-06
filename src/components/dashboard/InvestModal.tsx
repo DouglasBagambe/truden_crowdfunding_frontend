@@ -134,7 +134,7 @@ const InvestModal = ({ isOpen, onClose, project }: InvestModalProps) => {
                     <CheckCircle className="w-10 h-10 text-emerald-500" />
                   </div>
                   <h3 className="text-2xl font-bold text-[var(--text-main)]">Investment Successful!</h3>
-                  <p className="text-[var(--text-muted)] font-medium max-w-xs">Your contribution is now held in the TruFund escrow and will be released upon milestone verification.</p>
+                  <p className="text-[var(--text-muted)] font-medium max-w-xs">Your contribution is now held in the Keibo escrow and will be released upon milestone verification.</p>
                 </div>
               ) : (
                 <form onSubmit={handleInvest} className="space-y-6">

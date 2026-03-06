@@ -116,7 +116,7 @@ export default function ProfilePage() {
       const siweMessage = new SiweMessage({
         domain: window.location.host,
         address: address,
-        statement: 'Link this wallet to your TruFund account',
+        statement: 'Link this wallet to your Keibo account',
         uri: window.location.origin,
         version: '1',
         chainId: chainId || 1,
@@ -324,7 +324,7 @@ export default function ProfilePage() {
                 <div className="space-y-8">
                   <div>
                     <h1 className="text-3xl font-bold text-[var(--text-main)] mb-2">Preferences</h1>
-                    <p className="text-[var(--text-muted)]">Personalize how TruFund looks and feels.</p>
+                    <p className="text-[var(--text-muted)]">Personalize how Keibo looks and feels.</p>
                   </div>
 
                   <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6">
