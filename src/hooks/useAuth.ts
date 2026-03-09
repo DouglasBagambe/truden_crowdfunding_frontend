@@ -10,11 +10,11 @@ export function useAuth() {
   const { data: user, isLoading, error, refetch } = useQuery({
     queryKey: ['me'],
     queryFn: async () => {
-        try {
-            return await userService.getMe();
-        } catch (e) {
-            return null;
-        }
+      try {
+        return await userService.getMe();
+      } catch (e) {
+        return null;
+      }
     },
     retry: false,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -40,20 +40,27 @@ export function useAuth() {
         try {
           const maxAge = 60 * 60 * 24 * 7; // 7 days
           document.cookie = `token=${token}; Max-Age=${maxAge}; Path=/`;
-        } catch {}
+        } catch { }
         queryClient.invalidateQueries({ queryKey: ['me'] });
         toast.success(`Welcome back, ${data.user?.firstName || data.user?.profile?.firstName || 'Legacy Builder'}!`);
         try {
           const sp = new URLSearchParams(window.location.search);
           const next = sp.get('next') || '/';
           window.location.href = next;
-        } catch {}
+        } catch { }
       }
     },
-    onError: (error: any) => {
-        console.error('[AUTH_FRONTEND_DEBUG] Login error:', error);
-        console.error('[AUTH_FRONTEND_DEBUG] Error response data:', error.response?.data);
-        toast.error(error.response?.data?.message || 'Authentication failed');
+    onError: (error: any, variables: any) => {
+      console.error('[AUTH_FRONTEND_DEBUG] Login error:', error);
+      console.error('[AUTH_FRONTEND_DEBUG] Error response data:', error.response?.data);
+      const msg: string = error.response?.data?.message || 'Authentication failed';
+      if (msg.toLowerCase().includes('not verified')) {
+        toast.error('Please verify your email first.');
+        const email = (variables as any)?.email || '';
+        window.location.href = `/verify-email?email=${encodeURIComponent(email)}`;
+      } else {
+        toast.error(msg);
+      }
     }
   });
 
@@ -63,7 +70,7 @@ export function useAuth() {
     // Clear cookie used by middleware
     try {
       document.cookie = 'token=; Max-Age=0; Path=/';
-    } catch {}
+    } catch { }
     queryClient.setQueryData(['me'], null);
     toast.success('Securely signed out');
     window.location.href = '/login';

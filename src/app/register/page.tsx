@@ -49,8 +49,9 @@ export default function RegisterPage() {
         firstName: formData.firstName,
         lastName: formData.lastName
       });
-      toast.success("Identity initialized! Redirecting...");
-      router.push('/');
+      toast.success("Account created! Please verify your email to continue.");
+      // Redirect to verification page with email pre-filled
+      router.push(`/verify-email?email=${encodeURIComponent(formData.email)}`);
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Registration failed');
     } finally {

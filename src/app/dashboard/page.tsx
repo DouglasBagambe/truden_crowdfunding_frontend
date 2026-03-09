@@ -16,7 +16,7 @@ import { motion } from 'framer-motion';
 import { useProjects, useMyProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
 import { useInvestments } from '@/hooks/useInvestments';
-import { Search, LineChart, ArrowUpRight, Shield, PlusCircle, LayoutDashboard, Wallet, Briefcase, Activity, Image as ImageIcon, ShieldCheck, Bell } from 'lucide-react';
+import { Search, LineChart, ArrowUpRight, Shield, PlusCircle, LayoutDashboard, Wallet, Briefcase, Activity, Image as ImageIcon, ShieldCheck, Bell, Mail, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -191,6 +191,26 @@ export default function DashboardPage() {
     return (
         <div className="bg-[var(--background)] min-h-screen text-[var(--text-main)] pt-[72px] transition-colors duration-300">
             <Navbar />
+
+            {/* Email Verification Banner */}
+            {isAuthenticated && user && !user.emailVerifiedAt && (
+                <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-3">
+                    <div className="container mx-auto flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <AlertTriangle size={16} className="text-amber-400 flex-shrink-0" />
+                            <span className="text-sm text-amber-200 font-medium">
+                                Please verify your email address to unlock all features (creating projects, donating, withdrawing).
+                            </span>
+                        </div>
+                        <Link
+                            href={`/verify-email?email=${encodeURIComponent(user?.email || '')}`}
+                            className="flex-shrink-0 flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-black text-xs font-black px-4 py-2 rounded-lg transition-all uppercase tracking-wider"
+                        >
+                            <Mail size={13} /> Verify Email
+                        </Link>
+                    </div>
+                </div>
+            )}
 
             <main className="container mx-auto p-6 lg:p-10">
                 <div className="flex flex-col lg:flex-row gap-10">
@@ -371,8 +391,8 @@ export default function DashboardPage() {
                                                                     <div className="flex items-center gap-2 flex-wrap mb-1">
                                                                         <p className="font-black text-sm truncate">{(project as any).name}</p>
                                                                         <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${(project as any).status === 'FUNDING' || (project as any).status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400'
-                                                                                : (project as any).status === 'DRAFT' ? 'bg-gray-500/10 text-gray-400'
-                                                                                    : 'bg-blue-500/10 text-blue-400'
+                                                                            : (project as any).status === 'DRAFT' ? 'bg-gray-500/10 text-gray-400'
+                                                                                : 'bg-blue-500/10 text-blue-400'
                                                                             }`}>{(project as any).status}</span>
                                                                     </div>
                                                                     {/* Progress */}
