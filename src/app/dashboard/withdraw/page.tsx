@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ArrowLeft, Smartphone, Building2, CheckCircle2,
-    Loader2, AlertCircle, Send, DollarSign, Info
+    Loader2, AlertCircle, Send, DollarSign, Info, Wallet
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
@@ -32,6 +32,8 @@ const BANK_PROVIDERS = [
 type WithdrawMethod = 'mobile_money' | 'bank_transfer';
 type Step = 'method' | 'details' | 'confirm' | 'done';
 
+const PLATFORM_FEE_RATE = 0.02; // 2% Keibo platform fee
+
 function WithdrawPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -49,7 +51,10 @@ function WithdrawPageContent() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [transactionId, setTransactionId] = useState('');
-    const [projectBalance, setProjectBalance] = useState<number | null>(null);
+    const [withdrawResult, setWithdrawResult] = useState<{ platformFee?: number; youReceive?: number } | null>(null);
+
+    // Wallet balance (Keibo wallet balance = what creator can withdraw)
+    const [walletBalance, setWalletBalance] = useState<number | null>(null);
     const [loadingBalance, setLoadingBalance] = useState(false);
 
     useEffect(() => {
@@ -58,18 +63,19 @@ function WithdrawPageContent() {
         }
     }, [isAuthenticated]);
 
+    // Load creator's Keibo wallet balance (this is the withdrawable amount)
     useEffect(() => {
-        if (projectId) {
+        if (isAuthenticated) {
             setLoadingBalance(true);
-            apiClient.get(`/projects/${projectId}`)
+            apiClient.get('/wallet/balance')
                 .then(res => {
-                    const p = res.data?.project || res.data;
-                    setProjectBalance(p?.raisedAmount || 0);
+                    const ugx = res.data?.fiatBalance?.UGX ?? 0;
+                    setWalletBalance(ugx);
                 })
-                .catch(() => setProjectBalance(null))
+                .catch(() => setWalletBalance(null))
                 .finally(() => setLoadingBalance(false));
         }
-    }, [projectId]);
+    }, [isAuthenticated]);
 
     // Pre-fill account name from user profile
     useEffect(() => {
@@ -84,6 +90,10 @@ function WithdrawPageContent() {
         const amountNum = Number(amount);
         if (!Number.isFinite(amountNum) || amountNum < 10000) {
             setError('Minimum withdrawal is UGX 10,000');
+            return;
+        }
+        if (walletBalance !== null && amountNum > walletBalance) {
+            setError(`Amount exceeds your available balance of UGX ${walletBalance.toLocaleString()}`);
             return;
         }
         if (!provider) {
@@ -103,15 +113,16 @@ function WithdrawPageContent() {
             setError('');
             setIsSubmitting(true);
 
-            // Add withdrawal method + request withdrawal
-            const methodRes = await apiClient.post('/wallet/withdrawal-method', {
-                type: method,
+            // Step 1: Add withdrawal method and get its index
+            await apiClient.post('/wallet/withdrawal-method', {
+                type: method === 'mobile_money' ? 'mobile_money' : 'bank_account',
                 provider,
                 accountNumber: accountNumber.trim(),
                 accountName: accountName.trim(),
                 isDefault: true,
             });
 
+            // Step 2: Request withdrawal (backend applies 2% fee automatically)
             const withdrawRes = await apiClient.post('/wallet/withdraw', {
                 amount: amountNum,
                 currency: 'UGX',
@@ -120,6 +131,10 @@ function WithdrawPageContent() {
             });
 
             setTransactionId(String(withdrawRes.data?.transactionId || ''));
+            setWithdrawResult({
+                platformFee: withdrawRes.data?.platformFee,
+                youReceive: withdrawRes.data?.youReceive,
+            });
             setStep('done');
         } catch (err: any) {
             setError(err?.response?.data?.message || 'Withdrawal failed. Please try again.');
@@ -129,8 +144,21 @@ function WithdrawPageContent() {
     };
 
     const amountNum = Number(amount);
-    const fee = Math.ceil(amountNum * 0.015); // ~1.5% processing fee estimate
-    const youReceive = amountNum - fee;
+    const platformFee = Math.ceil(amountNum * PLATFORM_FEE_RATE); // 2% Keibo fee
+    const youReceive = amountNum - platformFee;
+
+    const validateAndNext = () => {
+        if (!amount || Number(amount) < 10000) { setError('Minimum withdrawal is UGX 10,000'); return; }
+        if (walletBalance !== null && Number(amount) > walletBalance) {
+            setError(`Amount exceeds available balance of UGX ${walletBalance.toLocaleString()}`);
+            return;
+        }
+        if (!provider) { setError('Please select a provider'); return; }
+        if (!accountNumber.trim()) { setError('Please enter account number'); return; }
+        if (!accountName.trim()) { setError('Please enter account name'); return; }
+        setError('');
+        setStep('confirm');
+    };
 
     return (
         <div className="min-h-screen bg-[var(--background)] text-[var(--text-main)]">
@@ -155,14 +183,27 @@ function WithdrawPageContent() {
                                 From: <span className="text-white font-bold">{projectName}</span>
                             </p>
                         )}
-                        {projectBalance !== null && (
-                            <div className="mt-3 inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-2">
-                                <DollarSign size={14} className="text-emerald-400" />
-                                <span className="text-sm font-black text-emerald-400">
-                                    Available: UGX {projectBalance.toLocaleString()}
-                                </span>
-                            </div>
-                        )}
+                        {/* Keibo wallet balance */}
+                        <div className="mt-4 flex flex-wrap gap-3">
+                            {loadingBalance ? (
+                                <div className="inline-flex items-center gap-2 bg-[var(--card)] border border-[var(--border)] rounded-xl px-4 py-2">
+                                    <Loader2 size={14} className="animate-spin text-[var(--text-muted)]" />
+                                    <span className="text-sm text-[var(--text-muted)]">Loading balance...</span>
+                                </div>
+                            ) : walletBalance !== null ? (
+                                <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-2">
+                                    <Wallet size={14} className="text-emerald-400" />
+                                    <span className="text-sm font-black text-emerald-400">
+                                        Keibo Wallet: UGX {walletBalance.toLocaleString()} available
+                                    </span>
+                                </div>
+                            ) : (
+                                <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-2">
+                                    <AlertCircle size={14} className="text-amber-400" />
+                                    <span className="text-sm text-amber-400">Could not load balance</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Step indicator */}
@@ -170,8 +211,8 @@ function WithdrawPageContent() {
                         {(['method', 'details', 'confirm'] as Step[]).map((s, i) => (
                             <div key={s} className="flex items-center gap-3">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black transition-all ${step === s ? 'bg-[var(--primary)] text-white' :
-                                        ['done', 'confirm', 'details'].indexOf(step) > ['done', 'confirm', 'details', 'method'].indexOf(s)
-                                            ? 'bg-emerald-500 text-white' : 'bg-white/10 text-[var(--text-muted)]'
+                                    ['done', 'confirm', 'details'].indexOf(step) > ['done', 'confirm', 'details', 'method'].indexOf(s)
+                                        ? 'bg-emerald-500 text-white' : 'bg-white/10 text-[var(--text-muted)]'
                                     }`}>{i + 1}</div>
                                 {i < 2 && <div className="w-8 h-px bg-[var(--border)]" />}
                             </div>
@@ -218,13 +259,14 @@ function WithdrawPageContent() {
                                     </div>
                                 </button>
 
-                                {/* Info */}
+                                {/* Fee info */}
                                 <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-2xl flex gap-3">
                                     <Info size={16} className="text-blue-400 flex-shrink-0 mt-0.5" />
-                                    <p className="text-sm text-[var(--text-muted)]">
-                                        Withdrawals are processed within 24 hours on business days. A platform processing fee may apply.
-                                        <br />Minimum withdrawal: <strong className="text-white">UGX 10,000</strong>
-                                    </p>
+                                    <div className="text-sm text-[var(--text-muted)] space-y-1">
+                                        <p>Withdrawals are processed within 24 hours on business days.</p>
+                                        <p>A <strong className="text-white">2% Keibo platform fee</strong> is charged per withdrawal.</p>
+                                        <p>Minimum withdrawal: <strong className="text-white">UGX 10,000</strong></p>
+                                    </div>
                                 </div>
                             </motion.div>
                         )}
@@ -247,8 +289,8 @@ function WithdrawPageContent() {
                                                 key={p.value}
                                                 onClick={() => setProvider(p.value)}
                                                 className={`p-3 rounded-xl border text-sm font-bold text-left transition-all ${provider === p.value
-                                                        ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-white'
-                                                        : 'border-[var(--border)] text-[var(--text-muted)] hover:border-white/30'
+                                                    ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-white'
+                                                    : 'border-[var(--border)] text-[var(--text-muted)] hover:border-white/30'
                                                     }`}
                                             >
                                                 {'emoji' in p ? `${p.emoji} ` : ''}{p.label}
@@ -299,10 +341,10 @@ function WithdrawPageContent() {
                                         placeholder="Minimum 10,000"
                                         className="input_field"
                                     />
-                                    {/* Quick amounts */}
-                                    {projectBalance && (
+                                    {/* Quick amounts from wallet balance */}
+                                    {walletBalance && walletBalance > 0 && (
                                         <div className="flex gap-2 mt-2 flex-wrap">
-                                            {[projectBalance * 0.25, projectBalance * 0.5, projectBalance * 0.75, projectBalance].map((pct, i) => (
+                                            {[walletBalance * 0.25, walletBalance * 0.5, walletBalance * 0.75, walletBalance].map((pct, i) => (
                                                 <button
                                                     key={i}
                                                     onClick={() => setAmount(String(Math.floor(pct)))}
@@ -314,6 +356,25 @@ function WithdrawPageContent() {
                                         </div>
                                     )}
                                 </div>
+
+                                {/* Fee breakdown (live) */}
+                                {amountNum >= 10000 && (
+                                    <div className="p-4 bg-[var(--card)] border border-[var(--border)] rounded-2xl space-y-2">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-3">Fee Breakdown</p>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-[var(--text-muted)]">Withdrawal Amount</span>
+                                            <span className="font-bold">UGX {amountNum.toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-[var(--text-muted)]">Keibo Platform Fee (2%)</span>
+                                            <span className="font-bold text-amber-400">- UGX {platformFee.toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm border-t border-[var(--border)] pt-2 mt-2">
+                                            <span className="font-black">You Receive</span>
+                                            <span className="font-black text-emerald-400">UGX {youReceive.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Note */}
                                 <div className="space-y-2">
@@ -337,14 +398,7 @@ function WithdrawPageContent() {
                                 )}
 
                                 <button
-                                    onClick={() => {
-                                        if (!amount || Number(amount) < 10000) { setError('Minimum withdrawal is UGX 10,000'); return; }
-                                        if (!provider) { setError('Please select a provider'); return; }
-                                        if (!accountNumber.trim()) { setError('Please enter account number'); return; }
-                                        if (!accountName.trim()) { setError('Please enter account name'); return; }
-                                        setError('');
-                                        setStep('confirm');
-                                    }}
+                                    onClick={validateAndNext}
                                     className="w-full py-4 bg-[var(--primary)] text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all"
                                 >
                                     Review Withdrawal →
@@ -363,21 +417,24 @@ function WithdrawPageContent() {
                                         ['Provider', provider],
                                         ['Account Number', accountNumber],
                                         ['Account Name', accountName],
-                                        ['Amount', `UGX ${Number(amount).toLocaleString()}`],
-                                        ['Estimated Fee', `UGX ${fee.toLocaleString()}`],
+                                        ['Withdrawal Amount', `UGX ${Number(amount).toLocaleString()}`],
+                                        ['Keibo Platform Fee (2%)', `UGX ${platformFee.toLocaleString()}`],
                                         ['You Receive', `UGX ${youReceive.toLocaleString()}`],
                                     ].map(([label, value]) => (
                                         <div key={label} className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] last:border-0">
                                             <span className="text-sm text-[var(--text-muted)] font-medium">{label}</span>
-                                            <span className={`text-sm font-black ${label === 'You Receive' ? 'text-emerald-400' : ''}`}>{value}</span>
+                                            <span className={`text-sm font-black ${label === 'You Receive' ? 'text-emerald-400' : label?.includes('Fee') ? 'text-amber-400' : ''}`}>{value}</span>
                                         </div>
                                     ))}
                                 </div>
 
-                                <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl">
+                                <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-1">
                                     <p className="text-xs text-[var(--text-muted)]">
                                         ⚠️ Please double-check your account details. Withdrawals cannot be reversed once submitted.
                                         Processing time: {method === 'mobile_money' ? '1 hour' : '1-3 business days'}.
+                                    </p>
+                                    <p className="text-xs text-amber-400/70 mt-1">
+                                        The 2% Keibo platform fee helps maintain and improve the Keibo platform.
                                     </p>
                                 </div>
 
@@ -418,16 +475,33 @@ function WithdrawPageContent() {
                                     <CheckCircle2 size={48} className="text-emerald-400" />
                                 </div>
                                 <div>
-                                    <h2 className="text-3xl font-black mb-2">Withdrawal Submitted!</h2>
+                                    <h2 className="text-3xl font-black mb-2">Withdrawal Submitted! 🎉</h2>
                                     <p className="text-[var(--text-muted)] font-medium">
-                                        UGX {Number(amount).toLocaleString()} will be sent to your {method === 'mobile_money' ? 'mobile wallet' : 'bank account'} within {method === 'mobile_money' ? '1 hour' : '1-3 business days'}.
+                                        UGX {(withdrawResult?.youReceive ?? youReceive).toLocaleString()} will be sent to your {method === 'mobile_money' ? 'mobile wallet' : 'bank account'} within {method === 'mobile_money' ? '1 hour' : '1-3 business days'}.
                                     </p>
                                     {transactionId && (
                                         <p className="text-xs text-[var(--text-muted)] mt-2 font-mono">Ref: {transactionId}</p>
                                     )}
                                 </div>
+
+                                {/* Summary card */}
+                                <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 text-left max-w-xs mx-auto space-y-3">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-[var(--text-muted)]">Requested</span>
+                                        <span className="font-bold">UGX {Number(amount).toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-[var(--text-muted)]">Keibo Fee (2%)</span>
+                                        <span className="font-bold text-amber-400">- UGX {(withdrawResult?.platformFee ?? platformFee).toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm border-t border-[var(--border)] pt-3">
+                                        <span className="font-black">You Receive</span>
+                                        <span className="font-black text-emerald-400">UGX {(withdrawResult?.youReceive ?? youReceive).toLocaleString()}</span>
+                                    </div>
+                                </div>
+
                                 <div className="flex flex-col gap-3 max-w-xs mx-auto">
-                                    <Link href="/dashboard" className="py-4 bg-[var(--primary)] text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all">
+                                    <Link href="/dashboard" className="py-4 bg-[var(--primary)] text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all text-center">
                                         Go to Dashboard
                                     </Link>
                                 </div>

@@ -1,18 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Activity, Wallet, TrendingUp, TrendingDown, Plus, Send, ArrowDownToLine, Loader2, CreditCard, Smartphone } from 'lucide-react';
+import { Activity, Wallet, TrendingUp, TrendingDown, Loader2, Send } from 'lucide-react';
 import { walletService, type WalletBalance } from '@/lib/wallet-service';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
 export function WalletView() {
     const [wallet, setWallet] = useState<any>(null);
     const [balance, setBalance] = useState<WalletBalance | null>(null);
     const [transactions, setTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [showDepositModal, setShowDepositModal] = useState(false);
-    const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-    const [showAddMethodModal, setShowAddMethodModal] = useState(false);
+    const router = useRouter();
 
     useEffect(() => {
         loadWalletData();
@@ -44,6 +43,8 @@ export function WalletView() {
         );
     }
 
+    const ugxBalance = balance?.fiatBalance?.UGX ?? 0;
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -67,13 +68,16 @@ export function WalletView() {
                             </div>
 
                             <div className="space-y-1">
-                                <p className="text-white/70 text-xs font-black uppercase tracking-widest">Total Estimated Balance</p>
+                                <p className="text-white/70 text-xs font-black uppercase tracking-widest">Withdrawable Balance</p>
                                 <div className="flex items-baseline gap-2">
                                     <span className="text-sm font-bold opacity-60">UGX</span>
                                     <h3 className="text-5xl font-black">
-                                        {((balance?.totalBalanceUSD || 0) * 3800).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                        {ugxBalance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                                     </h3>
                                 </div>
+                                <p className="text-white/50 text-xs mt-1">
+                                    Your balance from donations received. Withdraw anytime to mobile money or bank.
+                                </p>
                             </div>
                         </div>
 
@@ -81,13 +85,13 @@ export function WalletView() {
                             <div className="bg-white/10 backdrop-blur-sm rounded-[1.5rem] p-5 border border-white/10">
                                 <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mb-1">Fiat (UGX)</p>
                                 <p className="text-xl font-bold">
-                                    {balance?.fiatBalance.UGX.toLocaleString() || '0'}
+                                    {ugxBalance.toLocaleString() || '0'}
                                 </p>
                             </div>
                             <div className="bg-white/10 backdrop-blur-sm rounded-[1.5rem] p-5 border border-white/10">
                                 <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mb-1">Crypto (USDC)</p>
                                 <p className="text-xl font-bold">
-                                    {balance?.cryptoBalance.USDC.toLocaleString() || '0'}
+                                    {(balance?.cryptoBalance?.USDC ?? 0).toLocaleString() || '0'}
                                 </p>
                             </div>
                         </div>
@@ -95,19 +99,13 @@ export function WalletView() {
 
                     <div className="flex flex-col gap-3 justify-center min-w-[200px]">
                         <button
-                            onClick={() => setShowDepositModal(true)}
-                            className="w-full flex items-center justify-center gap-3 p-4 bg-white text-blue-600 rounded-2xl font-black shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all"
-                        >
-                            <ArrowDownToLine className="w-5 h-5" />
-                            <span>DEPOSIT</span>
-                        </button>
-                        <button
-                            onClick={() => setShowWithdrawModal(true)}
+                            onClick={() => router.push('/dashboard/withdraw')}
                             className="w-full flex items-center justify-center gap-3 p-4 bg-white/20 backdrop-blur-md text-white rounded-2xl font-black border border-white/20 hover:bg-white/30 transition-all"
                         >
                             <Send className="w-5 h-5" />
                             <span>WITHDRAW</span>
                         </button>
+                        <p className="text-center text-xs text-white/40">2% Keibo platform fee applies</p>
                     </div>
                 </div>
             </div>
@@ -119,26 +117,35 @@ export function WalletView() {
                         <Activity size={20} className="text-blue-500" />
                         Recent Activity
                     </h3>
+                    <button onClick={loadWalletData} className="text-xs text-[var(--primary)] hover:underline font-bold">Refresh</button>
                 </div>
 
                 {transactions.length === 0 ? (
                     <div className="py-16 text-center bg-[var(--card)] rounded-3xl border border-[var(--border)] border-dashed">
-                        <p className="text-[var(--text-muted)] font-medium">No transactions found.</p>
+                        <p className="text-[var(--text-muted)] font-medium">No transactions yet.</p>
+                        <p className="text-xs text-[var(--text-muted)] mt-1 opacity-70">Donations you receive will appear here.</p>
                     </div>
                 ) : (
                     <div className="space-y-3">
-                        {transactions.slice(0, 5).map((tx: any) => (
+                        {transactions.slice(0, 10).map((tx: any) => (
                             <div
                                 key={tx._id}
                                 className="flex items-center justify-between p-5 bg-[var(--card)] border border-[var(--border)] rounded-2xl hover:border-[var(--primary)]/30 transition-all group"
                             >
                                 <div className="flex items-center gap-4">
-                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${tx.amount > 0 ? 'bg-emerald-500/10 text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white' : 'bg-rose-500/10 text-rose-600 group-hover:bg-rose-500 group-hover:text-white'}`}>
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${tx.amount > 0
+                                        ? 'bg-emerald-500/10 text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white'
+                                        : 'bg-rose-500/10 text-rose-600 group-hover:bg-rose-500 group-hover:text-white'
+                                        }`}>
                                         {tx.amount > 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
                                     </div>
                                     <div>
                                         <p className="font-bold text-[var(--text-main)]">
-                                            {tx.paymentMethod === 'wallet' ? 'Investment' : 'Wallet Deposit'}
+                                            {tx.amount < 0
+                                                ? 'Withdrawal'
+                                                : tx.metadata?.projectType === 'CHARITY'
+                                                    ? 'Donation Received'
+                                                    : 'Investment Received'}
                                         </p>
                                         <p className="text-xs text-[var(--text-muted)] font-medium">
                                             {new Date(tx.createdAt).toLocaleDateString()} at {new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -158,9 +165,6 @@ export function WalletView() {
                     </div>
                 )}
             </div>
-
-            {/* Payment Methods */}
-            {/* ... similar porting if needed or keep it simple ... */}
         </motion.div>
     );
 }

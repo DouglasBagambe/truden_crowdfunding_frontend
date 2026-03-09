@@ -101,7 +101,7 @@ export default function ProjectDetailPage() {
             setPaymentError('');
             setIsInitiatingPayment(true);
             const resolvedProjectId = (project as any)?.id || (project as any)?._id || projectId;
-            const projectType = isCharityProject ? 'CHARITY' : 'ROI';
+            const projectType = isCharity ? 'CHARITY' : 'ROI';
             const description = paymentMode === 'donate'
                 ? `Donation to ${project?.name} - Keibo`
                 : `Investment in ${project?.name} - Keibo`;
