@@ -45,12 +45,10 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
     }
   };
 
-  const projectType = (project.projectType || project.type || '').toUpperCase();
-  const isCharity = projectType === 'CHARITY';
-  const accentBg = isCharity ? 'bg-emerald-600' : 'bg-blue-600';
-  const accentText = isCharity ? 'text-emerald-600' : 'text-blue-600';
-  const accentHoverText = isCharity ? 'group-hover:text-emerald-600' : 'group-hover:text-blue-600';
-  const accentHoverBg = isCharity ? 'group-hover:bg-emerald-600' : 'group-hover:bg-blue-600';
+  const accentBg = 'bg-emerald-600';
+  const accentText = 'text-emerald-600';
+  const accentHoverText = 'group-hover:text-emerald-600';
+  const accentHoverBg = 'group-hover:bg-emerald-600';
 
   return (
     <Link href={`/projects/${projectId}`}>
@@ -80,7 +78,7 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
           {/* Project Type & Status Badge */}
           <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
             <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg ${accentBg} text-white`}>
-              {isCharity ? 'Charity' : 'ROI'}
+              Charity
             </span>
             {project.status && project.status !== 'APPROVED' && project.status !== 'FUNDING' && (
               <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-black/60 text-white backdrop-blur-md shadow-lg border border-white/20">

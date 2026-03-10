@@ -81,20 +81,7 @@ export function WalletView() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-white/10 backdrop-blur-sm rounded-[1.5rem] p-5 border border-white/10">
-                                <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mb-1">Fiat (UGX)</p>
-                                <p className="text-xl font-bold">
-                                    {ugxBalance.toLocaleString() || '0'}
-                                </p>
-                            </div>
-                            <div className="bg-white/10 backdrop-blur-sm rounded-[1.5rem] p-5 border border-white/10">
-                                <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mb-1">Crypto (USDC)</p>
-                                <p className="text-xl font-bold">
-                                    {(balance?.cryptoBalance?.USDC ?? 0).toLocaleString() || '0'}
-                                </p>
-                            </div>
-                        </div>
+
                     </div>
 
                     <div className="flex flex-col gap-3 justify-center min-w-[200px]">
@@ -143,9 +130,7 @@ export function WalletView() {
                                         <p className="font-bold text-[var(--text-main)]">
                                             {tx.amount < 0
                                                 ? 'Withdrawal'
-                                                : tx.metadata?.projectType === 'CHARITY'
-                                                    ? 'Donation Received'
-                                                    : 'Investment Received'}
+                                                : 'Donation Received'}
                                         </p>
                                         <p className="text-xs text-[var(--text-muted)] font-medium">
                                             {new Date(tx.createdAt).toLocaleDateString()} at {new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

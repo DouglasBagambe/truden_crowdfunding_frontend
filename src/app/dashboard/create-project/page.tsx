@@ -21,7 +21,6 @@ import {
     Info,
     MapPin,
     Users,
-    CreditCard,
     Calendar,
     Heart,
     Target,
@@ -433,33 +432,17 @@ export default function CreateProjectPage() {
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Project Website (Optional)</label>
-                                        <div className="relative">
-                                            <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                            <input
-                                                type="url"
-                                                value={formData.website}
-                                                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                                                className="w-full pl-12 pr-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-gray-900 outline-none"
-                                                placeholder="https://keibo.com"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Payment Method</label>
-                                        <div className="relative">
-                                            <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                            <select
-                                                value={formData.paymentMethod}
-                                                onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
-                                                className="w-full pl-12 pr-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-gray-900 outline-none"
-                                            >
-                                                <option value="FLUTTERWAVE_ESCROW">Flutterwave Escrow</option>
-                                                <option value="BANK_TRANSFER">Bank Transfer (Manual)</option>
-                                            </select>
-                                        </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Project Website (Optional)</label>
+                                    <div className="relative">
+                                        <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                        <input
+                                            type="url"
+                                            value={formData.website}
+                                            onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                                            className="w-full pl-12 pr-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-gray-900 outline-none"
+                                            placeholder="https://yourproject.com"
+                                        />
                                     </div>
                                 </div>
                             </div>
