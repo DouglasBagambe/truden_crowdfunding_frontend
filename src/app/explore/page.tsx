@@ -261,29 +261,7 @@ function ExplorePageContent() {
                                 </div>
                             )}
 
-                            {/* Project Type */}
-                            <div className="space-y-4">
-                                <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Project Type</h3>
-                                <div className="space-y-3">
-                                    {['ALL', 'ROI', 'CHARITY'].map((type) => (
-                                        <label key={type} className="flex items-center gap-3 cursor-pointer group">
-                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${draftProjectType === type ? accent.radioOn : `border-[var(--border)] ${accent.radioOff}`}`}>
-                                                {draftProjectType === type && <div className="w-2 h-2 rounded-full bg-white" />}
-                                            </div>
-                                            <input
-                                                type="radio"
-                                                className="hidden"
-                                                name="projectType"
-                                                checked={draftProjectType === type}
-                                                onChange={() => setDraftProjectType(type)}
-                                            />
-                                            <span className={`text-sm font-bold transition-colors ${draftProjectType === type ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-main)]'}`}>
-                                                {type === 'ALL' ? 'All Projects' : type === 'ROI' ? 'ROI Projects' : 'Charity Projects'}
-                                            </span>
-                                        </label>
-                                    ))}
-                                </div>
-                            </div>
+
 
                             {/* Status */}
                             <div className="space-y-4">
@@ -343,16 +321,15 @@ function ExplorePageContent() {
                             </div>
                         </div>
 
-                        {/* Promo Card */}
-                        <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-[2rem] p-8 text-white space-y-4 relative overflow-hidden shadow-xl shadow-indigo-500/20">
-                            <Zap className="w-12 h-12 text-indigo-200 opacity-50 mb-2" />
-                            <h3 className="text-2xl font-black leading-tight">Ignite your project.</h3>
-                            <p className="text-indigo-100 text-sm font-medium leading-relaxed">
-                                Get featured to 50k+ daily investors and donors on our platform.
+                        <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-[2rem] p-8 text-white space-y-4 relative overflow-hidden shadow-xl shadow-emerald-500/20">
+                            <Heart className="w-12 h-12 text-emerald-200 opacity-50 mb-2" />
+                            <h3 className="text-2xl font-black leading-tight">Start a cause.</h3>
+                            <p className="text-emerald-100 text-sm font-medium leading-relaxed">
+                                Launch your charity campaign and reach thousands of donors today.
                             </p>
-                            <button className="w-full py-4 bg-white text-indigo-700 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg">
-                                Boost Project
-                            </button>
+                            <a href="/dashboard/create-project" className="w-full py-4 bg-white text-emerald-700 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg block text-center">
+                                Start Campaign
+                            </a>
                             <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
                         </div>
                     </aside>
