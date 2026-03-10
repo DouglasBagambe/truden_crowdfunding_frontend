@@ -287,24 +287,53 @@ export default function ProjectDetailPage() {
                         Back
                     </button>
 
-                    {/* Draft Notice */}
-                    {(project.status === 'DRAFT' || project.status === 'PENDING_REVIEW') && (
-                        <div className="mb-8 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3">
-                            <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0" />
-                            <div className="flex-1">
-                                <p className="text-sm text-amber-300 font-medium">
+                    {/* Status Notice */}
+                    {(project.status === 'DRAFT' || project.status === 'PENDING_REVIEW' || project.status === 'REJECTED' || project.status === 'CHANGES_REQUESTED') && isOwner && (
+                        <div className={`mb-8 p-4 rounded-2xl flex items-start gap-3 ${project.status === 'REJECTED'
+                                ? 'bg-rose-500/10 border border-rose-500/20'
+                                : project.status === 'CHANGES_REQUESTED'
+                                    ? 'bg-orange-500/10 border border-orange-500/20'
+                                    : 'bg-amber-500/10 border border-amber-500/20'
+                            }`}>
+                            <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${project.status === 'REJECTED' ? 'text-rose-400'
+                                    : project.status === 'CHANGES_REQUESTED' ? 'text-orange-400'
+                                        : 'text-amber-400'
+                                }`} />
+                            <div className="flex-1 space-y-1">
+                                <p className={`text-sm font-semibold ${project.status === 'REJECTED' ? 'text-rose-300'
+                                        : project.status === 'CHANGES_REQUESTED' ? 'text-orange-300'
+                                            : 'text-amber-300'
+                                    }`}>
                                     {project.status === 'DRAFT'
-                                        ? 'This project is in draft mode. Submit it for review to make it public.'
-                                        : 'This project is under review and will be publicly visible once approved.'}
+                                        ? 'This campaign is in draft mode. Submit it for review to make it public.'
+                                        : project.status === 'PENDING_REVIEW'
+                                            ? 'Your campaign is under review. It will be visible once approved by our team.'
+                                            : project.status === 'CHANGES_REQUESTED'
+                                                ? 'Our review team has requested changes to your campaign before it can be approved.'
+                                                : 'Your campaign was not approved at this time.'}
                                 </p>
+                                {project.decisionReason && (
+                                    <p className="text-xs text-[var(--text-muted)] font-medium">
+                                        <strong>Reason:</strong> {project.decisionReason}
+                                    </p>
+                                )}
                             </div>
                             {project.status === 'DRAFT' && isOwner && (
                                 <button
                                     onClick={handleSubmitForReview}
                                     disabled={isSubmittingForReview}
-                                    className="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-60"
+                                    className="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-60 flex-shrink-0"
                                 >
                                     {isSubmittingForReview ? 'Submitting...' : 'Submit for Review'}
+                                </button>
+                            )}
+                            {project.status === 'CHANGES_REQUESTED' && isOwner && (
+                                <button
+                                    onClick={handleSubmitForReview}
+                                    disabled={isSubmittingForReview}
+                                    className="px-4 py-2 rounded-xl bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-60 flex-shrink-0"
+                                >
+                                    {isSubmittingForReview ? 'Resubmitting...' : 'Resubmit'}
                                 </button>
                             )}
                         </div>

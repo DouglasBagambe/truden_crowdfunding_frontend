@@ -135,6 +135,11 @@ export const projectService = {
     return response.data;
   },
 
+  async adminListAll() {
+    const response = await apiClient.get('/admin/projects/all');
+    return response.data;
+  },
+
   async adminDecision(id: string, dto: { finalStatus: string; reason?: string }) {
     const response = await apiClient.post(`/admin/projects/${id}/decision`, dto);
     return response.data;
