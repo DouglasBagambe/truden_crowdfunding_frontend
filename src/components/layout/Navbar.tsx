@@ -54,7 +54,7 @@ const Navbar = () => {
                 All Causes
               </Link>
               <Link href="/explore?category=HEALTH" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold hover:bg-[var(--secondary)] transition-colors">
-                <Heart size={14} className="text-rose-500" /> Health
+                Health
               </Link>
               <Link href="/explore?category=EDUCATION" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold hover:bg-[var(--secondary)] transition-colors">
                 Education

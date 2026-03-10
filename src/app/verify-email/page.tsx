@@ -153,7 +153,7 @@ function VerifyEmailContent() {
                                 <CheckCircle2 size={40} className="text-emerald-400" />
                             </div>
                             <div>
-                                <h1 className="text-3xl font-black text-white mb-2">Email Verified! 🎉</h1>
+                                <h1 className="text-3xl font-black text-white mb-2">Email Verified</h1>
                                 <p className="text-white/60 font-medium">
                                     Your account is now fully active. Welcome to Keibo!
                                 </p>
@@ -176,7 +176,7 @@ function VerifyEmailContent() {
                             {/* Header */}
                             <div className="text-center space-y-3">
                                 <div className="w-16 h-16 rounded-2xl bg-blue-500/20 flex items-center justify-center mx-auto">
-                                    <Mail size={28} className="text-blue-400" />
+                                    {/* <Mail size={28} className="text-blue-400" /> */}
                                 </div>
                                 <h1 className="text-3xl font-black text-white">Check your email</h1>
                                 <p className="text-white/50 text-sm font-medium">

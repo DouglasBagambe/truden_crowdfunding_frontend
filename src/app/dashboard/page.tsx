@@ -14,7 +14,7 @@ import { motion } from 'framer-motion';
 import { useProjects, useMyProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
 import { useInvestments } from '@/hooks/useInvestments';
-import { Search, LineChart, ArrowUpRight, Shield, PlusCircle, LayoutDashboard, Wallet, Briefcase, Activity, Image as ImageIcon, ShieldCheck, Bell, Mail, AlertTriangle, Heart } from 'lucide-react';
+import { Search, LineChart, ArrowUpRight, Shield, PlusCircle, LayoutDashboard, Wallet, Briefcase, Activity, Image as ImageIcon, ShieldCheck, Bell, Mail, AlertTriangle, Heart, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -340,9 +340,9 @@ export default function DashboardPage() {
                                                         <div key={pId} className="bg-[var(--background)] border border-[var(--border)] rounded-2xl p-5 hover:border-[var(--primary)]/30 transition-all">
                                                             <div className="flex items-start gap-4">
                                                                 {/* Icon */}
-                                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${isCharity ? 'bg-emerald-500/10' : 'bg-blue-500/10'
+                                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${isCharity ? 'bg-emerald-500/10 text-emerald-500' : 'bg-blue-500/10 text-blue-500'
                                                                     }`}>
-                                                                    {isCharity ? '💚' : '📈'}
+                                                                    {isCharity ? <Heart size={20} /> : <TrendingUp size={20} />}
                                                                 </div>
                                                                 {/* Info */}
                                                                 <div className="flex-1 min-w-0">
@@ -375,7 +375,7 @@ export default function DashboardPage() {
                                                                                 href={`/dashboard/withdraw?projectId=${pId}&projectName=${pName}`}
                                                                                 className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs font-black text-emerald-400 hover:bg-emerald-500/20 transition-all flex items-center gap-1"
                                                                             >
-                                                                                💰 Withdraw Funds
+                                                                                <Wallet size={14} /> Withdraw Funds
                                                                             </Link>
                                                                         )}
                                                                     </div>

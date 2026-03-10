@@ -3,15 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import AuthCard from '@/components/auth/AuthCard';
 import Link from 'next/link';
-import { Mail, Lock, Eye, EyeOff, Wallet, Loader2, CheckCircle } from 'lucide-react';
-import { useWeb3Modal } from '@web3modal/wagmi/react';
-import { useAccount } from 'wagmi';
+import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
-  const { open } = useWeb3Modal();
-  const { address, isConnected } = useAccount();
   const { login, isLoggingIn, isAuthenticated } = useAuth();
   const router = useRouter();
 
@@ -34,38 +30,6 @@ export default function LoginPage() {
   return (
     <AuthCard>
       <div className="space-y-8">
-        {/* Wallet Connection Section */}
-        <div className="space-y-4">
-          <button
-            type="button"
-            onClick={() => open()}
-            className={`w-full flex items-center justify-center gap-3 font-bold py-4 rounded-xl transition-all shadow-lg ${isConnected
-                ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/10'
-                : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/10'
-              } text-white`}
-          >
-            {isConnected ? (
-              <>
-                <CheckCircle className="w-5 h-5" />
-                <span className="text-sm">Connected: {address?.slice(0, 6)}...{address?.slice(-4)}</span>
-              </>
-            ) : (
-              <>
-                <Wallet className="w-5 h-5" />
-                <span className="text-sm">Connect Web3 Wallet</span>
-              </>
-            )}
-          </button>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-[var(--border)]"></span>
-            </div>
-            <div className="relative flex justify-center text-[10px] uppercase font-black tracking-widest">
-              <span className="bg-[var(--card)] px-4 text-[var(--text-muted)]">or legacy access</span>
-            </div>
-          </div>
-        </div>
 
         {/* Header */}
         <header className="space-y-2">
