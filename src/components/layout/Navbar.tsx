@@ -116,7 +116,7 @@ const Navbar = () => {
                   <Link href="/dashboard" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold hover:bg-[var(--secondary)] transition-colors">
                     <LayoutDashboard size={16} /> Dashboard
                   </Link>
-                  <Link href="/settings" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold hover:bg-[var(--secondary)] transition-colors">
+                  <Link href="/profile" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold hover:bg-[var(--secondary)] transition-colors">
                     <Settings size={16} /> Settings
                   </Link>
                   <button
