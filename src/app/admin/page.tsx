@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import {
   LayoutDashboard, FolderOpen, Users, ShieldCheck, CheckCircle,
   XCircle, Clock, RefreshCw, ChevronRight, Eye, Loader2,
-  Search, AlertTriangle, Bell, TrendingUp, ArrowLeft,
+  Search, Bell, ArrowLeft, Ban, UserCheck, RotateCcw,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { projectService } from '@/lib/project-service';
@@ -21,9 +21,9 @@ type AdminTab = 'overview' | 'projects' | 'users';
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
   PENDING_REVIEW: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  APPROVED: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+  APPROVED: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   FUNDING: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  FUNDED: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  FUNDED: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
   COMPLETED: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
   REJECTED: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
   CHANGES_REQUESTED: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
@@ -69,11 +69,10 @@ export default function AdminPage() {
   const [actingOn, setActingOn] = useState<string | null>(null);
   const [reasons, setReasons] = useState<Record<string, string>>({});
 
-  // Admin check: match user ID against env NEXT_PUBLIC_ADMIN_USER_ID
+  // Admin check
   const isAdmin = useMemo(() => {
     if (!user) return false;
     const uid = user.id || user._id || '';
-    // Also allow role-based admin
     const hasAdminRole = (user.roles || []).some((r: string) =>
       ['ADMIN', 'admin', 'SUPER_ADMIN'].includes(r)
     );
@@ -85,10 +84,7 @@ export default function AdminPage() {
     if (authLoading) return;
     if (!isAuthenticated) { router.push('/login?next=/admin'); return; }
     if (!isAdmin && !authLoading) {
-      // Give a moment for user to load
-      const t = setTimeout(() => {
-        if (!isAdmin) router.push('/');
-      }, 1500);
+      const t = setTimeout(() => { if (!isAdmin) router.push('/'); }, 1500);
       return () => clearTimeout(t);
     }
   }, [authLoading, isAuthenticated, isAdmin, router]);
@@ -104,7 +100,6 @@ export default function AdminPage() {
       const list = Array.isArray(data) ? data : (data?.projects || data?.items || []);
       setAllProjects(list);
     } catch {
-      // fallback to pending
       try {
         const data = await projectService.adminListPending();
         setAllProjects(Array.isArray(data) ? data : []);
@@ -117,24 +112,53 @@ export default function AdminPage() {
   const loadUsers = async () => {
     setLoadingUsers(true);
     try {
-      const res = await apiClient.get('/users', { params: { limit: 200 } });
-      const list = Array.isArray(res.data) ? res.data : (res.data?.items || res.data?.users || []);
+      // Use the new /admin/users endpoint which has no role restriction
+      const res = await apiClient.get('/admin/users', { params: { limit: 200 } });
+      const data = res.data;
+      const list = Array.isArray(data) ? data : (data?.users || data?.items || []);
       setUsers(list);
     } catch { setUsers([]); }
     finally { setLoadingUsers(false); }
   };
 
+  // Project decision (approve / reject / changes-requested / revoke / re-approve)
   const decide = async (id: string, finalStatus: string) => {
     if (finalStatus === 'REJECTED' && !reasons[id]?.trim()) {
       toast.error('Please provide a reason for rejection.');
       return;
     }
     setActingOn(id);
-    const tid = toast.loading(`Processing...`);
+    const tid = toast.loading('Processing...');
     try {
       await projectService.adminDecision(id, { finalStatus, reason: reasons[id] });
       toast.success(`Project ${finalStatus.replace(/_/g, ' ').toLowerCase()}`, { id: tid });
       await loadProjects();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || 'Action failed', { id: tid });
+    } finally { setActingOn(null); }
+  };
+
+  // Block / unblock user
+  const toggleBlock = async (userId: string, isBlocked: boolean) => {
+    setActingOn(userId);
+    const tid = toast.loading(isBlocked ? 'Unblocking user...' : 'Blocking user...');
+    try {
+      await apiClient.patch(`/admin/users/${userId}/block`, { isBlocked: !isBlocked });
+      toast.success(isBlocked ? 'User unblocked' : 'User blocked', { id: tid });
+      await loadUsers();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || 'Action failed', { id: tid });
+    } finally { setActingOn(null); }
+  };
+
+  // Change user role
+  const changeRole = async (userId: string, role: string) => {
+    setActingOn(userId);
+    const tid = toast.loading('Updating role...');
+    try {
+      await apiClient.patch(`/admin/users/${userId}/role`, { role });
+      toast.success(`Role updated to ${role}`, { id: tid });
+      await loadUsers();
     } catch (e: any) {
       toast.error(e?.response?.data?.message || 'Action failed', { id: tid });
     } finally { setActingOn(null); }
@@ -154,7 +178,7 @@ export default function AdminPage() {
   const filteredUsers = useMemo(() =>
     users.filter(u =>
       (u.email || '').toLowerCase().includes(userSearch.toLowerCase()) ||
-      `${u.firstName} ${u.lastName}`.toLowerCase().includes(userSearch.toLowerCase())
+      `${u.firstName || u.profile?.firstName || ''} ${u.lastName || u.profile?.lastName || ''}`.toLowerCase().includes(userSearch.toLowerCase())
     ), [users, userSearch]);
 
   const pendingCount = allProjects.filter(p => p.status === 'PENDING_REVIEW').length;
@@ -300,7 +324,10 @@ export default function AdminPage() {
             {activeTab === 'projects' && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between flex-wrap gap-4">
-                  <h2 className="text-2xl font-black">Campaign Management</h2>
+                  <div>
+                    <h2 className="text-2xl font-black">Campaign Management</h2>
+                    <p className="text-sm text-[var(--text-muted)] mt-1">Approve, reject, or request changes for submitted campaigns. Rejected campaigns are hidden from the public.</p>
+                  </div>
                   <div className="flex items-center gap-3 flex-wrap">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
@@ -353,8 +380,14 @@ export default function AdminPage() {
                     const raised = p.raisedAmount || p.progress?.raisedAmount || 0;
                     const target = p.targetAmount || p.goalAmount || 0;
                     const pct = target > 0 ? Math.min(100, (raised / target) * 100) : 0;
-                    const isPending = p.status === 'PENDING_REVIEW' || p.status === 'CHANGES_REQUESTED' || p.status === 'DRAFT';
                     const isActing = actingOn === id;
+                    const status = p.status as string;
+
+                    // Determine which action buttons to show based on current status
+                    const canApprove = ['PENDING_REVIEW', 'CHANGES_REQUESTED', 'DRAFT', 'REJECTED'].includes(status);
+                    const canRequestChanges = ['PENDING_REVIEW', 'APPROVED', 'DRAFT'].includes(status);
+                    const canReject = !['REJECTED'].includes(status);
+                    const canRevoke = status === 'APPROVED' || status === 'FUNDING';
 
                     return (
                       <div key={id} className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden hover:border-[var(--primary)]/30 transition-all">
@@ -393,7 +426,6 @@ export default function AdminPage() {
                               </div>
                               <p className="text-xs font-bold text-[var(--text-muted)]">{creatorName}</p>
                             </div>
-                            {/* Funding progress (if any) */}
                             {target > 0 && (
                               <div className="space-y-1 pt-1">
                                 <div className="w-full h-1.5 bg-[var(--secondary)] rounded-full overflow-hidden">
@@ -404,12 +436,17 @@ export default function AdminPage() {
                                 </p>
                               </div>
                             )}
+                            {p.decisionReason && (
+                              <p className="text-xs text-amber-400 font-medium bg-amber-500/10 rounded-lg px-2 py-1">
+                                Previous note: {p.decisionReason}
+                              </p>
+                            )}
                           </div>
 
                           {/* Reason textarea */}
                           <div className="lg:col-span-5 space-y-2 flex flex-col">
                             <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
-                              Reason / Feedback <span className="text-rose-400">{p.status !== 'APPROVED' ? '(required for rejection)' : ''}</span>
+                              Admin Note / Feedback <span className="text-rose-400">(required for rejection)</span>
                             </label>
                             <textarea
                               rows={4}
@@ -418,16 +455,11 @@ export default function AdminPage() {
                               onChange={e => setReasons(r => ({ ...r, [id]: e.target.value }))}
                               placeholder="Provide feedback to the campaign creator (shown in email notification)..."
                             />
-                            {p.decisionReason && (
-                              <p className="text-xs text-amber-400 font-medium">
-                                Previous reason: {p.decisionReason}
-                              </p>
-                            )}
                           </div>
 
                           {/* Action buttons */}
                           <div className="lg:col-span-3 flex flex-col gap-2 justify-start">
-                            {isPending && (
+                            {canApprove && (
                               <button
                                 onClick={() => decide(id, 'APPROVED')}
                                 disabled={isActing}
@@ -437,7 +469,7 @@ export default function AdminPage() {
                                 Approve
                               </button>
                             )}
-                            {isPending && (
+                            {canRequestChanges && (
                               <button
                                 onClick={() => decide(id, 'CHANGES_REQUESTED')}
                                 disabled={isActing}
@@ -446,7 +478,17 @@ export default function AdminPage() {
                                 Request Changes
                               </button>
                             )}
-                            {p.status !== 'REJECTED' && p.status !== 'APPROVED' && (
+                            {canRevoke && (
+                              <button
+                                onClick={() => decide(id, 'REJECTED')}
+                                disabled={isActing}
+                                className="py-3 rounded-xl border border-rose-500/50 text-rose-400 text-[10px] font-black uppercase tracking-widest disabled:opacity-60 hover:bg-rose-500/10 transition-all flex items-center justify-center gap-2"
+                              >
+                                {isActing ? <Loader2 size={12} className="animate-spin" /> : <XCircle size={12} />}
+                                Revoke
+                              </button>
+                            )}
+                            {canReject && !canRevoke && (
                               <button
                                 onClick={() => decide(id, 'REJECTED')}
                                 disabled={isActing}
@@ -454,24 +496,6 @@ export default function AdminPage() {
                               >
                                 {isActing ? <Loader2 size={12} className="animate-spin" /> : <XCircle size={12} />}
                                 Reject
-                              </button>
-                            )}
-                            {p.status === 'APPROVED' && (
-                              <button
-                                onClick={() => decide(id, 'REJECTED')}
-                                disabled={isActing}
-                                className="py-3 rounded-xl border border-rose-500/30 text-rose-400 text-[10px] font-black uppercase tracking-widest disabled:opacity-60 hover:bg-rose-500/10 transition-all"
-                              >
-                                Revoke
-                              </button>
-                            )}
-                            {p.status === 'REJECTED' && (
-                              <button
-                                onClick={() => decide(id, 'APPROVED')}
-                                disabled={isActing}
-                                className="py-3 rounded-xl border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase tracking-widest disabled:opacity-60 hover:bg-emerald-500/10 transition-all"
-                              >
-                                Re-Approve
                               </button>
                             )}
                           </div>
@@ -487,7 +511,10 @@ export default function AdminPage() {
             {activeTab === 'users' && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between flex-wrap gap-4">
-                  <h2 className="text-2xl font-black">User Management</h2>
+                  <div>
+                    <h2 className="text-2xl font-black">User Management</h2>
+                    <p className="text-sm text-[var(--text-muted)] mt-1">Block/unblock users and change their roles.</p>
+                  </div>
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
@@ -499,15 +526,15 @@ export default function AdminPage() {
                         className="pl-9 pr-4 py-2 rounded-xl bg-[var(--secondary)] border border-[var(--border)] text-sm outline-none focus:border-[var(--primary)] w-52"
                       />
                     </div>
-                    <button onClick={loadUsers} disabled={loadingUsers} className="p-2 rounded-xl bg-[var(--secondary)] border border-[var(--border)]">
+                    <button onClick={loadUsers} disabled={loadingUsers} className="p-2 rounded-xl bg-[var(--secondary)] border border-[var(--border)] hover:border-[var(--primary)] transition-all">
                       <RefreshCw size={16} className={loadingUsers ? 'animate-spin text-[var(--primary)]' : 'text-[var(--text-muted)]'} />
                     </button>
                   </div>
                 </div>
 
                 <div className="bg-[var(--card)] rounded-3xl border border-[var(--border)] overflow-hidden">
-                  <div className="grid grid-cols-12 px-6 py-3 border-b border-[var(--border)] bg-[var(--secondary)]">
-                    {[['User', 'col-span-4'], ['Email', 'col-span-4'], ['Role', 'col-span-2'], ['Joined', 'col-span-2']].map(([h, cls]) => (
+                  <div className="hidden lg:grid grid-cols-12 px-6 py-3 border-b border-[var(--border)] bg-[var(--secondary)]">
+                    {[['User', 'col-span-3'], ['Email', 'col-span-3'], ['KYC', 'col-span-2'], ['Role', 'col-span-2'], ['Actions', 'col-span-2']].map(([h, cls]) => (
                       <div key={h} className={`text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ${cls}`}>{h}</div>
                     ))}
                   </div>
@@ -518,30 +545,120 @@ export default function AdminPage() {
                       </div>
                     ) : filteredUsers.length === 0 ? (
                       <div className="p-12 text-center text-[var(--text-muted)] font-medium">No users found.</div>
-                    ) : filteredUsers.map((u: any) => (
-                      <div key={u.id || u._id} className="grid grid-cols-12 px-6 py-4 items-center hover:bg-[var(--secondary)] transition-colors">
-                        <div className="col-span-4 flex items-center gap-3 min-w-0">
-                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-black text-sm flex-shrink-0">
-                            {(u.firstName || u.email || '?')[0].toUpperCase()}
+                    ) : filteredUsers.map((u: any) => {
+                      const uid = u.id || u._id;
+                      const firstName = u.firstName || u.profile?.firstName || '';
+                      const lastName = u.lastName || u.profile?.lastName || '';
+                      const displayName = [firstName, lastName].filter(Boolean).join(' ') || 'Unknown';
+                      const role = (u.roles || [u.role || 'INVESTOR'])[0];
+                      const isBlocked = u.isBlocked;
+                      const isActingUser = actingOn === uid;
+                      const isCurrentAdmin = uid === (user?.id || user?._id);
+
+                      return (
+                        <div key={uid} className={`px-6 py-4 hover:bg-[var(--secondary)] transition-colors ${isBlocked ? 'opacity-60' : ''}`}>
+                          {/* Mobile layout */}
+                          <div className="lg:hidden space-y-2">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-black text-sm flex-shrink-0">
+                                {(firstName || u.email || '?')[0].toUpperCase()}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-sm">{displayName}</p>
+                                <p className="text-xs text-[var(--text-muted)]">{u.email}</p>
+                              </div>
+                              <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${isBlocked ? 'bg-rose-500/10 text-rose-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                                {role}
+                              </span>
+                            </div>
+                            {!isCurrentAdmin && (
+                              <div className="flex gap-2 pt-1">
+                                <button
+                                  onClick={() => toggleBlock(uid, isBlocked)}
+                                  disabled={isActingUser}
+                                  className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 ${isBlocked
+                                    ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+                                    : 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20'}`}
+                                >
+                                  {isActingUser ? <Loader2 size={10} className="animate-spin" /> : isBlocked ? <UserCheck size={10} /> : <Ban size={10} />}
+                                  {isBlocked ? 'Unblock' : 'Block'}
+                                </button>
+                                <select
+                                  onChange={e => changeRole(uid, e.target.value)}
+                                  defaultValue={role}
+                                  disabled={isActingUser}
+                                  className="flex-1 py-2 px-2 rounded-lg bg-[var(--secondary)] border border-[var(--border)] text-xs font-bold outline-none"
+                                >
+                                  <option value="INVESTOR">Investor</option>
+                                  <option value="INNOVATOR">Innovator</option>
+                                  <option value="ADMIN">Admin</option>
+                                </select>
+                              </div>
+                            )}
                           </div>
-                          <div className="min-w-0">
-                            <p className="font-bold text-sm truncate">{[u.firstName, u.lastName].filter(Boolean).join(' ') || 'Unknown'}</p>
-                            <p className="text-[10px] text-[var(--text-muted)] font-medium">
-                              {u.emailVerifiedAt ? '✓ Verified' : 'Unverified'}
-                            </p>
+
+                          {/* Desktop layout */}
+                          <div className="hidden lg:grid grid-cols-12 items-center gap-2">
+                            <div className="col-span-3 flex items-center gap-3 min-w-0">
+                              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-black text-sm flex-shrink-0">
+                                {(firstName || u.email || '?')[0].toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-bold text-sm truncate">{displayName}</p>
+                                <p className="text-[10px] text-[var(--text-muted)] font-medium">
+                                  {u.emailVerifiedAt ? '✓ Verified' : 'Unverified'}
+                                  {isBlocked && ' · Blocked'}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="col-span-3 text-sm text-[var(--text-muted)] font-medium truncate pr-4">{u.email}</div>
+                            <div className="col-span-2">
+                              <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${u.kycStatus === 'VERIFIED'
+                                ? 'bg-emerald-500/10 text-emerald-400'
+                                : u.kycStatus === 'PENDING'
+                                  ? 'bg-amber-500/10 text-amber-400'
+                                  : 'bg-gray-500/10 text-gray-400'
+                                }`}>
+                                {u.kycStatus || 'NOT VERIFIED'}
+                              </span>
+                            </div>
+                            <div className="col-span-2">
+                              {isCurrentAdmin ? (
+                                <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-violet-500/10 text-violet-400">
+                                  {role} (you)
+                                </span>
+                              ) : (
+                                <select
+                                  onChange={e => changeRole(uid, e.target.value)}
+                                  defaultValue={role}
+                                  disabled={isActingUser}
+                                  className="py-1.5 px-2 rounded-lg bg-[var(--secondary)] border border-[var(--border)] text-xs font-bold outline-none cursor-pointer"
+                                >
+                                  <option value="INVESTOR">INVESTOR</option>
+                                  <option value="INNOVATOR">INNOVATOR</option>
+                                  <option value="ADMIN">ADMIN</option>
+                                </select>
+                              )}
+                            </div>
+                            <div className="col-span-2 flex gap-2">
+                              {!isCurrentAdmin && (
+                                <button
+                                  onClick={() => toggleBlock(uid, isBlocked)}
+                                  disabled={isActingUser}
+                                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${isBlocked
+                                    ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+                                    : 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20'
+                                    }`}
+                                >
+                                  {isActingUser ? <Loader2 size={10} className="animate-spin" /> : isBlocked ? <UserCheck size={10} /> : <Ban size={10} />}
+                                  {isBlocked ? 'Unblock' : 'Block'}
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
-                        <div className="col-span-4 text-sm text-[var(--text-muted)] font-medium truncate pr-4">{u.email}</div>
-                        <div className="col-span-2">
-                          <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400">
-                            {(u.roles || [u.role || 'USER'])[0]}
-                          </span>
-                        </div>
-                        <div className="col-span-2 text-xs text-[var(--text-muted)] font-medium">
-                          {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
