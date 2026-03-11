@@ -58,11 +58,12 @@ export default function ProjectDetailPage() {
     const currentMedia = mediaItems[mediaIndex];
 
     const getPrefillDonorName = () => {
-        const firstName = (user as any)?.firstName;
-        const lastName = (user as any)?.lastName;
+        const u = user as any;
+        const firstName = u?.profile?.firstName || u?.firstName;
+        const lastName = u?.profile?.lastName || u?.lastName;
         const combined = `${typeof firstName === 'string' ? firstName : ''} ${typeof lastName === 'string' ? lastName : ''}`.trim();
-        const fallback = (user as any)?.name || (user as any)?.fullName;
-        const email = (user as any)?.email;
+        const fallback = u?.profile?.displayName || u?.name || u?.fullName;
+        const email = u?.email;
         const profileName = (combined || fallback || email || '').toString().trim();
         return profileName;
     };

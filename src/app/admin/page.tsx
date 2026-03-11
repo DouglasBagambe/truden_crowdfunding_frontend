@@ -256,7 +256,7 @@ export default function AdminPage() {
                     {allProjects.filter(p => p.status === 'PENDING_REVIEW').slice(0, 6).map(p => {
                       const creator = p.creator || p.creatorId;
                       const creatorName = creator && typeof creator === 'object'
-                        ? [creator.firstName, creator.lastName].filter(Boolean).join(' ') || creator.email
+                        ? [creator.profile?.firstName || creator.firstName, creator.profile?.lastName || creator.lastName].filter(Boolean).join(' ') || creator.email
                         : 'Unknown';
                       return (
                         <div key={p._id || p.id} className="p-4 flex items-center gap-4 hover:bg-[var(--secondary)] transition-colors">
@@ -348,7 +348,7 @@ export default function AdminPage() {
                     const id = String(p._id || p.id);
                     const creator = p.creator || p.creatorId;
                     const creatorName = creator && typeof creator === 'object'
-                      ? [creator.firstName, creator.lastName].filter(Boolean).join(' ') || creator.email
+                      ? [creator.profile?.firstName || creator.firstName, creator.profile?.lastName || creator.lastName].filter(Boolean).join(' ') || creator.email
                       : 'Unknown Creator';
                     const raised = p.raisedAmount || p.progress?.raisedAmount || 0;
                     const target = p.targetAmount || p.goalAmount || 0;
