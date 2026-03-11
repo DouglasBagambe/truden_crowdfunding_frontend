@@ -68,13 +68,11 @@ export default function ProjectDetailPage() {
     };
 
     const openDonateModal = () => {
-        if (!isAuthenticated) {
-            window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
-            return;
-        }
+        // Anyone can donate — no login required
         setPaymentMode('donate');
         setPaymentAmount('');
-        setDonorName(getPrefillDonorName() || '');
+        // Pre-fill name from profile if logged in, empty otherwise (shown as Anonymous)
+        setDonorName(isAuthenticated ? (getPrefillDonorName() || '') : '');
         setPaymentError('');
         setIsPaymentModalOpen(true);
     };
@@ -290,19 +288,19 @@ export default function ProjectDetailPage() {
                     {/* Status Notice */}
                     {(project.status === 'DRAFT' || project.status === 'PENDING_REVIEW' || project.status === 'REJECTED' || project.status === 'CHANGES_REQUESTED') && isOwner && (
                         <div className={`mb-8 p-4 rounded-2xl flex items-start gap-3 ${project.status === 'REJECTED'
-                                ? 'bg-rose-500/10 border border-rose-500/20'
-                                : project.status === 'CHANGES_REQUESTED'
-                                    ? 'bg-orange-500/10 border border-orange-500/20'
-                                    : 'bg-amber-500/10 border border-amber-500/20'
+                            ? 'bg-rose-500/10 border border-rose-500/20'
+                            : project.status === 'CHANGES_REQUESTED'
+                                ? 'bg-orange-500/10 border border-orange-500/20'
+                                : 'bg-amber-500/10 border border-amber-500/20'
                             }`}>
                             <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${project.status === 'REJECTED' ? 'text-rose-400'
-                                    : project.status === 'CHANGES_REQUESTED' ? 'text-orange-400'
-                                        : 'text-amber-400'
+                                : project.status === 'CHANGES_REQUESTED' ? 'text-orange-400'
+                                    : 'text-amber-400'
                                 }`} />
                             <div className="flex-1 space-y-1">
                                 <p className={`text-sm font-semibold ${project.status === 'REJECTED' ? 'text-rose-300'
-                                        : project.status === 'CHANGES_REQUESTED' ? 'text-orange-300'
-                                            : 'text-amber-300'
+                                    : project.status === 'CHANGES_REQUESTED' ? 'text-orange-300'
+                                        : 'text-amber-300'
                                     }`}>
                                     {project.status === 'DRAFT'
                                         ? 'This campaign is in draft mode. Submit it for review to make it public.'
@@ -733,14 +731,19 @@ export default function ProjectDetailPage() {
                             {/* Donor Name (Only for donation) */}
                             {paymentMode === 'donate' && (
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
-                                        Your Name
-                                    </label>
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                                            Your Name
+                                        </label>
+                                        <span className="text-[10px] text-[var(--text-muted)] font-medium">
+                                            Leave blank to donate anonymously
+                                        </span>
+                                    </div>
                                     <input
                                         value={donorName}
                                         onChange={(e) => setDonorName(e.target.value)}
                                         type="text"
-                                        placeholder="Leave as is or change"
+                                        placeholder="Anonymous"
                                         className="input_field"
                                     />
                                 </div>
