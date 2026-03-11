@@ -6,8 +6,6 @@ import Footer from '@/components/layout/Footer';
 import ProjectCard from '@/components/dashboard/ProjectCard';
 import RightSidebar from '@/components/dashboard/RightSidebar';
 import CreateProjectWizard from '@/components/dashboard/CreateProjectWizard';
-import InvestModal from '@/components/dashboard/InvestModal';
-import { NFTPortfolio } from '@/components/dashboard/NFTPortfolio';
 import { NotificationsView } from '@/components/dashboard/NotificationsView';
 import { KYCView } from '@/components/dashboard/KYCView';
 import { WalletView } from '@/components/dashboard/WalletView';
@@ -16,7 +14,7 @@ import { motion } from 'framer-motion';
 import { useProjects, useMyProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
 import { useInvestments } from '@/hooks/useInvestments';
-import { Search, LineChart, ArrowUpRight, Shield, PlusCircle, LayoutDashboard, Wallet, Briefcase, Activity, Image as ImageIcon, ShieldCheck, Bell, Mail, AlertTriangle } from 'lucide-react';
+import { Search, LineChart, ArrowUpRight, Shield, PlusCircle, LayoutDashboard, Wallet, Briefcase, Activity, Image as ImageIcon, ShieldCheck, Bell, Mail, AlertTriangle, Heart, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -58,12 +56,10 @@ export default function DashboardPage() {
         console.log('[DASHBOARD_DEBUG] Authenticated:', isAuthenticated);
     }, [user, isAuthenticated]);
 
-    const [isInvestModalOpen, setIsInvestModalOpen] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isKYCModalOpen, setIsKYCModalOpen] = useState(false);
-    const [selectedProject, setSelectedProject] = useState<any>(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeTab, setActiveTab] = useState<'investments' | 'donations' | 'campaigns' | 'nfts'>('investments');
+    const [activeTab, setActiveTab] = useState<'donations' | 'campaigns'>('donations');
 
     const handleTriggerCreate = () => {
         router.push('/dashboard/create-project');
@@ -135,11 +131,6 @@ export default function DashboardPage() {
         });
     }, [allFetchedProjects, investmentsData]);
 
-    const myInvestments = useMemo(() => myInvestmentProjects.filter((p: any) => {
-        const type = (p?.projectType || p?.type || '').toUpperCase();
-        return type !== 'CHARITY' && type !== '';
-    }), [myInvestmentProjects]);
-
     const myDonations = useMemo(() => myInvestmentProjects.filter((p: any) => {
         const type = (p?.projectType || p?.type || '').toUpperCase();
         return type === 'CHARITY';
@@ -154,10 +145,9 @@ export default function DashboardPage() {
     }, [myCampaigns, searchQuery]);
 
     const displayedProjects = useMemo(() => {
-        if (activeTab === 'investments') return myInvestments;
         if (activeTab === 'donations') return myDonations;
         return filteredCampaigns;
-    }, [activeTab, myInvestments, myDonations, filteredCampaigns]);
+    }, [activeTab, myDonations, filteredCampaigns]);
     const isDataLoading = isLoading || isLoadingInvestments;
 
     // Calculate portfolio and donation stats
@@ -183,23 +173,18 @@ export default function DashboardPage() {
     const campaignsCreated = myCampaigns?.length || 0;
     const totalRaised = myCampaigns?.reduce((sum: number, p: any) => sum + (p.raisedAmount || 0), 0) || 0;
 
-    const handleProjectClick = (project: any) => {
-        setSelectedProject(project);
-        setIsInvestModalOpen(true);
-    };
-
     return (
-        <div className="bg-[var(--background)] min-h-screen text-[var(--text-main)] pt-[72px] transition-colors duration-300">
+        <div className="bg-[var(--background)] min-h-screen text-[var(--text-main)] pt-[68px] transition-colors duration-300">
             <Navbar />
 
             {/* Email Verification Banner */}
             {isAuthenticated && user && !user.emailVerifiedAt && (
-                <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-3">
-                    <div className="container mx-auto flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <AlertTriangle size={16} className="text-amber-400 flex-shrink-0" />
+                <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-3">
+                    <div className="container mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                            <AlertTriangle size={16} className="text-amber-400 flex-shrink-0 mt-0.5" />
                             <span className="text-sm text-amber-200 font-medium">
-                                Please verify your email address to unlock all features (creating projects, donating, withdrawing).
+                                Please verify your email address to unlock all features.
                             </span>
                         </div>
                         <Link
@@ -212,29 +197,23 @@ export default function DashboardPage() {
                 </div>
             )}
 
-            <main className="container mx-auto p-6 lg:p-10">
-                <div className="flex flex-col lg:flex-row gap-10">
+            <main className="container mx-auto p-4 sm:p-6 lg:p-10">
+                <div className="flex flex-col lg:flex-row gap-8">
 
-                    <div className="flex-1 space-y-8">
+                    <div className="flex-1 space-y-6">
                         {/* KYC Banner */}
                         {/* KYC Removed */}
 
-                        {/* Header / KPI Row */}
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                            <KPICard
-                                label="Total Invested (UGX)"
-                                value={`${(stats.invested || 0).toLocaleString()}`}
-                                icon={<LineChart size={16} className="text-emerald-500" />}
-                            />
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                             <KPICard
                                 label="Total Donated (UGX)"
                                 value={`${(stats.donated || 0).toLocaleString()}`}
-                                icon={<Activity size={16} className="text-pink-500" />}
+                                icon={<Activity size={16} className="text-emerald-500" />}
                             />
                             <KPICard
-                                label="Active Investments"
-                                value={stats.pos.toString()}
-                                icon={<LayoutDashboard size={16} className="text-blue-500" />}
+                                label="Charity Donations Made"
+                                value={stats.don.toString()}
+                                icon={<Heart size={16} className="text-emerald-500" />}
                             />
                             <KPICard
                                 label="Campaigns Created"
@@ -244,8 +223,8 @@ export default function DashboardPage() {
                         </div>
 
                         {/* Secondary KPI Row */}
-                        <div className="grid grid-cols-2 gap-6">
-                            <div className="bg-[var(--card)] p-6 rounded-2xl border border-[var(--border)] flex items-center justify-between shadow-sm">
+                        <div className="grid grid-cols-1 gap-4">
+                            <div className="bg-[var(--card)] p-5 rounded-2xl border border-[var(--border)] flex items-center justify-between shadow-sm">
                                 <div>
                                     <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-1">Total Raised from My Campaigns</p>
                                     <h4 className="text-2xl font-black text-[var(--text-main)]">UGX {totalRaised.toLocaleString()}</h4>
@@ -254,32 +233,21 @@ export default function DashboardPage() {
                                     <Activity className="text-blue-500" size={20} />
                                 </div>
                             </div>
-                            <div className="bg-[var(--card)] p-6 rounded-2xl border border-[var(--border)] flex items-center justify-between shadow-sm">
-                                <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-1">Charity Donations Made</p>
-                                    <h4 className="text-2xl font-black text-[var(--text-main)]">{stats.don} Contributions</h4>
-                                </div>
-                                <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center">
-                                    <Shield className="text-emerald-500" size={20} />
-                                </div>
-                            </div>
                         </div>
 
                         {/* Main Dashboard Container */}
                         <div className="bg-[var(--card)] rounded-[2rem] border border-[var(--border)] overflow-hidden shadow-sm transition-colors duration-300">
-                            <div className="border-b border-[var(--border)] px-8">
+                            <div className="border-b border-[var(--border)] px-4 sm:px-8">
                                 <div className="flex items-center justify-between">
-                                    <nav className="flex gap-10">
+                                    <nav className="flex gap-6 sm:gap-10 overflow-x-auto scrollbar-hide">
                                         {[
-                                            { key: 'investments', label: 'Investments', icon: <Activity size={14} /> },
-                                            { key: 'donations', label: 'Donations', icon: <Shield size={14} /> },
-                                            { key: 'campaigns', label: 'My Projects', icon: <Briefcase size={14} /> },
-                                            { key: 'nfts', label: 'My NFTs', icon: <ImageIcon size={14} /> }
+                                            { key: 'donations', label: 'Donations', icon: <Heart size={14} /> },
+                                            { key: 'campaigns', label: 'My Projects', icon: <Briefcase size={14} /> }
                                         ].map(tab => (
                                             <button
                                                 key={tab.key}
                                                 onClick={() => setActiveTab(tab.key as any)}
-                                                className={`py-6 text-sm font-bold border-b-2 transition-all relative flex items-center gap-2 ${activeTab === tab.key
+                                                className={`py-5 text-sm font-bold border-b-2 transition-all relative flex items-center gap-2 flex-shrink-0 ${activeTab === tab.key
                                                     ? 'border-[var(--primary)] text-[var(--primary)]'
                                                     : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'
                                                     }`}
@@ -290,25 +258,25 @@ export default function DashboardPage() {
                                             </button>
                                         ))}
                                     </nav>
-                                    <div className="relative">
+                                    <div className="relative hidden sm:block">
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] opacity-50" />
                                         <input
                                             type="text"
                                             placeholder="Search..."
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="bg-[var(--background)] rounded-xl py-2 pl-10 pr-4 text-xs font-bold border border-transparent focus:border-[var(--primary)]/20 outline-none w-56 transition-all"
+                                            className="bg-[var(--background)] rounded-xl py-2 pl-10 pr-4 text-xs font-bold border border-transparent focus:border-[var(--primary)]/20 outline-none w-40 sm:w-56 transition-all"
                                         />
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="p-8">
-                                {activeTab === 'investments' || activeTab === 'donations' ? (
+                            <div className="p-4 sm:p-8">
+                                {activeTab === 'donations' ? (
                                     <div className="space-y-6">
                                         <div className="flex items-center justify-between">
                                             <h3 className="text-lg font-bold tracking-tight">
-                                                {activeTab === 'investments' ? 'Your Investment Portfolio' : 'Your Charity Contributions'}
+                                                Your Charity Contributions
                                             </h3>
                                             <Link href="/explore" className="flex items-center gap-2 text-[var(--primary)] font-bold text-sm hover:underline">
                                                 <PlusCircle size={16} /> Discover Projects
@@ -316,42 +284,32 @@ export default function DashboardPage() {
                                         </div>
 
                                         {isDataLoading ? (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                                 {[1, 2, 3, 4].map(i => <div key={i} className="h-48 bg-[var(--background)] rounded-2xl animate-pulse" />)}
                                             </div>
                                         ) : displayedProjects.length > 0 ? (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                                 {displayedProjects.map((project: Project) => (
                                                     <ProjectCard
                                                         key={project.id || project._id}
                                                         project={project}
-                                                        onClick={() => handleProjectClick(project)}
                                                     />
                                                 ))}
                                             </div>
                                         ) : (
                                             <div className="py-24 text-center space-y-4">
                                                 <div className="w-16 h-16 bg-[var(--background)] rounded-2xl flex items-center justify-center mx-auto border border-[var(--border)] opacity-50">
-                                                    <Activity className="text-[var(--text-muted)]" size={24} />
+                                                    <Heart className="text-[var(--text-muted)]" size={24} />
                                                 </div>
-                                                <h4 className="text-lg font-bold">No {activeTab} yet</h4>
+                                                <h4 className="text-lg font-bold">No donations yet</h4>
                                                 <p className="text-sm text-[var(--text-muted)] font-medium max-w-xs mx-auto">
-                                                    {activeTab === 'investments'
-                                                        ? 'Start backing innovative projects and grow your portfolio.'
-                                                        : 'Support causes that matter and make a difference.'}
+                                                    Support causes that matter and make a difference.
                                                 </p>
                                                 <Link href="/explore" className="button_primary inline-flex items-center gap-2 mt-4">
-                                                    <PlusCircle size={16} /> Explore Projects
+                                                    <PlusCircle size={16} /> Explore Causes
                                                 </Link>
                                             </div>
                                         )}
-                                    </div>
-                                ) : activeTab === 'nfts' ? (
-                                    <div className="space-y-6">
-                                        <div className="flex items-center justify-between">
-                                            <h3 className="text-lg font-bold tracking-tight">Your NFT Portfolio</h3>
-                                        </div>
-                                        <NFTPortfolio />
                                     </div>
                                 ) : (
                                     <div className="space-y-6">
@@ -382,9 +340,9 @@ export default function DashboardPage() {
                                                         <div key={pId} className="bg-[var(--background)] border border-[var(--border)] rounded-2xl p-5 hover:border-[var(--primary)]/30 transition-all">
                                                             <div className="flex items-start gap-4">
                                                                 {/* Icon */}
-                                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${isCharity ? 'bg-emerald-500/10' : 'bg-blue-500/10'
+                                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${isCharity ? 'bg-emerald-500/10 text-emerald-500' : 'bg-blue-500/10 text-blue-500'
                                                                     }`}>
-                                                                    {isCharity ? '💚' : '📈'}
+                                                                    {isCharity ? <Heart size={20} /> : <TrendingUp size={20} />}
                                                                 </div>
                                                                 {/* Info */}
                                                                 <div className="flex-1 min-w-0">
@@ -417,7 +375,7 @@ export default function DashboardPage() {
                                                                                 href={`/dashboard/withdraw?projectId=${pId}&projectName=${pName}`}
                                                                                 className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs font-black text-emerald-400 hover:bg-emerald-500/20 transition-all flex items-center gap-1"
                                                                             >
-                                                                                💰 Withdraw Funds
+                                                                                <Wallet size={14} /> Withdraw Funds
                                                                             </Link>
                                                                         )}
                                                                     </div>
@@ -447,7 +405,7 @@ export default function DashboardPage() {
                         </div>
                     </div>
 
-                    <aside className="w-full lg:w-[380px] space-y-8">
+                    <aside className="w-full lg:w-[360px] space-y-6">
                         <RightSidebar onTriggerCreate={handleTriggerCreate} />
                     </aside>
 
@@ -456,18 +414,13 @@ export default function DashboardPage() {
 
             <CreateProjectWizard isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
             <KYCModal isOpen={isKYCModalOpen} onClose={() => setIsKYCModalOpen(false)} />
-            <InvestModal
-                isOpen={isInvestModalOpen}
-                onClose={() => setIsInvestModalOpen(false)}
-                project={selectedProject || {}}
-            />
             <Footer />
         </div>
     );
 }
 
 const KPICard = ({ label, value, trend, icon }: KPICardProps) => (
-    <div className="bg-[var(--card)] p-8 rounded-[2rem] border border-[var(--border)] space-y-4 shadow-sm hover:border-[var(--primary)]/50 transition-all group duration-300">
+    <div className="bg-[var(--card)] p-5 sm:p-8 rounded-[2rem] border border-[var(--border)] space-y-3 sm:space-y-4 shadow-sm hover:border-[var(--primary)]/50 transition-all group duration-300">
         <div className="flex items-center justify-between">
             <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">{label}</p>
             <div className="w-8 h-8 rounded-lg bg-[var(--background)] flex items-center justify-center border border-[var(--border)] group-hover:bg-[var(--secondary)] transition-colors">

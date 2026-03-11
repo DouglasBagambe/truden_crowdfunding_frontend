@@ -1,375 +1,523 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/hooks/useAuth';
 import { motion } from 'framer-motion';
 import {
-  Wallet, User, ShieldCheck, Mail, Bell,
-  HelpCircle, Lock, Settings as SettingsIcon, CreditCard
+  User, Wallet, Shield, Bell, Sun, Moon, Mail,
+  HelpCircle, Send, TrendingUp, TrendingDown,
+  Activity, Loader2, Eye, EyeOff, CheckCircle
 } from 'lucide-react';
 import { userService } from '@/lib/user-service';
-import KYCModal from '@/components/dashboard/KYCModal';
-import { useAccount, useSignMessage, useChainId } from 'wagmi';
-import { useWeb3Modal } from '@web3modal/wagmi/react';
-import { SiweMessage } from 'siwe';
-import toast from 'react-hot-toast';
+import { walletService, type WalletBalance } from '@/lib/wallet-service';
 import { useRouter } from 'next/navigation';
+import { useTheme } from 'next-themes';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
+import toast from 'react-hot-toast';
 
-export default function ProfilePage() {
+type Tab = 'profile' | 'wallet' | 'notifications' | 'appearance' | 'security';
+
+export default function SettingsPage() {
   const router = useRouter();
-  const { user, refetchUser, isAuthenticated, isLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState('profile');
-  const [isKYCOpen, setIsKYCOpen] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const { user, refetchUser, isAuthenticated, isLoading, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
+  const [themeReady, setThemeReady] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>('profile');
 
-  // Profile Form State
+  // Profile state
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const { address, isConnected } = useAccount();
-  const { signMessageAsync } = useSignMessage();
-  const { open } = useWeb3Modal();
-  const chainId = useChainId();
+  // Wallet state
+  const [wallet, setWallet] = useState<any>(null);
+  const [balance, setBalance] = useState<WalletBalance | null>(null);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [walletLoading, setWalletLoading] = useState(false);
 
-  React.useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
-    } else if (user) {
+  // Notification prefs (local only for now)
+  const [notifDonations, setNotifDonations] = useState(true);
+  const [notifMilestones, setNotifMilestones] = useState(true);
+  const [notifMarketing, setNotifMarketing] = useState(false);
+
+  useEffect(() => { setThemeReady(true); }, []);
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) router.push('/login');
+    if (user) {
       const p = user.profile || {};
       let fn = p.firstName || user.firstName || '';
       let ln = p.lastName || user.lastName || '';
       const dn = p.displayName || user.displayName || '';
-
-      // Fallback: If names are blank but we have a display name that isn't the email
       if (!fn && !ln && dn && dn !== user.email) {
-        if (dn.includes(' ')) {
-          const parts = dn.split(' ');
-          fn = parts[0];
-          ln = parts.slice(1).join(' ');
-        } else {
-          fn = dn;
-          ln = '';
-        }
+        if (dn.includes(' ')) { const parts = dn.split(' '); fn = parts[0]; ln = parts.slice(1).join(' '); }
+        else { fn = dn; }
       }
-
-      setFirstName(fn || '');
-      setLastName(ln || '');
-      setEmail(user.email || '');
+      setFirstName(fn); setLastName(ln); setEmail(user.email || '');
     }
-  }, [isLoading, isAuthenticated, router, user]);
+  }, [isLoading, isAuthenticated, user, router]);
+
+  useEffect(() => {
+    if (activeTab === 'wallet' && !wallet) loadWallet();
+  }, [activeTab]);
+
+  const loadWallet = async () => {
+    setWalletLoading(true);
+    try {
+      const [w, b, txs] = await Promise.all([
+        walletService.getWallet(),
+        walletService.getBalance(),
+        walletService.getTransactions(),
+      ]);
+      setWallet(w); setBalance(b); setTransactions(txs);
+    } catch { /* silent */ } finally { setWalletLoading(false); }
+  };
 
   const handleUpdateProfile = async () => {
     setIsSaving(true);
     try {
       const updateData: any = {};
-      const actualFirstName = user?.profile?.firstName || user?.firstName;
-      const actualLastName = user?.profile?.lastName || user?.lastName;
-
-      if (firstName !== actualFirstName) updateData.firstName = firstName;
-      if (lastName !== actualLastName) updateData.lastName = lastName;
+      if (firstName !== (user?.profile?.firstName || user?.firstName)) updateData.firstName = firstName;
+      if (lastName !== (user?.profile?.lastName || user?.lastName)) updateData.lastName = lastName;
       if (email !== user?.email) updateData.email = email;
       if (password) updateData.password = password;
-
-      if (Object.keys(updateData).length === 0) {
-        toast.success("No changes to save");
-        setIsSaving(false);
-        return;
-      }
-
+      if (Object.keys(updateData).length === 0) { toast.success('No changes to save'); return; }
       await userService.updateProfile(updateData);
-      toast.success("Profile updated successfully");
+      toast.success('Profile updated successfully');
       refetchUser();
-      setPassword(''); // clear password field
-    } catch (error: any) {
-      console.error(error);
-      toast.error(error.response?.data?.message || "Failed to update profile");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleLinkWallet = async () => {
-    if (!isConnected) {
-      open();
-      return;
-    }
-
-    if (!address) return;
-
-    const alreadyLinked = user?.primaryWallet === address.toLowerCase() ||
-      user?.linkedWallets?.includes(address.toLowerCase());
-
-    if (alreadyLinked) {
-      toast.error("This wallet is already linked to your account");
-      return;
-    }
-
-    const tId = toast.loading("Preparing signature request...");
-    try {
-      const nonce = await userService.getSiweNonce(address);
-      const siweMessage = new SiweMessage({
-        domain: window.location.host,
-        address: address,
-        statement: 'Link this wallet to your Keibo account',
-        uri: window.location.origin,
-        version: '1',
-        chainId: chainId || 1,
-        nonce: nonce,
-      });
-
-      const message = siweMessage.prepareMessage();
-      const signature = await signMessageAsync({ message });
-
-      await userService.linkWallet({
-        wallet: address,
-        message,
-        signature
-      });
-
-      toast.success("Wallet linked successfully", { id: tId });
-      refetchUser();
+      setPassword('');
     } catch (e: any) {
-      console.error(e);
-      toast.error(e.response?.data?.message || "Failed to link wallet", { id: tId });
-    }
+      toast.error(e.response?.data?.message || 'Failed to update profile');
+    } finally { setIsSaving(false); }
   };
 
-  const handleUnlink = async (walletAddress: string) => {
-    if (confirm(`Unlink wallet ${walletAddress.slice(0, 6)}...?`)) {
-      try {
-        await userService.unlinkWallet(walletAddress);
-        toast.success("Wallet unlinked");
-        refetchUser();
-      } catch (e: any) {
-        toast.error(e.response?.data?.message || "Failed to unlink");
-      }
-    }
-  };
-
-  const menuItems = [
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'preferences', label: 'Preferences', icon: SettingsIcon },
-    { id: 'help', label: 'Help & Support', icon: HelpCircle },
+  const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
+    { id: 'profile', label: 'Profile', icon: <User size={16} /> },
+    { id: 'wallet', label: 'Wallet', icon: <Wallet size={16} /> },
+    { id: 'notifications', label: 'Notifications', icon: <Bell size={16} /> },
+    { id: 'appearance', label: 'Appearance', icon: <Sun size={16} /> },
+    { id: 'security', label: 'Security', icon: <Shield size={16} /> },
   ];
 
+  const ugxBalance = balance?.fiatBalance?.UGX ?? 0;
+
   return (
-    <div className="pt-24 bg-[var(--background)] min-h-screen">
+    <div className="bg-[var(--background)] min-h-screen text-[var(--text-main)] pt-[68px] transition-colors duration-300">
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-6 pb-24">
+      <main className="container mx-auto px-4 sm:px-6 py-8 lg:py-12 lg:px-10 max-w-6xl">
         {isLoading ? (
           <div className="h-48 bg-[var(--card)] rounded-2xl border border-[var(--border)] animate-pulse" />
         ) : (
-          <div className="grid grid-cols-12 gap-8">
-            {/* Sidebar */}
-            <div className="col-span-3">
-              <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-2">
-                <h2 className="text-sm font-semibold text-[var(--text-main)] px-4 py-3">Settings</h2>
-                <nav className="space-y-1">
-                  {menuItems.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => setActiveTab(item.id)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${activeTab === item.id
-                          ? 'bg-[var(--secondary)] text-[var(--text-main)]'
-                          : 'text-[var(--text-muted)] hover:bg-[var(--secondary)]'
-                          }`}
-                      >
-                        <Icon size={18} />
-                        {item.label}
-                      </button>
-                    );
-                  })}
-                </nav>
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
+
+            {/* Header */}
+            <div className="space-y-1">
+              <h1 className="text-3xl sm:text-4xl font-black tracking-tight">Settings</h1>
+              <p className="text-[var(--text-muted)] font-medium text-sm sm:text-base">Manage your account, wallet, and preferences.</p>
+            </div>
+
+            {/* Mobile: horizontal tab bar */}
+            <div className="lg:hidden -mx-4 px-4 sm:-mx-6 sm:px-6">
+              <div className="flex gap-1 overflow-x-auto scrollbar-hide bg-[var(--card)] border border-[var(--border)] rounded-2xl p-1.5">
+                {tabs.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex-shrink-0 ${activeTab === tab.id
+                        ? 'bg-[var(--primary)] text-white shadow-sm'
+                        : 'text-[var(--text-muted)] hover:bg-[var(--secondary)] hover:text-[var(--text-main)]'
+                      }`}
+                  >
+                    {tab.icon}
+                    {tab.label}
+                  </button>
+                ))}
+                <button
+                  onClick={() => { if (confirm('Sign out of your account?')) logout(); }}
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all whitespace-nowrap flex-shrink-0"
+                >
+                  Sign Out
+                </button>
               </div>
             </div>
 
-            {/* Main Content */}
-            <div className="col-span-9">
-              {activeTab === 'profile' && (
-                <div className="space-y-8">
-                  <div>
-                    <h1 className="text-3xl font-bold text-[var(--text-main)] mb-2">Profile</h1>
-                    <p className="text-[var(--text-muted)]">Manage your personal information and preferences.</p>
-                  </div>
+            <div className="flex gap-8">
 
-                  {/* Profile Picture */}
-                  <section className="space-y-4">
-                    <h3 className="text-lg font-semibold text-[var(--text-main)]">Profile Picture</h3>
-                    <div className="flex items-start gap-6">
-                      <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center">
-                        <span className="text-white text-3xl font-bold">
-                          {user?.firstName?.[0] || user?.email?.[0]?.toUpperCase()}
+              {/* Desktop Sidebar Nav */}
+              <aside className="hidden lg:block w-56 flex-shrink-0">
+                <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-2 sticky top-24 space-y-1">
+                  {tabs.map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === tab.id
+                        ? 'bg-[var(--primary)] text-white shadow-sm'
+                        : 'text-[var(--text-muted)] hover:bg-[var(--secondary)] hover:text-[var(--text-main)]'
+                        }`}
+                    >
+                      {tab.icon}
+                      {tab.label}
+                    </button>
+                  ))}
+                  <div className="border-t border-[var(--border)] pt-2 mt-2">
+                    <button
+                      onClick={() => { if (confirm('Sign out of your account?')) logout(); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              </aside>
+
+              {/* Content Panel */}
+              <div className="flex-1 min-w-0">
+
+                {/* ── PROFILE ── */}
+                {activeTab === 'profile' && (
+                  <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 space-y-8">
+                    <div>
+                      <h2 className="text-xl font-black">Profile</h2>
+                      <p className="text-sm text-[var(--text-muted)] mt-1">Update your personal information.</p>
+                    </div>
+
+                    {/* Avatar */}
+                    <div className="flex items-center gap-5">
+                      <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-3xl font-black">
+                          {user?.firstName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase()}
                         </span>
                       </div>
-                      <div className="flex-1">
-                        <h4 className="text-lg font-semibold text-[var(--text-main)] mb-1">Change Profile Picture</h4>
-                        <p className="text-sm text-[var(--text-muted)] mb-4">Upload a new photo to personalize your profile.</p>
+                      <div>
+                        <p className="font-bold">{firstName} {lastName}</p>
+                        <p className="text-sm text-[var(--text-muted)]">{email}</p>
+                        {user?.emailVerifiedAt && (
+                          <span className="inline-flex items-center gap-1 text-xs text-emerald-500 font-semibold mt-1">
+                            <CheckCircle size={12} /> Verified
+                          </span>
+                        )}
                       </div>
                     </div>
-                  </section>
 
-                  {/* Personal Information */}
-                  <section className="space-y-6">
-                    <h3 className="text-lg font-semibold text-[var(--text-main)]">Personal Information</h3>
-
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-[var(--text-main)] mb-2">First Name</label>
-                          <input
-                            type="text"
-                            value={firstName}
-                            onChange={e => setFirstName(e.target.value)}
-                            className="w-full px-4 py-3 bg-[var(--secondary)] border border-[var(--border)] rounded-xl text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-[var(--text-main)] mb-2">Last Name</label>
-                          <input
-                            type="text"
-                            value={lastName}
-                            onChange={e => setLastName(e.target.value)}
-                            className="w-full px-4 py-3 bg-[var(--secondary)] border border-[var(--border)] rounded-xl text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-[var(--text-main)] mb-2">Email</label>
-                        <input
-                          type="email"
-                          value={email}
-                          onChange={e => setEmail(e.target.value)}
-                          className="w-full px-4 py-3 bg-[var(--secondary)] border border-[var(--border)] rounded-xl text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-[var(--text-main)] mb-2">Password</label>
-                        <div className="relative">
-                          <input
-                            type={showPassword ? 'text' : 'password'}
-                            value={password}
-                            onChange={e => setPassword(e.target.value)}
-                            placeholder="Leave blank to keep unchanged"
-                            className="w-full px-4 py-3 bg-[var(--secondary)] border border-[var(--border)] rounded-xl text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] pr-12"
-                          />
-                          <button
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
-                          >
-                            {showPassword ? (
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                                <line x1="1" y1="1" x2="23" y2="23"></line>
-                              </svg>
-                            ) : (
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
-                              </svg>
-                            )}
-                          </button>
-                        </div>
-                      </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <FieldGroup label="First Name">
+                        <input className="input_field" value={firstName} onChange={e => setFirstName(e.target.value)} />
+                      </FieldGroup>
+                      <FieldGroup label="Last Name">
+                        <input className="input_field" value={lastName} onChange={e => setLastName(e.target.value)} />
+                      </FieldGroup>
                     </div>
-                  </section>
 
-                  {/* Social Media Links */}
-                  {/* <section className="space-y-6">
-                    <h3 className="text-lg font-semibold text-[var(--text-main)]">Social Media Links</h3>
-                    
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-[var(--text-main)] mb-2">X</label>
-                        <input
-                          type="text"
-                          placeholder="https://x.com/username"
-                          className="w-full px-4 py-3 bg-[var(--secondary)] border border-[var(--border)] rounded-xl text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
-                        />
-                      </div>
+                    <FieldGroup label="Email Address">
+                      <input className="input_field" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+                    </FieldGroup>
 
-                      <div>
-                        <label className="block text-sm font-medium text-[var(--text-main)] mb-2">LinkedIn</label>
+                    <FieldGroup label="New Password">
+                      <div className="relative">
                         <input
-                          type="text"
-                          placeholder="https://linkedin.com/in/username"
-                          className="w-full px-4 py-3 bg-[var(--secondary)] border border-[var(--border)] rounded-xl text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                          className="input_field pr-12"
+                          type={showPassword ? 'text' : 'password'}
+                          value={password}
+                          onChange={e => setPassword(e.target.value)}
+                          placeholder="Leave blank to keep unchanged"
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(v => !v)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-main)]"
+                        >
+                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
                       </div>
+                    </FieldGroup>
+
+                    <div className="flex justify-end pt-2">
+                      <button
+                        onClick={handleUpdateProfile}
+                        disabled={isSaving}
+                        className="button_primary px-10 disabled:opacity-50"
+                      >
+                        {isSaving ? 'Saving...' : 'Save Changes'}
+                      </button>
                     </div>
-                  </section> */}
-
-                  {/* Save Button */}
-                  <button
-                    onClick={handleUpdateProfile}
-                    disabled={isSaving}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-xl transition-colors disabled:opacity-50"
-                  >
-                    {isSaving ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </div>
-              )}
-
-              {activeTab === 'preferences' && (
-                <div className="space-y-8">
-                  <div>
-                    <h1 className="text-3xl font-bold text-[var(--text-main)] mb-2">Preferences</h1>
-                    <p className="text-[var(--text-muted)]">Personalize how Keibo looks and feels.</p>
                   </div>
+                )}
 
-                  <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6">
-                    <div className="flex items-center justify-between gap-6">
+                {/* ── WALLET ── */}
+                {activeTab === 'wallet' && (
+                  <div className="space-y-6">
+                    {walletLoading ? (
+                      <div className="py-24 flex items-center justify-center">
+                        <Loader2 className="w-10 h-10 text-[var(--primary)] animate-spin" />
+                      </div>
+                    ) : (
+                      <>
+                        {/* Balance Card */}
+                        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-700 rounded-3xl p-8 text-white shadow-2xl border border-white/10">
+                          <div className="absolute top-0 right-0 w-72 h-72 bg-white/10 rounded-full -translate-y-36 translate-x-36 blur-3xl pointer-events-none" />
+                          <div className="absolute bottom-0 left-0 w-56 h-56 bg-white/10 rounded-full translate-y-28 -translate-x-28 blur-2xl pointer-events-none" />
+
+                          <div className="relative z-10 flex flex-col sm:flex-row gap-8 items-start sm:items-center justify-between">
+                            <div className="space-y-4">
+                              <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-white/20 rounded-xl border border-white/20 backdrop-blur">
+                                  <Wallet className="w-5 h-5" />
+                                </div>
+                                <h2 className="text-lg font-black tracking-tight">Keibo Wallet</h2>
+                              </div>
+                              <div>
+                                <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mb-1">Withdrawable Balance</p>
+                                <div className="flex items-baseline gap-2">
+                                  <span className="text-white/50 text-sm font-bold">UGX</span>
+                                  <span className="text-5xl font-black">{ugxBalance.toLocaleString()}</span>
+                                </div>
+                                <p className="text-white/40 text-xs mt-1.5">Funds from donations you receive. Withdraw anytime.</p>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col gap-3 min-w-[180px]">
+                              <button
+                                onClick={() => router.push('/dashboard/withdraw')}
+                                className="flex items-center justify-center gap-2 w-full px-5 py-3.5 bg-white/20 hover:bg-white/30 border border-white/20 backdrop-blur rounded-2xl font-black text-sm uppercase tracking-wider transition-all"
+                              >
+                                <Send className="w-4 h-4" /> Withdraw
+                              </button>
+                              <p className="text-center text-[11px] text-white/40 font-medium">2% Keibo platform fee applies</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Transactions */}
+                        <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden">
+                          <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
+                            <h3 className="font-black flex items-center gap-2 text-base">
+                              <Activity size={18} className="text-emerald-500" /> Transaction History
+                            </h3>
+                            <button onClick={loadWallet} className="text-xs text-[var(--primary)] hover:underline font-bold">Refresh</button>
+                          </div>
+
+                          {transactions.length === 0 ? (
+                            <div className="py-16 text-center">
+                              <p className="text-[var(--text-muted)] font-medium">No transactions yet.</p>
+                              <p className="text-xs text-[var(--text-muted)] mt-1 opacity-60">Donations you receive will appear here.</p>
+                            </div>
+                          ) : (
+                            <div className="divide-y divide-[var(--border)]">
+                              {transactions.slice(0, 15).map((tx: any) => (
+                                <div key={tx._id} className="flex items-center justify-between p-5 hover:bg-[var(--secondary)] transition-colors">
+                                  <div className="flex items-center gap-4">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${tx.amount > 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'
+                                      }`}>
+                                      {tx.amount > 0 ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
+                                    </div>
+                                    <div>
+                                      <p className="font-bold text-sm">{tx.amount < 0 ? 'Withdrawal' : 'Donation Received'}</p>
+                                      <p className="text-xs text-[var(--text-muted)]">
+                                        {new Date(tx.createdAt).toLocaleDateString()} · {new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className={`font-black text-sm ${tx.amount > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                      {tx.amount > 0 ? '+' : ''}{tx.currency} {Math.abs(tx.amount).toLocaleString()}
+                                    </p>
+                                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-[var(--secondary)] text-[var(--text-muted)]">
+                                      {tx.status}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* ── NOTIFICATIONS ── */}
+                {activeTab === 'notifications' && (
+                  <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 space-y-8">
+                    <div>
+                      <h2 className="text-xl font-black">Notifications</h2>
+                      <p className="text-sm text-[var(--text-muted)] mt-1">Choose what you want to be alerted about.</p>
+                    </div>
+                    <div className="space-y-6 divide-y divide-[var(--border)]">
+                      <NotifRow
+                        label="Donation Alerts"
+                        desc="Get notified by email when someone donates to your campaign."
+                        checked={notifDonations}
+                        onChange={setNotifDonations}
+                      />
+                      <NotifRow
+                        label="Campaign Milestones"
+                        desc="Receive updates when your campaign hits funding targets."
+                        checked={notifMilestones}
+                        onChange={setNotifMilestones}
+                        className="pt-6"
+                      />
+                      <NotifRow
+                        label="Platform News & Tips"
+                        desc="Occasional tips and product updates from the Keibo team."
+                        checked={notifMarketing}
+                        onChange={setNotifMarketing}
+                        className="pt-6"
+                      />
+                    </div>
+                    <div className="flex justify-end pt-2">
+                      <button onClick={() => toast.success('Notification preferences saved')} className="button_primary px-10">
+                        Save Preferences
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── APPEARANCE ── */}
+                {activeTab === 'appearance' && (
+                  <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 space-y-8">
+                    <div>
+                      <h2 className="text-xl font-black">Appearance</h2>
+                      <p className="text-sm text-[var(--text-muted)] mt-1">Choose your preferred interface mode.</p>
+                    </div>
+
+                    {themeReady && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                        <button
+                          onClick={() => setTheme('light')}
+                          className={`group p-5 rounded-2xl border-2 transition-all text-left space-y-4 ${theme === 'light'
+                            ? 'border-emerald-500 bg-emerald-500/5'
+                            : 'border-[var(--border)] hover:border-[var(--text-muted)]'
+                            }`}
+                        >
+                          <div className="w-full h-24 bg-white rounded-xl shadow-inner flex items-center justify-center border border-gray-200">
+                            <Sun className="text-yellow-500" size={32} />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-black uppercase tracking-widest">Light Mode</span>
+                            {theme === 'light' && <CheckCircle size={16} className="text-emerald-500" />}
+                          </div>
+                        </button>
+
+                        <button
+                          onClick={() => setTheme('dark')}
+                          className={`group p-5 rounded-2xl border-2 transition-all text-left space-y-4 ${theme === 'dark'
+                            ? 'border-emerald-500 bg-emerald-500/5'
+                            : 'border-[var(--border)] hover:border-[var(--text-muted)]'
+                            }`}
+                        >
+                          <div className="w-full h-24 bg-[#0d0d0d] rounded-xl shadow-inner flex items-center justify-center border border-[#262626]">
+                            <Moon className="text-blue-400" size={32} />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-black uppercase tracking-widest">Dark Mode</span>
+                            {theme === 'dark' && <CheckCircle size={16} className="text-emerald-500" />}
+                          </div>
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between pt-4 border-t border-[var(--border)]">
                       <div>
-                        <h3 className="text-lg font-semibold text-[var(--text-main)]">Theme mode</h3>
-                        <p className="text-sm text-[var(--text-muted)]">Switch between light and dark mode.</p>
+                        <p className="font-semibold text-sm">Quick toggle</p>
+                        <p className="text-xs text-[var(--text-muted)]">Switch between light and dark instantly.</p>
                       </div>
                       <ThemeToggle />
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-
-
-
-
-              {activeTab === 'help' && (
-                <div className="space-y-8">
-                  <div>
-                    <h1 className="text-3xl font-bold text-[var(--text-main)] mb-2">Help & Support</h1>
-                    <p className="text-[var(--text-muted)]">Get assistance with your account and projects.</p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="p-6 bg-[var(--card)] border border-[var(--border)] rounded-xl hover:border-[var(--primary)]/30 transition-all cursor-pointer">
-                      <Mail className="w-8 h-8 text-[var(--primary)] mb-4" />
-                      <h3 className="text-lg font-bold mb-2">Contact Support</h3>
-                      <p className="text-sm text-[var(--text-muted)]">Send us an email directly to resolve any major account issues.</p>
+                {/* ── SECURITY ── */}
+                {activeTab === 'security' && (
+                  <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 space-y-8">
+                    <div>
+                      <h2 className="text-xl font-black">Security</h2>
+                      <p className="text-sm text-[var(--text-muted)] mt-1">Protect your account with additional security measures.</p>
                     </div>
-                    <div className="p-6 bg-[var(--card)] border border-[var(--border)] rounded-xl hover:border-[var(--primary)]/30 transition-all cursor-pointer">
-                      <HelpCircle className="w-8 h-8 text-[var(--primary)] mb-4" />
-                      <h3 className="text-lg font-bold mb-2">FAQ Database</h3>
-                      <p className="text-sm text-[var(--text-muted)]">Browse our knowledge base for quick answers and guides.</p>
+
+                    <div className="space-y-6 divide-y divide-[var(--border)]">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-bold text-sm">Two-Factor Authentication</p>
+                          <p className="text-xs text-[var(--text-muted)] mt-0.5">Adds an extra layer of security to sign-in.</p>
+                        </div>
+                        <Toggle checked={!!user?.mfaEnabled} onChange={() => toast('2FA configuration coming soon', { icon: '🔒' })} />
+                      </div>
+                      <div className="flex items-center justify-between pt-6">
+                        <div>
+                          <p className="font-bold text-sm">Change Password</p>
+                          <p className="text-xs text-[var(--text-muted)] mt-0.5">Update your account password anytime.</p>
+                        </div>
+                        <button onClick={() => setActiveTab('profile')} className="button_secondary py-2 text-xs px-5">
+                          Update
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between pt-6">
+                        <div>
+                          <p className="font-bold text-sm text-rose-500">Delete Account</p>
+                          <p className="text-xs text-[var(--text-muted)] mt-0.5">Permanently remove your account and all data.</p>
+                        </div>
+                        <button
+                          onClick={() => toast('Contact support to delete your account.', { icon: '⚠️' })}
+                          className="py-2 px-5 text-xs font-black uppercase tracking-widest rounded-xl border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 transition-all"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="p-5 bg-amber-500/5 border border-amber-500/20 rounded-2xl">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Mail size={14} className="text-amber-400" />
+                        <p className="text-xs font-black uppercase tracking-widest text-amber-400">Help & Support</p>
+                      </div>
+                      <p className="text-xs text-[var(--text-muted)]">Need help? Reach out at <strong className="text-[var(--text-main)]">support@truden.tech</strong> and we'll assist within 24 hours.</p>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+
+              </div>
             </div>
-          </div>
+          </motion.div>
         )}
       </main>
 
-      <KYCModal isOpen={isKYCOpen} onClose={() => setIsKYCOpen(false)} />
       <Footer />
     </div>
   );
 }
+
+// ── Sub-components ──
+
+const FieldGroup = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <div className="space-y-1.5">
+    <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">{label}</label>
+    {children}
+  </div>
+);
+
+const Toggle = ({ checked, onChange }: { checked: boolean; onChange: () => void }) => (
+  <button
+    onClick={onChange}
+    className={`relative w-12 h-6 rounded-full transition-all ${checked ? 'bg-emerald-500' : 'bg-[var(--border)]'}`}
+  >
+    <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-6' : ''}`} />
+  </button>
+);
+
+const NotifRow = ({ label, desc, checked, onChange, className = '' }: {
+  label: string; desc: string; checked: boolean; onChange: (v: boolean) => void; className?: string;
+}) => (
+  <div className={`flex items-center justify-between ${className}`}>
+    <div className="space-y-0.5 flex-1 pr-6">
+      <p className="font-bold text-sm">{label}</p>
+      <p className="text-xs text-[var(--text-muted)]">{desc}</p>
+    </div>
+    <Toggle checked={checked} onChange={() => onChange(!checked)} />
+  </div>
+);

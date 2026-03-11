@@ -6,13 +6,12 @@ import { motion } from 'framer-motion';
 import {
     ArrowLeft, Calendar, Users, Clock, CheckCircle, AlertCircle,
     Heart, Share2, Bookmark, Globe, TrendingUp, BarChart3,
-    Flag, Wallet, Loader2, CheckCircle2, ExternalLink, X, Smartphone
+    Flag, Loader2, CheckCircle2, ExternalLink, X, Smartphone
 } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { projectService } from '@/lib/project-service';
 import { useAuth } from '@/hooks/useAuth';
-import { investmentService } from '@/lib/investment-service';
 import { paymentService } from '@/lib/payment-service';
 
 export default function ProjectDetailPage() {
@@ -59,23 +58,22 @@ export default function ProjectDetailPage() {
     const currentMedia = mediaItems[mediaIndex];
 
     const getPrefillDonorName = () => {
-        const firstName = (user as any)?.firstName;
-        const lastName = (user as any)?.lastName;
+        const u = user as any;
+        const firstName = u?.profile?.firstName || u?.firstName;
+        const lastName = u?.profile?.lastName || u?.lastName;
         const combined = `${typeof firstName === 'string' ? firstName : ''} ${typeof lastName === 'string' ? lastName : ''}`.trim();
-        const fallback = (user as any)?.name || (user as any)?.fullName;
-        const email = (user as any)?.email;
+        const fallback = u?.profile?.displayName || u?.name || u?.fullName;
+        const email = u?.email;
         const profileName = (combined || fallback || email || '').toString().trim();
         return profileName;
     };
 
     const openDonateModal = () => {
-        if (!isAuthenticated) {
-            window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
-            return;
-        }
+        // Anyone can donate — no login required
         setPaymentMode('donate');
         setPaymentAmount('');
-        setDonorName(getPrefillDonorName() || '');
+        // Pre-fill name from profile if logged in, empty otherwise (shown as Anonymous)
+        setDonorName(isAuthenticated ? (getPrefillDonorName() || '') : '');
         setPaymentError('');
         setIsPaymentModalOpen(true);
     };
@@ -101,10 +99,8 @@ export default function ProjectDetailPage() {
             setPaymentError('');
             setIsInitiatingPayment(true);
             const resolvedProjectId = (project as any)?.id || (project as any)?._id || projectId;
-            const projectType = isCharity ? 'CHARITY' : 'ROI';
-            const description = paymentMode === 'donate'
-                ? `Donation to ${project?.name} - Keibo`
-                : `Investment in ${project?.name} - Keibo`;
+            const projectType = 'CHARITY';
+            const description = `Donation to ${project?.name} - Keibo`;
 
             const result = await paymentService.initializeDPOPayment({
                 projectId: String(resolvedProjectId),
@@ -113,7 +109,7 @@ export default function ProjectDetailPage() {
                 paymentMethod: 'card',
                 projectType,
                 description,
-                donorName: paymentMode === 'donate' ? (donorName?.trim() || 'Anonymous') : undefined,
+                donorName: donorName?.trim() || 'Anonymous',
             });
 
             // Redirect user to DPO hosted payment page
@@ -278,8 +274,8 @@ export default function ProjectDetailPage() {
         <div className="min-h-screen bg-[var(--background)] text-[var(--text-main)]">
             <Navbar />
 
-            <main className="pt-28 pb-24">
-                <div className="max-w-7xl mx-auto px-6">
+            <main className="pt-20 pb-24">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6">
 
                     {/* Back Button */}
                     <button
@@ -290,24 +286,53 @@ export default function ProjectDetailPage() {
                         Back
                     </button>
 
-                    {/* Draft Notice */}
-                    {(project.status === 'DRAFT' || project.status === 'PENDING_REVIEW') && (
-                        <div className="mb-8 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3">
-                            <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0" />
-                            <div className="flex-1">
-                                <p className="text-sm text-amber-300 font-medium">
+                    {/* Status Notice */}
+                    {(project.status === 'DRAFT' || project.status === 'PENDING_REVIEW' || project.status === 'REJECTED' || project.status === 'CHANGES_REQUESTED') && isOwner && (
+                        <div className={`mb-8 p-4 rounded-2xl flex items-start gap-3 ${project.status === 'REJECTED'
+                            ? 'bg-rose-500/10 border border-rose-500/20'
+                            : project.status === 'CHANGES_REQUESTED'
+                                ? 'bg-orange-500/10 border border-orange-500/20'
+                                : 'bg-amber-500/10 border border-amber-500/20'
+                            }`}>
+                            <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${project.status === 'REJECTED' ? 'text-rose-400'
+                                : project.status === 'CHANGES_REQUESTED' ? 'text-orange-400'
+                                    : 'text-amber-400'
+                                }`} />
+                            <div className="flex-1 space-y-1">
+                                <p className={`text-sm font-semibold ${project.status === 'REJECTED' ? 'text-rose-300'
+                                    : project.status === 'CHANGES_REQUESTED' ? 'text-orange-300'
+                                        : 'text-amber-300'
+                                    }`}>
                                     {project.status === 'DRAFT'
-                                        ? 'This project is in draft mode. Submit it for review to make it public.'
-                                        : 'This project is under review and will be publicly visible once approved.'}
+                                        ? 'This campaign is in draft mode. Submit it for review to make it public.'
+                                        : project.status === 'PENDING_REVIEW'
+                                            ? 'Your campaign is under review. It will be visible once approved by our team.'
+                                            : project.status === 'CHANGES_REQUESTED'
+                                                ? 'Our review team has requested changes to your campaign before it can be approved.'
+                                                : 'Your campaign was not approved at this time.'}
                                 </p>
+                                {project.decisionReason && (
+                                    <p className="text-xs text-[var(--text-muted)] font-medium">
+                                        <strong>Reason:</strong> {project.decisionReason}
+                                    </p>
+                                )}
                             </div>
                             {project.status === 'DRAFT' && isOwner && (
                                 <button
                                     onClick={handleSubmitForReview}
                                     disabled={isSubmittingForReview}
-                                    className="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-60"
+                                    className="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-60 flex-shrink-0"
                                 >
                                     {isSubmittingForReview ? 'Submitting...' : 'Submit for Review'}
+                                </button>
+                            )}
+                            {project.status === 'CHANGES_REQUESTED' && isOwner && (
+                                <button
+                                    onClick={handleSubmitForReview}
+                                    disabled={isSubmittingForReview}
+                                    className="px-4 py-2 rounded-xl bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-60 flex-shrink-0"
+                                >
+                                    {isSubmittingForReview ? 'Resubmitting...' : 'Resubmit'}
                                 </button>
                             )}
                         </div>
@@ -321,8 +346,9 @@ export default function ProjectDetailPage() {
                             {/* Project Header */}
                             <div>
                                 <div className="flex items-center gap-3 mb-4">
-                                    <span className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${accentBorderText}`}>
-                                        {isCharityProject ? 'Charity' : 'ROI Project'}
+                                    <span className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest shadow-lg
+                                        bg-emerald-600 text-white`}>
+                                        Charity
                                     </span>
                                     <span className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${statusColor}`}>
                                         {project.status}
@@ -333,10 +359,10 @@ export default function ProjectDetailPage() {
                                         </span>
                                     )}
                                 </div>
-                                <h1 className="text-4xl lg:text-5xl font-black tracking-tight leading-tight mb-4">
+                                <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-black tracking-tight leading-tight mb-4">
                                     {project.name}
                                 </h1>
-                                <p className="text-xl text-[var(--text-muted)] font-medium leading-relaxed">
+                                <p className="text-base sm:text-xl text-[var(--text-muted)] font-medium leading-relaxed">
                                     {project.summary}
                                 </p>
                             </div>
@@ -391,12 +417,12 @@ export default function ProjectDetailPage() {
 
                             {/* Tabs */}
                             <div>
-                                <div className="flex items-center gap-1 border-b border-[var(--border)] mb-8">
+                                <div className="flex items-center gap-1 border-b border-[var(--border)] mb-6 overflow-x-auto scrollbar-hide">
                                     {(['story', 'timeline', 'updates'] as const).map((tab) => (
                                         <button
                                             key={tab}
                                             onClick={() => setActiveTab(tab)}
-                                            className={`px-6 py-3 text-sm font-black uppercase tracking-widest border-b-2 transition-all -mb-px ${activeTab === tab
+                                            className={`px-4 sm:px-6 py-3 text-xs sm:text-sm font-black uppercase tracking-widest border-b-2 transition-all -mb-px whitespace-nowrap flex-shrink-0 ${activeTab === tab
                                                 ? 'border-[var(--primary)] text-[var(--primary)]'
                                                 : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'
                                                 }`}
@@ -569,33 +595,13 @@ export default function ProjectDetailPage() {
 
                                         {/* CTA */}
                                         <div className="space-y-3">
-                                            {isCharity ? (
-                                                <button
-                                                    onClick={openDonateModal}
-                                                    className={`w-full py-4 ${accentBg} text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl ${accentShadow} hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2`}
-                                                >
-                                                    <Wallet size={16} />
-                                                    Donate Now
-                                                </button>
-                                            ) : (
-                                                <>
-                                                    <button
-                                                        disabled={!isAuthenticated}
-                                                        onClick={() => {
-                                                            if (!isAuthenticated) {
-                                                                const next = typeof window !== 'undefined' ? window.location.pathname : '/';
-                                                                window.location.href = `/login?next=${encodeURIComponent(next)}`;
-                                                                return;
-                                                            }
-                                                            openInvestModal();
-                                                        }}
-                                                        className={`w-full py-4 ${accentBg} text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl ${accentShadow} hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
-                                                    >
-                                                        <Wallet size={16} />
-                                                        {isAuthenticated ? 'Invest in Project' : 'Sign In to Invest'}
-                                                    </button>
-                                                </>
-                                            )}
+                                            <button
+                                                onClick={openDonateModal}
+                                                className={`w-full py-4 ${accentBg} text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl ${accentShadow} hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2`}
+                                            >
+                                                <Heart size={16} />
+                                                Donate Now
+                                            </button>
                                             <div className="flex gap-3">
                                                 <button
                                                     onClick={() => setBookmarked(!bookmarked)}
@@ -662,59 +668,31 @@ export default function ProjectDetailPage() {
                                 )}
 
                                 {/* Trust Badges */}
-                                <div className={`bg-[var(--card)] p-6 rounded-2xl border border-[var(--border)] space-y-3 ${isCharity ? 'hidden' : ''}`}>
-                                    {isRoi && (
-                                        <>
-                                            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                                                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                                                <span>Smart Contract Escrow Protection</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                                                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                                                <span>Milestone-Based Fund Release</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                                                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                                                <span>NFT Investment Certificate</span>
-                                            </div>
-                                        </>
-                                    )}
-                                    {isCharity && (
-                                        <>
-                                            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                                                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                                                <span>Donation Transparency Tracking</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                                                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                                                <span>Milestone-Based Release (if applicable)</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                                                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                                                <span>Community Accountability</span>
-                                            </div>
-                                        </>
-                                    )}
-                                    {!isCharity && !isRoi && (
-                                        <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                                            <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                                            <span>Protocol Safeguards Enabled</span>
-                                        </div>
-                                    )}
+                                <div className="bg-[var(--card)] p-6 rounded-2xl border border-[var(--border)] space-y-3">
+                                    <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                                        <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                                        <span>Donation Transparency Tracking</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                                        <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                                        <span>Milestone-Based Release</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                                        <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                                        <span>Community Accountability</span>
+                                    </div>
                                 </div>
 
                                 {/* Disclosure */}
-                                <div className={`p-6 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-2 ${isCharity ? 'hidden' : ''}`}>
+                                <div className="p-6 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-2">
                                     <div className="flex items-center gap-2 text-amber-400">
                                         <Flag size={16} />
                                         <h4 className="font-black text-xs uppercase tracking-widest">
-                                            {isCharity ? 'Donation Disclosure' : 'Investment Disclosure'}
+                                            Donation Disclosure
                                         </h4>
                                     </div>
                                     <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-                                        {isCharity
-                                            ? "Keibo facilitates fundraising but doesn't guarantee project delivery or outcomes. Donations are non-refundable unless explicitly stated. Contribute what you can afford."
-                                            : "Keibo facilitates crowdfunding but doesn't guarantee project delivery. Investments carry risks. Only contribute what you can afford to lose."}
+                                        Keibo facilitates fundraising but doesn't guarantee project delivery or outcomes. Donations are non-refundable unless explicitly stated. Contribute what you can afford.
                                     </p>
                                 </div>
                             </div>
@@ -738,7 +716,7 @@ export default function ProjectDetailPage() {
                         <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
                             <div>
                                 <h3 className="text-lg font-black">
-                                    {paymentMode === 'donate' ? 'Donate to Project' : 'Invest in Project'}
+                                    Donate to Project
                                 </h3>
                             </div>
                             <button
@@ -754,14 +732,19 @@ export default function ProjectDetailPage() {
                             {/* Donor Name (Only for donation) */}
                             {paymentMode === 'donate' && (
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
-                                        Your Name
-                                    </label>
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                                            Your Name
+                                        </label>
+                                        <span className="text-[10px] text-[var(--text-muted)] font-medium">
+                                            Leave blank to donate anonymously
+                                        </span>
+                                    </div>
                                     <input
                                         value={donorName}
                                         onChange={(e) => setDonorName(e.target.value)}
                                         type="text"
-                                        placeholder="Leave as is or change"
+                                        placeholder="Anonymous"
                                         className="input_field"
                                     />
                                 </div>
@@ -817,13 +800,12 @@ export default function ProjectDetailPage() {
                                 <button
                                     onClick={handleDPOPayment}
                                     disabled={isInitiatingPayment || !paymentAmount}
-                                    className={`flex-1 py-3 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2 ${paymentMode === 'donate' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-blue-600 hover:bg-blue-500'
-                                        }`}
+                                    className="flex-1 py-3 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500"
                                 >
                                     {isInitiatingPayment ? (
                                         <><Loader2 size={14} className="animate-spin" /> Processing...</>
                                     ) : (
-                                        <>{paymentMode === 'donate' ? 'Donate Now' : 'Invest Now'} →</>
+                                        <>Donate Now →</>
                                     )}
                                 </button>
                             </div>

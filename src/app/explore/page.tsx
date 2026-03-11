@@ -10,7 +10,7 @@ import {
     Search, Filter, SlidersHorizontal,
     Heart, TrendingUp, Zap, Globe,
     ChevronDown, LayoutGrid, List,
-    Loader2, Plus, ArrowRight
+    Loader2, Plus, ArrowRight, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -190,44 +190,62 @@ function ExplorePageContent() {
         newButton: isCharitySelected ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700',
     };
 
+    const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
     return (
         <div className="bg-[var(--background)] min-h-screen text-[var(--text-main)]">
             <Navbar />
 
-            <main className="pt-28 pb-20 container mx-auto px-6 lg:px-12">
-                {/* Search & Header */}
-                <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
-                    <div className="relative w-full md:max-w-xl group">
+            <main className="pt-24 pb-20 container mx-auto px-4 sm:px-6 lg:px-12">
+                {/* Header Row: Search + Controls */}
+                <div className="flex flex-col gap-4 mb-8">
+                    {/* Search Bar */}
+                    <div className="relative w-full group">
                         <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)] ${accent.focusText} transition-colors`} />
                         <input
                             type="text"
                             placeholder="Search projects by title or description..."
                             value={draftSearch}
                             onChange={(e) => setDraftSearch(e.target.value)}
-                            className={`w-full bg-[var(--card)] border border-[var(--border)] rounded-2xl py-4 pl-12 pr-4 focus:ring-4 ${accent.focusRing} outline-none transition-all shadow-sm font-medium`}
+                            className={`w-full bg-[var(--card)] border border-[var(--border)] rounded-2xl py-3.5 pl-12 pr-4 focus:ring-4 ${accent.focusRing} outline-none transition-all shadow-sm font-medium`}
                         />
                     </div>
 
-                    <div className="flex items-center gap-4 w-full md:w-auto">
+                    {/* Controls Row */}
+                    <div className="flex items-center gap-3">
+                        {/* Mobile: Filter toggle button */}
+                        <button
+                            onClick={() => setMobileFiltersOpen(true)}
+                            className="lg:hidden flex items-center gap-2 py-2.5 px-4 rounded-xl border border-[var(--border)] bg-[var(--card)] text-sm font-bold text-[var(--text-muted)] hover:border-[var(--primary)]/50 transition-all shadow-sm flex-shrink-0"
+                        >
+                            <Filter size={16} /> Filters
+                            {(appliedCategory !== 'ALL' || appliedProjectType !== 'ALL' || appliedStatusFilters.length > 0) && (
+                                <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center">
+                                    {[appliedCategory !== 'ALL', appliedProjectType !== 'ALL', ...appliedStatusFilters].filter(Boolean).length}
+                                </span>
+                            )}
+                        </button>
+
                         <select
                             value={draftSortBy}
                             onChange={(e) => setDraftSortBy(e.target.value)}
-                            className={`bg-[var(--card)] border border-[var(--border)] rounded-xl py-3 px-4 text-sm font-bold text-[var(--text-muted)] outline-none transition-all shadow-sm cursor-pointer ${accent.hoverBorder}`}
+                            className={`flex-1 sm:flex-none bg-[var(--card)] border border-[var(--border)] rounded-xl py-2.5 px-4 text-sm font-bold text-[var(--text-muted)] outline-none transition-all shadow-sm cursor-pointer ${accent.hoverBorder}`}
                         >
                             <option value="newest">Newest First</option>
                             <option value="ending">Ending Soon</option>
                             <option value="funded">Most Funded</option>
                         </select>
-                        <Link href="/dashboard/create-project" className={`${accent.newButton} text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2 transition-all shadow-lg text-sm whitespace-nowrap`}>
+                        <Link href="/dashboard/create-project" className={`${accent.newButton} text-white font-bold py-2.5 px-4 sm:px-6 rounded-xl flex items-center gap-2 transition-all shadow-lg text-sm whitespace-nowrap flex-shrink-0`}>
                             <Plus size={18} />
-                            <span>New Project</span>
+                            <span className="hidden sm:inline">New Project</span>
+                            <span className="sm:hidden">New</span>
                         </Link>
                     </div>
                 </div>
 
-                <div className="flex flex-col lg:flex-row gap-12">
-                    {/* Sidebar Filters */}
-                    <aside className="lg:w-80 space-y-8 flex-shrink-0">
+                <div className="flex flex-col lg:flex-row gap-8">
+                    {/* Desktop Sidebar Filters */}
+                    <aside className="hidden lg:block lg:w-80 space-y-8 flex-shrink-0">
                         <div className="bg-[var(--card)] border border-[var(--border)] rounded-[2rem] p-8 space-y-10 shadow-sm">
                             <h2 className="text-xl font-black tracking-tight border-b border-[var(--border)] pb-4">Filters</h2>
 
@@ -261,29 +279,7 @@ function ExplorePageContent() {
                                 </div>
                             )}
 
-                            {/* Project Type */}
-                            <div className="space-y-4">
-                                <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Project Type</h3>
-                                <div className="space-y-3">
-                                    {['ALL', 'ROI', 'CHARITY'].map((type) => (
-                                        <label key={type} className="flex items-center gap-3 cursor-pointer group">
-                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${draftProjectType === type ? accent.radioOn : `border-[var(--border)] ${accent.radioOff}`}`}>
-                                                {draftProjectType === type && <div className="w-2 h-2 rounded-full bg-white" />}
-                                            </div>
-                                            <input
-                                                type="radio"
-                                                className="hidden"
-                                                name="projectType"
-                                                checked={draftProjectType === type}
-                                                onChange={() => setDraftProjectType(type)}
-                                            />
-                                            <span className={`text-sm font-bold transition-colors ${draftProjectType === type ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-main)]'}`}>
-                                                {type === 'ALL' ? 'All Projects' : type === 'ROI' ? 'ROI Projects' : 'Charity Projects'}
-                                            </span>
-                                        </label>
-                                    ))}
-                                </div>
-                            </div>
+
 
                             {/* Status */}
                             <div className="space-y-4">
@@ -343,19 +339,107 @@ function ExplorePageContent() {
                             </div>
                         </div>
 
-                        {/* Promo Card */}
-                        <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-[2rem] p-8 text-white space-y-4 relative overflow-hidden shadow-xl shadow-indigo-500/20">
-                            <Zap className="w-12 h-12 text-indigo-200 opacity-50 mb-2" />
-                            <h3 className="text-2xl font-black leading-tight">Ignite your project.</h3>
-                            <p className="text-indigo-100 text-sm font-medium leading-relaxed">
-                                Get featured to 50k+ daily investors and donors on our platform.
+                        <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-[2rem] p-8 text-white space-y-4 relative overflow-hidden shadow-xl shadow-emerald-500/20">
+                            <Heart className="w-12 h-12 text-emerald-200 opacity-50 mb-2" />
+                            <h3 className="text-2xl font-black leading-tight">Start a cause.</h3>
+                            <p className="text-emerald-100 text-sm font-medium leading-relaxed">
+                                Launch your charity campaign and reach thousands of donors today.
                             </p>
-                            <button className="w-full py-4 bg-white text-indigo-700 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg">
-                                Boost Project
-                            </button>
+                            <a href="/dashboard/create-project" className="w-full py-4 bg-white text-emerald-700 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg block text-center">
+                                Start Campaign
+                            </a>
                             <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
                         </div>
                     </aside>
+
+                    {/* Mobile Filter Drawer */}
+                    {mobileFiltersOpen && (
+                        <div className="fixed inset-0 z-50 lg:hidden">
+                            <div
+                                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                                onClick={() => setMobileFiltersOpen(false)}
+                            />
+                            <div className="absolute bottom-0 left-0 right-0 bg-[var(--card)] rounded-t-3xl shadow-2xl border-t border-[var(--border)] max-h-[85vh] overflow-y-auto">
+                                <div className="flex items-center justify-between p-5 border-b border-[var(--border)] sticky top-0 bg-[var(--card)] z-10">
+                                    <h2 className="text-lg font-black">Filters</h2>
+                                    <button
+                                        onClick={() => setMobileFiltersOpen(false)}
+                                        className="w-9 h-9 rounded-xl bg-[var(--secondary)] flex items-center justify-center"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                                <div className="p-5 space-y-8">
+                                    {/* Active Filter Tags */}
+                                    {(appliedSearch.trim() || appliedCategory !== 'ALL' || appliedProjectType !== 'ALL' || appliedStatusFilters.length > 0 || appliedSortBy !== 'newest') && (
+                                        <div className="flex flex-wrap gap-2">
+                                            {appliedProjectType !== 'ALL' && (
+                                                <button onClick={() => applyFilters({ projectType: 'ALL' })} className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[var(--secondary)] text-[var(--text-main)] border border-[var(--border)] hover:opacity-90">
+                                                    Type: {appliedProjectType} ✕
+                                                </button>
+                                            )}
+                                            {appliedCategory !== 'ALL' && (
+                                                <button onClick={() => applyFilters({ category: 'ALL' })} className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[var(--secondary)] text-[var(--text-main)] border border-[var(--border)] hover:opacity-90">
+                                                    Category: {appliedCategory} ✕
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Status */}
+                                    <div className="space-y-4">
+                                        <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Status</h3>
+                                        <div className="space-y-3">
+                                            {[
+                                                { id: 'APPROVED', label: 'Newly Posted' },
+                                                { id: 'FUNDING', label: 'Open Projects' },
+                                                { id: 'FUNDED', label: 'Funded' },
+                                                { id: 'COMPLETED', label: 'Completed' },
+                                            ].map((status) => (
+                                                <label key={status.id} className="flex items-center gap-3 cursor-pointer group">
+                                                    <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${draftStatusFilters.includes(status.id) ? accent.checkboxOn : `border-[var(--border)] ${accent.checkboxOff}`}`}>
+                                                        {draftStatusFilters.includes(status.id) && <Plus size={14} className="text-white" />}
+                                                    </div>
+                                                    <input type="checkbox" className="hidden" checked={draftStatusFilters.includes(status.id)} onChange={() => toggleStatus(status.id)} />
+                                                    <span className={`text-sm font-bold transition-colors ${draftStatusFilters.includes(status.id) ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-main)]'}`}>{status.label}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Category */}
+                                    <div className="space-y-4">
+                                        <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Category</h3>
+                                        <select
+                                            value={draftCategory}
+                                            onChange={(e) => setDraftCategory(e.target.value)}
+                                            className="w-full bg-[var(--secondary)] border border-[var(--border)] rounded-xl py-3 px-4 text-sm font-bold text-[var(--text-main)] outline-none cursor-pointer"
+                                        >
+                                            {categories.map((cat) => (
+                                                <option key={cat.id} value={cat.id}>{cat.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="flex gap-3 pb-2">
+                                        <button
+                                            onClick={() => { resetAll(); setMobileFiltersOpen(false); }}
+                                            className="flex-1 py-3 text-sm font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors uppercase tracking-widest border border-[var(--border)] rounded-xl"
+                                        >
+                                            Reset
+                                        </button>
+                                        <button
+                                            onClick={() => { applyFilters(); setMobileFiltersOpen(false); }}
+                                            className="flex-1 py-3 bg-slate-900 text-white rounded-xl text-sm font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-md"
+                                        >
+                                            Apply Filters
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Project Grid */}
                     <div className="flex-grow">
