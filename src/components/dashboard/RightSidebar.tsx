@@ -41,7 +41,7 @@ const RightSidebar = ({ onTriggerCreate }: RightSidebarProps) => {
       </div> */}
 
       {/* Submission CTA */}
-      <div className="bg-[var(--primary)] rounded-2xl p-10 text-center space-y-6 shadow-xl relative overflow-hidden group">
+      <div className="bg-[var(--primary)] rounded-2xl p-6 sm:p-10 text-center space-y-4 sm:space-y-6 shadow-xl relative overflow-hidden group">
         <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 blur-2xl -mr-24 -mt-24 rounded-full" />
 
         <div className="relative z-10 space-y-2">

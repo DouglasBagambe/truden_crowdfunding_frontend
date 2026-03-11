@@ -59,12 +59,12 @@ export default function LandingPage() {
   }), [projects]);
 
   return (
-    <div className="bg-[var(--background)] min-h-screen flex flex-col pt-[72px] transition-colors duration-300">
+    <div className="bg-[var(--background)] min-h-screen flex flex-col pt-[68px] transition-colors duration-300">
       <Navbar />
 
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="relative py-20 lg:py-32 overflow-hidden">
+        <section className="relative py-16 sm:py-24 lg:py-32 overflow-hidden">
           <div className="absolute inset-0">
             <AnimatePresence mode="wait">
               <motion.div
@@ -87,20 +87,20 @@ export default function LandingPage() {
             <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-white/40 to-white/70 dark:from-black/10 dark:via-black/40 dark:to-black/70" />
             <div className="absolute inset-0 bg-gradient-to-r from-white/35 via-transparent to-white/20 dark:from-black/35 dark:via-transparent dark:to-black/20" />
           </div>
-          <div className="container mx-auto px-6 relative z-10 text-center space-y-10">
+          <div className="container mx-auto px-4 sm:px-6 relative z-10 text-center space-y-8">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               className="space-y-6 max-w-4xl mx-auto"
             >
               <h1
-                className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-950 dark:text-white"
+                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-950 dark:text-white px-2"
                 style={{ textShadow: '0 10px 35px rgba(0,0,0,0.22)' }}
               >
                 Give Hope, Change Lives — One Cause at a Time
               </h1>
               <p
-                className="text-lg max-w-3xl mx-auto text-slate-700 dark:text-slate-200"
+                className="text-base sm:text-lg max-w-3xl mx-auto text-slate-700 dark:text-slate-200 px-4"
                 style={{ textShadow: '0 10px 30px rgba(0,0,0,0.14)' }}
               >
                 Bring your cause to life with the support of a global community. Keibo makes charity fundraising simple, transparent, and impactful.
@@ -111,12 +111,12 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="flex gap-4 justify-center flex-wrap"
+              className="flex flex-col sm:flex-row gap-3 justify-center items-center px-4"
             >
-              <Link href="/dashboard/create-project" className="relative z-10 bg-emerald-600 text-white font-bold py-3.5 px-8 rounded-xl hover:bg-emerald-700 transition-all active:scale-95 shadow-lg hover:shadow-xl text-lg tracking-wide">
+              <Link href="/dashboard/create-project" className="relative z-10 w-full sm:w-auto bg-emerald-600 text-white font-bold py-3.5 px-8 rounded-xl hover:bg-emerald-700 transition-all active:scale-95 shadow-lg hover:shadow-xl text-base sm:text-lg tracking-wide text-center">
                 Start a Campaign
               </Link>
-              <Link href="/explore" className="bg-white/85 dark:bg-slate-900/65 backdrop-blur text-slate-950 dark:text-white font-semibold px-8 py-3 rounded-xl border border-white/40 dark:border-white/10 hover:bg-white dark:hover:bg-slate-900 transition-colors shadow-sm hover:shadow">
+              <Link href="/explore" className="w-full sm:w-auto bg-white/85 dark:bg-slate-900/65 backdrop-blur text-slate-950 dark:text-white font-semibold px-8 py-3 rounded-xl border border-white/40 dark:border-white/10 hover:bg-white dark:hover:bg-slate-900 transition-colors shadow-sm hover:shadow text-center">
                 Explore Causes
               </Link>
             </motion.div>
@@ -124,7 +124,7 @@ export default function LandingPage() {
         </section>
 
         <div className="bg-[var(--background)]">
-          <div className="container mx-auto px-6 py-16 space-y-20">
+          <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-16 space-y-16 sm:space-y-20">
 
             {/* Charity Projects Section */}
             <motion.section
@@ -146,7 +146,7 @@ export default function LandingPage() {
                 </p>
               </div>
 
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {isLoading ? (
                   Array(3).fill(0).map((_, i) => (
                     <div key={i} className="h-96 bg-[var(--card)] rounded-xl animate-pulse border border-[var(--border)]" />
@@ -163,15 +163,15 @@ export default function LandingPage() {
               </div>
 
               <div className="text-center space-y-4 pt-6">
-                <p className="text-lg font-semibold text-[var(--text-main)]">
+                <p className="text-base sm:text-lg font-semibold text-[var(--text-main)]">
                   Total Impact: <span className="text-emerald-600">{ugxFormatter.format(stats.total)} Raised</span> | {stats.count} Projects
                 </p>
-                <div className="flex items-center justify-center gap-3 flex-wrap">
-                  <Link href="/explore" className="px-8 py-3 rounded-lg inline-flex items-center gap-2 font-semibold border border-emerald-600/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-colors">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <Link href="/explore" className="w-full sm:w-auto px-8 py-3 rounded-lg inline-flex items-center justify-center gap-2 font-semibold border border-emerald-600/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-colors">
                     Explore all causes
                     <ArrowRight size={18} />
                   </Link>
-                  <Link href="/dashboard/create-project" className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-8 py-3 rounded-lg inline-flex items-center gap-2 transition-colors">
+                  <Link href="/dashboard/create-project" className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-8 py-3 rounded-lg inline-flex items-center justify-center gap-2 transition-colors">
                     <Plus size={20} />
                     Start a Campaign
                   </Link>
@@ -180,13 +180,13 @@ export default function LandingPage() {
             </motion.section>
 
             {/* Categories */}
-            <section className="space-y-12 py-8 text-center">
-              <div className="space-y-4 max-w-2xl mx-auto">
-                <h2 className="text-4xl md:text-5xl font-black tracking-tight text-gray-900">Explore Categories</h2>
-                <p className="text-gray-500 font-medium">Find projects that align with your passions and investment goals.</p>
+            <section className="space-y-8 py-4 text-center">
+              <div className="space-y-3 max-w-2xl mx-auto">
+                <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-gray-900 dark:text-white">Explore Categories</h2>
+                <p className="text-gray-500 dark:text-gray-400 font-medium text-sm sm:text-base">Find projects that align with your passions and investment goals.</p>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+              <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
                 <Category
                   icon={<Lightbulb className="w-8 h-8" />}
                   label="Technology"
@@ -227,12 +227,12 @@ export default function LandingPage() {
             </section>
 
             {/* Bottom CTAs */}
-            <section className="grid lg:grid-cols-2 gap-6 py-8">
-              <div className="bg-emerald-50 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl p-10 space-y-6 text-center">
-                <h3 className="text-2xl md:text-3xl font-bold text-[var(--text-main)]">
+            <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 py-4 sm:py-8">
+              <div className="bg-emerald-50 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl p-6 sm:p-10 space-y-4 sm:space-y-6 text-center">
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-[var(--text-main)]">
                   Ready to Start Your Campaign?
                 </h3>
-                <p className="text-[var(--text-muted)] text-base">
+                <p className="text-[var(--text-muted)] text-sm sm:text-base">
                   Keibo gives your cause the tools and reach to make a real difference. Launch your fundraiser in minutes and connect with supporters worldwide.
                 </p>
                 <Link href="/dashboard/create-project" className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-8 py-3 rounded-lg inline-block transition-colors">
@@ -240,11 +240,11 @@ export default function LandingPage() {
                 </Link>
               </div>
 
-              <div className="bg-amber-50 dark:bg-amber-950/10 border border-amber-100 dark:border-amber-900/30 rounded-2xl p-10 space-y-6 text-center">
-                <h3 className="text-2xl md:text-3xl font-bold text-[var(--text-main)]">
+              <div className="bg-amber-50 dark:bg-amber-950/10 border border-amber-100 dark:border-amber-900/30 rounded-2xl p-6 sm:p-10 space-y-4 sm:space-y-6 text-center">
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-[var(--text-main)]">
                   Support a Cause, Change a Life
                 </h3>
-                <p className="text-[var(--text-muted)] text-base">
+                <p className="text-[var(--text-muted)] text-sm sm:text-base">
                   Browse verified campaigns and donate to causes you believe in. Every shilling makes a direct impact in someone's life.
                 </p>
                 <Link href="/explore" className="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-8 py-3 rounded-lg inline-block transition-colors">
@@ -265,11 +265,11 @@ export default function LandingPage() {
 function Category({ icon, label, color, href }: { icon: React.ReactNode, label: string, color: string, href: string }) {
   return (
     <Link href={href}>
-      <div className="bg-white border border-gray-100 p-8 rounded-3xl flex flex-col items-center gap-4 hover:border-blue-500 hover:shadow-xl hover:-translate-y-2 transition-all group cursor-pointer shadow-sm">
-        <div className="text-blue-500 transition-transform group-hover:scale-110 duration-500">
+      <div className="bg-white dark:bg-[var(--card)] border border-gray-100 dark:border-[var(--border)] p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl flex flex-col items-center gap-2 sm:gap-4 hover:border-blue-500 hover:shadow-xl hover:-translate-y-1 sm:hover:-translate-y-2 transition-all group cursor-pointer shadow-sm">
+        <div className="text-blue-500 transition-transform group-hover:scale-110 duration-500 [&>svg]:w-6 [&>svg]:h-6 sm:[&>svg]:w-8 sm:[&>svg]:h-8">
           {icon}
         </div>
-        <span className="text-xs font-black uppercase tracking-widest text-gray-400 group-hover:text-gray-900 transition-colors text-center">
+        <span className="text-[9px] sm:text-xs font-black uppercase tracking-widest text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors text-center leading-tight">
           {label}
         </span>
       </div>

@@ -107,10 +107,10 @@ export default function SettingsPage() {
   const ugxBalance = balance?.fiatBalance?.UGX ?? 0;
 
   return (
-    <div className="bg-[var(--background)] min-h-screen text-[var(--text-main)] pt-[72px] transition-colors duration-300">
+    <div className="bg-[var(--background)] min-h-screen text-[var(--text-main)] pt-[68px] transition-colors duration-300">
       <Navbar />
 
-      <main className="container mx-auto px-6 py-12 lg:px-10 max-w-6xl">
+      <main className="container mx-auto px-4 sm:px-6 py-8 lg:py-12 lg:px-10 max-w-6xl">
         {isLoading ? (
           <div className="h-48 bg-[var(--card)] rounded-2xl border border-[var(--border)] animate-pulse" />
         ) : (
@@ -118,22 +118,47 @@ export default function SettingsPage() {
 
             {/* Header */}
             <div className="space-y-1">
-              <h1 className="text-4xl font-black tracking-tight">Settings</h1>
-              <p className="text-[var(--text-muted)] font-medium">Manage your account, wallet, and preferences.</p>
+              <h1 className="text-3xl sm:text-4xl font-black tracking-tight">Settings</h1>
+              <p className="text-[var(--text-muted)] font-medium text-sm sm:text-base">Manage your account, wallet, and preferences.</p>
             </div>
 
-            <div className="flex gap-10">
+            {/* Mobile: horizontal tab bar */}
+            <div className="lg:hidden -mx-4 px-4 sm:-mx-6 sm:px-6">
+              <div className="flex gap-1 overflow-x-auto scrollbar-hide bg-[var(--card)] border border-[var(--border)] rounded-2xl p-1.5">
+                {tabs.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex-shrink-0 ${activeTab === tab.id
+                        ? 'bg-[var(--primary)] text-white shadow-sm'
+                        : 'text-[var(--text-muted)] hover:bg-[var(--secondary)] hover:text-[var(--text-main)]'
+                      }`}
+                  >
+                    {tab.icon}
+                    {tab.label}
+                  </button>
+                ))}
+                <button
+                  onClick={() => { if (confirm('Sign out of your account?')) logout(); }}
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all whitespace-nowrap flex-shrink-0"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
 
-              {/* Sidebar Nav */}
-              <aside className="w-56 flex-shrink-0">
+            <div className="flex gap-8">
+
+              {/* Desktop Sidebar Nav */}
+              <aside className="hidden lg:block w-56 flex-shrink-0">
                 <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-2 sticky top-24 space-y-1">
                   {tabs.map(tab => (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
                       className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === tab.id
-                          ? 'bg-[var(--primary)] text-white shadow-sm'
-                          : 'text-[var(--text-muted)] hover:bg-[var(--secondary)] hover:text-[var(--text-main)]'
+                        ? 'bg-[var(--primary)] text-white shadow-sm'
+                        : 'text-[var(--text-muted)] hover:bg-[var(--secondary)] hover:text-[var(--text-main)]'
                         }`}
                     >
                       {tab.icon}
@@ -180,7 +205,7 @@ export default function SettingsPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <FieldGroup label="First Name">
                         <input className="input_field" value={firstName} onChange={e => setFirstName(e.target.value)} />
                       </FieldGroup>
@@ -362,12 +387,12 @@ export default function SettingsPage() {
                     </div>
 
                     {themeReady && (
-                      <div className="grid grid-cols-2 gap-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                         <button
                           onClick={() => setTheme('light')}
                           className={`group p-5 rounded-2xl border-2 transition-all text-left space-y-4 ${theme === 'light'
-                              ? 'border-emerald-500 bg-emerald-500/5'
-                              : 'border-[var(--border)] hover:border-[var(--text-muted)]'
+                            ? 'border-emerald-500 bg-emerald-500/5'
+                            : 'border-[var(--border)] hover:border-[var(--text-muted)]'
                             }`}
                         >
                           <div className="w-full h-24 bg-white rounded-xl shadow-inner flex items-center justify-center border border-gray-200">
@@ -382,8 +407,8 @@ export default function SettingsPage() {
                         <button
                           onClick={() => setTheme('dark')}
                           className={`group p-5 rounded-2xl border-2 transition-all text-left space-y-4 ${theme === 'dark'
-                              ? 'border-emerald-500 bg-emerald-500/5'
-                              : 'border-[var(--border)] hover:border-[var(--text-muted)]'
+                            ? 'border-emerald-500 bg-emerald-500/5'
+                            : 'border-[var(--border)] hover:border-[var(--text-muted)]'
                             }`}
                         >
                           <div className="w-full h-24 bg-[#0d0d0d] rounded-xl shadow-inner flex items-center justify-center border border-[#262626]">

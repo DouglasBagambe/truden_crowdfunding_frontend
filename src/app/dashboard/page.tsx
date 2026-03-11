@@ -174,17 +174,17 @@ export default function DashboardPage() {
     const totalRaised = myCampaigns?.reduce((sum: number, p: any) => sum + (p.raisedAmount || 0), 0) || 0;
 
     return (
-        <div className="bg-[var(--background)] min-h-screen text-[var(--text-main)] pt-[72px] transition-colors duration-300">
+        <div className="bg-[var(--background)] min-h-screen text-[var(--text-main)] pt-[68px] transition-colors duration-300">
             <Navbar />
 
             {/* Email Verification Banner */}
             {isAuthenticated && user && !user.emailVerifiedAt && (
-                <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-3">
-                    <div className="container mx-auto flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <AlertTriangle size={16} className="text-amber-400 flex-shrink-0" />
+                <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-3">
+                    <div className="container mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                            <AlertTriangle size={16} className="text-amber-400 flex-shrink-0 mt-0.5" />
                             <span className="text-sm text-amber-200 font-medium">
-                                Please verify your email address to unlock all features (creating projects, donating, withdrawing).
+                                Please verify your email address to unlock all features.
                             </span>
                         </div>
                         <Link
@@ -197,14 +197,14 @@ export default function DashboardPage() {
                 </div>
             )}
 
-            <main className="container mx-auto p-6 lg:p-10">
-                <div className="flex flex-col lg:flex-row gap-10">
+            <main className="container mx-auto p-4 sm:p-6 lg:p-10">
+                <div className="flex flex-col lg:flex-row gap-8">
 
-                    <div className="flex-1 space-y-8">
+                    <div className="flex-1 space-y-6">
                         {/* KYC Banner */}
                         {/* KYC Removed */}
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                             <KPICard
                                 label="Total Donated (UGX)"
                                 value={`${(stats.donated || 0).toLocaleString()}`}
@@ -223,8 +223,8 @@ export default function DashboardPage() {
                         </div>
 
                         {/* Secondary KPI Row */}
-                        <div className="grid grid-cols-1 gap-6">
-                            <div className="bg-[var(--card)] p-6 rounded-2xl border border-[var(--border)] flex items-center justify-between shadow-sm">
+                        <div className="grid grid-cols-1 gap-4">
+                            <div className="bg-[var(--card)] p-5 rounded-2xl border border-[var(--border)] flex items-center justify-between shadow-sm">
                                 <div>
                                     <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-1">Total Raised from My Campaigns</p>
                                     <h4 className="text-2xl font-black text-[var(--text-main)]">UGX {totalRaised.toLocaleString()}</h4>
@@ -237,9 +237,9 @@ export default function DashboardPage() {
 
                         {/* Main Dashboard Container */}
                         <div className="bg-[var(--card)] rounded-[2rem] border border-[var(--border)] overflow-hidden shadow-sm transition-colors duration-300">
-                            <div className="border-b border-[var(--border)] px-8">
+                            <div className="border-b border-[var(--border)] px-4 sm:px-8">
                                 <div className="flex items-center justify-between">
-                                    <nav className="flex gap-10">
+                                    <nav className="flex gap-6 sm:gap-10 overflow-x-auto scrollbar-hide">
                                         {[
                                             { key: 'donations', label: 'Donations', icon: <Heart size={14} /> },
                                             { key: 'campaigns', label: 'My Projects', icon: <Briefcase size={14} /> }
@@ -247,7 +247,7 @@ export default function DashboardPage() {
                                             <button
                                                 key={tab.key}
                                                 onClick={() => setActiveTab(tab.key as any)}
-                                                className={`py-6 text-sm font-bold border-b-2 transition-all relative flex items-center gap-2 ${activeTab === tab.key
+                                                className={`py-5 text-sm font-bold border-b-2 transition-all relative flex items-center gap-2 flex-shrink-0 ${activeTab === tab.key
                                                     ? 'border-[var(--primary)] text-[var(--primary)]'
                                                     : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'
                                                     }`}
@@ -258,20 +258,20 @@ export default function DashboardPage() {
                                             </button>
                                         ))}
                                     </nav>
-                                    <div className="relative">
+                                    <div className="relative hidden sm:block">
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] opacity-50" />
                                         <input
                                             type="text"
                                             placeholder="Search..."
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="bg-[var(--background)] rounded-xl py-2 pl-10 pr-4 text-xs font-bold border border-transparent focus:border-[var(--primary)]/20 outline-none w-56 transition-all"
+                                            className="bg-[var(--background)] rounded-xl py-2 pl-10 pr-4 text-xs font-bold border border-transparent focus:border-[var(--primary)]/20 outline-none w-40 sm:w-56 transition-all"
                                         />
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="p-8">
+                            <div className="p-4 sm:p-8">
                                 {activeTab === 'donations' ? (
                                     <div className="space-y-6">
                                         <div className="flex items-center justify-between">
@@ -284,11 +284,11 @@ export default function DashboardPage() {
                                         </div>
 
                                         {isDataLoading ? (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                                 {[1, 2, 3, 4].map(i => <div key={i} className="h-48 bg-[var(--background)] rounded-2xl animate-pulse" />)}
                                             </div>
                                         ) : displayedProjects.length > 0 ? (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                                 {displayedProjects.map((project: Project) => (
                                                     <ProjectCard
                                                         key={project.id || project._id}
@@ -405,7 +405,7 @@ export default function DashboardPage() {
                         </div>
                     </div>
 
-                    <aside className="w-full lg:w-[380px] space-y-8">
+                    <aside className="w-full lg:w-[360px] space-y-6">
                         <RightSidebar onTriggerCreate={handleTriggerCreate} />
                     </aside>
 
@@ -420,7 +420,7 @@ export default function DashboardPage() {
 }
 
 const KPICard = ({ label, value, trend, icon }: KPICardProps) => (
-    <div className="bg-[var(--card)] p-8 rounded-[2rem] border border-[var(--border)] space-y-4 shadow-sm hover:border-[var(--primary)]/50 transition-all group duration-300">
+    <div className="bg-[var(--card)] p-5 sm:p-8 rounded-[2rem] border border-[var(--border)] space-y-3 sm:space-y-4 shadow-sm hover:border-[var(--primary)]/50 transition-all group duration-300">
         <div className="flex items-center justify-between">
             <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">{label}</p>
             <div className="w-8 h-8 rounded-lg bg-[var(--background)] flex items-center justify-center border border-[var(--border)] group-hover:bg-[var(--secondary)] transition-colors">
