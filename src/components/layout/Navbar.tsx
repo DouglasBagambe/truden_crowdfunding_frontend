@@ -15,12 +15,24 @@ import {
   Menu,
   X,
   ArrowRight,
+  ShieldCheck,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const router = useRouter();
+
+  const ADMIN_USER_ID = process.env.NEXT_PUBLIC_ADMIN_USER_ID || '';
+
+  const isAdmin = React.useMemo(() => {
+    if (!user) return false;
+    const uid = user.id || user._id || '';
+    const hasAdminRole = (user.roles || []).some((r: string) =>
+      ['ADMIN', 'admin', 'SUPER_ADMIN'].includes(r)
+    );
+    return (ADMIN_USER_ID && uid === ADMIN_USER_ID) || hasAdminRole;
+  }, [user, ADMIN_USER_ID]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -148,6 +160,11 @@ const Navbar = () => {
                     <Link href="/profile" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold hover:bg-[var(--secondary)] transition-colors">
                       <Settings size={16} /> Settings
                     </Link>
+                    {isAdmin && (
+                      <Link href="/admin" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-colors border-t border-[var(--border)] mt-1 pt-2">
+                        <ShieldCheck size={16} /> Admin Dashboard
+                      </Link>
+                    )}
                     <button
                       onClick={() => logout()}
                       className="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors border-t border-[var(--border)] mt-2"
@@ -277,6 +294,14 @@ const Navbar = () => {
                     label="Settings"
                     onClick={() => setMobileMenuOpen(false)}
                   />
+                  {isAdmin && (
+                    <MobileNavLink
+                      href="/admin"
+                      icon={<ShieldCheck size={18} className="text-amber-500" />}
+                      label="Admin Dashboard"
+                      onClick={() => setMobileMenuOpen(false)}
+                    />
+                  )}
                   <div className="py-2">
                     <div className="h-px bg-[var(--border)]" />
                   </div>
