@@ -180,19 +180,26 @@ export default function ProjectDetailPage() {
                 return;
             }
             setIsDonating(true);
-            await projectService.donateToCharity(projectId, {
+
+            const resolvedProjectId = (project as any)?.id || (project as any)?._id || projectId;
+            const projectType = 'CHARITY';
+            const description = `Donation to ${project?.name || 'Project'} - Keibo`;
+
+            const result = await paymentService.initializeDPOPayment({
+                projectId: String(resolvedProjectId),
                 amount: amountNumber,
+                currency: currency,
+                paymentMethod: 'card', // DPO handles the actual method choice on their page
+                projectType,
+                description,
                 donorName: donorName.trim() ? donorName.trim() : 'Anonymous',
             });
-            setIsDonateOpen(false);
-            setDonationAmount('');
-            setDonorName('');
-            await loadProject();
-            await loadDonors();
+
+            // Redirect user to DPO hosted payment page
+            window.location.href = result.redirectUrl;
         } catch (err: any) {
             console.error('Donation error:', err);
-            setDonationError(err?.response?.data?.message || 'Donation failed');
-        } finally {
+            setDonationError(err?.response?.data?.message || 'Failed to initialize payment. Please try again.');
             setIsDonating(false);
         }
     };
