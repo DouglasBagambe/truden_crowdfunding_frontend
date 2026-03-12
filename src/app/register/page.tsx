@@ -71,7 +71,7 @@ export default function RegisterPage() {
 
         {/* Registration Form */}
         <form onSubmit={handleRegister} className="space-y-5">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-1">First Name</label>
               <div className="relative group">

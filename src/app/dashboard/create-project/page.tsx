@@ -269,28 +269,28 @@ export default function CreateProjectPage() {
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col pt-16">
             {/* Step Indicator — 5 steps (skipping type selection) */}
-            <div className="bg-white border-b border-gray-200 sticky top-0 z-10 py-4 shadow-sm">
+            <div className="bg-white border-b border-gray-200 sticky top-0 z-10 py-3 sm:py-4 shadow-sm">
                 <div className="max-w-4xl mx-auto px-4">
                     <div className="flex items-center justify-between">
                         {[2, 3, 4, 5, 6].map((s, idx) => (
                             <div key={s} className="flex items-center">
                                 <div
-                                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${s === step
+                                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold transition-all text-sm ${s === step
                                         ? 'bg-emerald-600 text-white shadow-lg ring-4 ring-emerald-100'
                                         : s < step
                                             ? 'bg-emerald-500 text-white'
                                             : 'bg-gray-200 text-gray-400'
                                         }`}
                                 >
-                                    {s < step ? <CheckCircle2 className="w-5 h-5" /> : idx + 1}
+                                    {s < step ? <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" /> : idx + 1}
                                 </div>
                                 {idx < 4 && (
-                                    <div className={`h-1 w-8 md:w-16 mx-1 rounded-full ${s < step ? 'bg-emerald-500' : 'bg-gray-200'}`} />
+                                    <div className={`h-1 w-4 sm:w-16 mx-0.5 sm:mx-1 rounded-full ${s < step ? 'bg-emerald-500' : 'bg-gray-200'}`} />
                                 )}
                             </div>
                         ))}
                     </div>
-                    <div className="flex justify-between mt-3 text-[9px] font-black uppercase tracking-widest text-gray-500 px-1 overflow-x-auto gap-2">
+                    <div className="hidden sm:flex justify-between mt-3 text-[9px] font-black uppercase tracking-widest text-gray-500 px-1">
                         <span>Basic Info</span>
                         <span>Story</span>
                         <span>Funding</span>
@@ -308,7 +308,7 @@ export default function CreateProjectPage() {
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -20 }}
-                            className="bg-white rounded-3xl shadow-xl p-8 md:p-12 space-y-8 border border-gray-100"
+                            className="bg-white rounded-3xl shadow-xl p-6 sm:p-8 md:p-12 space-y-8 border border-gray-100"
                         >
                             <div className="flex items-center gap-4">
                                 <Link href="#" onClick={(e) => { e.preventDefault(); setStep(1); }} className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-blue-600 transition-colors">
@@ -757,14 +757,14 @@ export default function CreateProjectPage() {
                 </AnimatePresence>
 
                 {/* Action Buttons */}
-                <div className="mt-12 flex justify-between items-center bg-white/80 backdrop-blur-xl p-6 rounded-[2.5rem] shadow-2xl border border-white/50 sticky bottom-8">
+                <div className="mt-8 sm:mt-12 flex justify-between items-center bg-white/80 backdrop-blur-xl p-4 sm:p-6 rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl border border-white/50 sticky bottom-4 sm:bottom-8">
                     <button
                         onClick={prevStep}
                         disabled={step === 1 || loading}
-                        className={`flex items-center gap-3 px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-sm transition-all ${step === 1 ? 'text-gray-200 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-100 active:scale-95'
+                        className={`flex items-center gap-2 sm:gap-3 px-5 sm:px-10 py-4 sm:py-5 rounded-2xl font-black uppercase tracking-widest text-sm transition-all ${step === 1 ? 'text-gray-200 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-100 active:scale-95'
                             }`}
                     >
-                        <ArrowLeft className="w-5 h-5" /> Back
+                        <ArrowLeft className="w-5 h-5" /> <span className="hidden sm:inline">Back</span>
                     </button>
 
                     {step < 6 ? (

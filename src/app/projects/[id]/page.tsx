@@ -274,8 +274,8 @@ export default function ProjectDetailPage() {
         <div className="min-h-screen bg-[var(--background)] text-[var(--text-main)]">
             <Navbar />
 
-            <main className="pt-28 pb-24">
-                <div className="max-w-7xl mx-auto px-6">
+            <main className="pt-20 pb-24">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6">
 
                     {/* Back Button */}
                     <button
@@ -359,10 +359,10 @@ export default function ProjectDetailPage() {
                                         </span>
                                     )}
                                 </div>
-                                <h1 className="text-4xl lg:text-5xl font-black tracking-tight leading-tight mb-4">
+                                <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-black tracking-tight leading-tight mb-4">
                                     {project.name}
                                 </h1>
-                                <p className="text-xl text-[var(--text-muted)] font-medium leading-relaxed">
+                                <p className="text-base sm:text-xl text-[var(--text-muted)] font-medium leading-relaxed">
                                     {project.summary}
                                 </p>
                             </div>
@@ -417,12 +417,12 @@ export default function ProjectDetailPage() {
 
                             {/* Tabs */}
                             <div>
-                                <div className="flex items-center gap-1 border-b border-[var(--border)] mb-8">
+                                <div className="flex items-center gap-1 border-b border-[var(--border)] mb-6 overflow-x-auto scrollbar-hide">
                                     {(['story', 'timeline', 'updates'] as const).map((tab) => (
                                         <button
                                             key={tab}
                                             onClick={() => setActiveTab(tab)}
-                                            className={`px-6 py-3 text-sm font-black uppercase tracking-widest border-b-2 transition-all -mb-px ${activeTab === tab
+                                            className={`px-4 sm:px-6 py-3 text-xs sm:text-sm font-black uppercase tracking-widest border-b-2 transition-all -mb-px whitespace-nowrap flex-shrink-0 ${activeTab === tab
                                                 ? 'border-[var(--primary)] text-[var(--primary)]'
                                                 : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'
                                                 }`}
