@@ -77,11 +77,15 @@ const Navbar = () => {
   };
 
   const navCategories = [
-    { href: '/explore', label: 'All Causes' },
+    { href: '/explore', label: 'All Projects' },
     { href: '/explore?category=HEALTH', label: 'Health' },
     { href: '/explore?category=EDUCATION', label: 'Education' },
     { href: '/explore?category=ENVIRONMENT', label: 'Environment' },
     { href: '/explore?category=COMMUNITY', label: 'Community' },
+    { href: '/explore?industry=REAL_ESTATE', label: 'Real Estate' },
+    { href: '/explore?industry=TECHNOLOGY', label: 'Technology' },
+    { href: '/explore?industry=AGRICULTURE', label: 'Agriculture' },
+    { href: '/explore?industry=ENERGY', label: 'Energy' },
   ];
 
   return (

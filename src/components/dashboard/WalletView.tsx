@@ -76,13 +76,25 @@ export function WalletView() {
                                     </h3>
                                 </div>
                                 <p className="text-white/50 text-xs mt-1">
-                                    Your balance from donations received. Withdraw anytime to mobile money or bank.
+                                    Your balance from funding received. Withdraw anytime to mobile money or bank.
                                 </p>
                             </div>
                         </div>
 
-
-                    </div>
+                        {/* Crypto Balances */}
+                        <div className="pt-6 border-t border-white/10">
+                            <p className="text-white/70 text-[10px] font-black uppercase tracking-widest mb-4">Crypto Balances (Coming Soon)</p>
+                            <div className="flex gap-4">
+                                <div className="bg-white/10 rounded-xl p-3 flex-1 backdrop-blur-sm border border-white/5 opacity-50">
+                                    <p className="text-white/50 text-[10px] uppercase font-bold tracking-wider mb-1">USDT (TRC20)</p>
+                                    <p className="font-black">0.00</p>
+                                </div>
+                                <div className="bg-white/10 rounded-xl p-3 flex-1 backdrop-blur-sm border border-white/5 opacity-50">
+                                    <p className="text-white/50 text-[10px] uppercase font-bold tracking-wider mb-1">USDC (ERC20)</p>
+                                    <p className="font-black">0.00</p>
+                                </div>
+                            </div>
+                        </div>                    </div>
 
                     <div className="flex flex-col gap-3 justify-center min-w-[200px]">
                         <button
@@ -110,7 +122,7 @@ export function WalletView() {
                 {transactions.length === 0 ? (
                     <div className="py-16 text-center bg-[var(--card)] rounded-3xl border border-[var(--border)] border-dashed">
                         <p className="text-[var(--text-muted)] font-medium">No transactions yet.</p>
-                        <p className="text-xs text-[var(--text-muted)] mt-1 opacity-70">Donations you receive will appear here.</p>
+                        <p className="text-xs text-[var(--text-muted)] mt-1 opacity-70">Funds you receive will appear here.</p>
                     </div>
                 ) : (
                     <div className="space-y-3">
@@ -130,7 +142,7 @@ export function WalletView() {
                                         <p className="font-bold text-[var(--text-main)]">
                                             {tx.amount < 0
                                                 ? 'Withdrawal'
-                                                : 'Donation Received'}
+                                                : tx.type === 'INVESTMENT' ? 'Investment Received' : 'Donation Received'}
                                         </p>
                                         <p className="text-xs text-[var(--text-muted)] font-medium">
                                             {new Date(tx.createdAt).toLocaleDateString()} at {new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

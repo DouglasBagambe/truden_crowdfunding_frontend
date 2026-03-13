@@ -279,7 +279,29 @@ function ExplorePageContent() {
                                 </div>
                             )}
 
-
+                            {/* Project Type */}
+                            <div className="space-y-4">
+                                <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Project Type</h3>
+                                <div className="space-y-3">
+                                    {['ALL', 'ROI', 'CHARITY'].map((type) => (
+                                        <label key={type} className="flex items-center gap-3 cursor-pointer group">
+                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${draftProjectType === type ? accent.radioOn : `border-[var(--border)] ${accent.radioOff}`}`}>
+                                                {draftProjectType === type && <div className="w-2 h-2 rounded-full bg-white" />}
+                                            </div>
+                                            <input
+                                                type="radio"
+                                                className="hidden"
+                                                name="projectType"
+                                                checked={draftProjectType === type}
+                                                onChange={() => setDraftProjectType(type)}
+                                            />
+                                            <span className={`text-sm font-bold transition-colors ${draftProjectType === type ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-main)]'}`}>
+                                                {type === 'ALL' ? 'All Projects' : type === 'ROI' ? 'ROI Projects' : 'Charity Projects'}
+                                            </span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
 
                             {/* Status */}
                             <div className="space-y-4">
@@ -385,6 +407,30 @@ function ExplorePageContent() {
                                             )}
                                         </div>
                                     )}
+
+                                    {/* Project Type */}
+                                    <div className="space-y-4">
+                                        <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Project Type</h3>
+                                        <div className="space-y-3">
+                                            {['ALL', 'ROI', 'CHARITY'].map((type) => (
+                                                <label key={type} className="flex items-center gap-3 cursor-pointer group">
+                                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${draftProjectType === type ? accent.radioOn : `border-[var(--border)] ${accent.radioOff}`}`}>
+                                                        {draftProjectType === type && <div className="w-2 h-2 rounded-full bg-white" />}
+                                                    </div>
+                                                    <input
+                                                        type="radio"
+                                                        className="hidden"
+                                                        name="mobileProjectType"
+                                                        checked={draftProjectType === type}
+                                                        onChange={() => setDraftProjectType(type)}
+                                                    />
+                                                    <span className={`text-sm font-bold transition-colors ${draftProjectType === type ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-main)]'}`}>
+                                                        {type === 'ALL' ? 'All Projects' : type === 'ROI' ? 'ROI Projects' : 'Charity Projects'}
+                                                    </span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
 
                                     {/* Status */}
                                     <div className="space-y-4">

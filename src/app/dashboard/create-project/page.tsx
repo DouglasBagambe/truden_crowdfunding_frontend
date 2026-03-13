@@ -25,6 +25,7 @@ import {
     Heart,
     Target,
     Star,
+    TrendingUp,
     PlaySquare
 } from 'lucide-react';
 import { projectService, ProjectType, type CreateProjectParams } from '@/lib/project-service';
@@ -38,6 +39,19 @@ const CHARITY_CATEGORIES = [
     { label: 'NGO', value: 'ngo' },
     { label: 'Individual', value: 'individual' },
     { label: 'Family', value: 'family' }
+];
+
+const ROI_INDUSTRIES = [
+    { label: 'Technology', value: 'technology' },
+    { label: 'Health', value: 'health' },
+    { label: 'Education', value: 'education' },
+    { label: 'Agriculture', value: 'agriculture' },
+    { label: 'Energy', value: 'energy' },
+    { label: 'Financial Services', value: 'financial_services' },
+    { label: 'Manufacturing', value: 'manufacturing' },
+    { label: 'Real Estate', value: 'real_estate' },
+    { label: 'Transport', value: 'transport' },
+    { label: 'Other', value: 'other' }
 ];
 
 const CHARITY_SUBCATEGORIES = [
@@ -66,8 +80,8 @@ export default function CreateProjectPage() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
-    // Start at step 2 directly — charity-only, no type selection needed
-    const [step, setStep] = useState(2);
+    const [step, setStep] = useState(1);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -78,12 +92,13 @@ export default function CreateProjectPage() {
         }
     }, [isAuthenticated, isAuthLoading, router]);
 
-    // Form State — always CHARITY
+    // Form State
     const [formData, setFormData] = useState<CreateProjectParams>({
         name: '',
         type: ProjectType.CHARITY,
         category: 'ngo',
         subcategory: 'education',
+        industry: 'technology',
         summary: '',
         story: '',
         country: 'Uganda',
@@ -103,6 +118,12 @@ export default function CreateProjectPage() {
     });
 
     const nextStep = () => {
+        // Step 1: Just choosing type, handled by the Confirmation Modal
+        if (step === 1) {
+            setShowConfirmModal(true);
+            return;
+        }
+
         if (step === 2) {
             if (!formData.name || formData.name.length < 4) {
                 setError('Project name must be at least 4 characters');
@@ -136,7 +157,12 @@ export default function CreateProjectPage() {
         setStep(s => Math.min(s + 1, 6));
     };
 
-    const prevStep = () => setStep(s => Math.max(s - 1, 2));
+    const confirmTypeAndNext = () => {
+        setShowConfirmModal(false);
+        setStep(2);
+    };
+
+    const prevStep = () => setStep(s => Math.max(s - 1, 1));
 
     const handleCreate = async () => {
         setLoading(true);
@@ -268,29 +294,30 @@ export default function CreateProjectPage() {
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col pt-16">
-            {/* Step Indicator — 5 steps (skipping type selection) */}
+            {/* Step Indicator */}
             <div className="bg-white border-b border-gray-200 sticky top-0 z-10 py-3 sm:py-4 shadow-sm">
                 <div className="max-w-4xl mx-auto px-4">
                     <div className="flex items-center justify-between">
-                        {[2, 3, 4, 5, 6].map((s, idx) => (
+                        {[1, 2, 3, 4, 5, 6].map((s) => (
                             <div key={s} className="flex items-center">
                                 <div
                                     className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold transition-all text-sm ${s === step
-                                        ? 'bg-emerald-600 text-white shadow-lg ring-4 ring-emerald-100'
+                                        ? 'bg-blue-600 text-white shadow-lg ring-4 ring-blue-100'
                                         : s < step
                                             ? 'bg-emerald-500 text-white'
                                             : 'bg-gray-200 text-gray-400'
                                         }`}
                                 >
-                                    {s < step ? <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" /> : idx + 1}
+                                    {s < step ? <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" /> : s}
                                 </div>
-                                {idx < 4 && (
+                                {s < 6 && (
                                     <div className={`h-1 w-4 sm:w-16 mx-0.5 sm:mx-1 rounded-full ${s < step ? 'bg-emerald-500' : 'bg-gray-200'}`} />
                                 )}
                             </div>
                         ))}
                     </div>
-                    <div className="hidden sm:flex justify-between mt-3 text-[9px] font-black uppercase tracking-widest text-gray-500 px-1">
+                    <div className="hidden sm:flex justify-between mt-3 text-[9px] font-black uppercase tracking-widest text-gray-500 px-1 overflow-x-auto gap-2">
+                        <span>Project Type</span>
                         <span>Basic Info</span>
                         <span>Story</span>
                         <span>Funding</span>
@@ -302,6 +329,99 @@ export default function CreateProjectPage() {
 
             <div className="flex-grow max-w-4xl mx-auto w-full px-4 py-8">
                 <AnimatePresence mode="wait">
+                    {/* Step 1: Choose Path */}
+                    {step === 1 && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.98 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.98 }}
+                            className="bg-white rounded-[3rem] shadow-2xl p-8 md:p-16 space-y-12 border border-blue-50/50"
+                        >
+                            <div className="text-center space-y-4 max-w-2xl mx-auto">
+                                <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+                                    Choose Your Funding Path
+                                </h1>
+                                <p className="text-lg md:text-xl text-slate-500 font-medium">
+                                    Different goals require different structures. Select the model that fits your vision.
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                <button
+                                    onClick={() => setFormData({ ...formData, type: ProjectType.CHARITY })}
+                                    className={`relative p-8 md:p-10 rounded-[2.5rem] text-left transition-all duration-500 overflow-hidden group border-4 ${formData.type === ProjectType.CHARITY
+                                        ? 'border-emerald-600 bg-emerald-50/30'
+                                        : 'border-slate-50 bg-slate-50/30 hover:bg-emerald-50/10 hover:border-emerald-200'
+                                        }`}
+                                >
+                                    <div className={`w-16 h-16 md:w-20 md:h-20 rounded-3xl flex items-center justify-center mb-8 transition-all duration-500 ${formData.type === ProjectType.CHARITY ? 'bg-emerald-600 text-white shadow-2xl shadow-emerald-500/40 rotate-6' : 'bg-white text-slate-400 border-2 border-slate-100'}`}>
+                                        <Heart size={36} />
+                                    </div>
+                                    <h3 className="text-2xl md:text-3xl font-black text-slate-900 mb-4 tracking-tight">Charity</h3>
+                                    <p className="text-sm md:text-base text-slate-500 font-medium leading-relaxed mb-6">
+                                        For charities, humanitarian aid, and community projects where funding is donation-based.
+                                    </p>
+                                    <ul className="space-y-4">
+                                        {[
+                                            'Donation-based funding',
+                                            'Transparent milestone tracking',
+                                            'Impact focused reporting',
+                                            'Community-driven reach'
+                                        ].map((item, idx) => (
+                                            <li key={idx} className="flex items-center gap-3 text-sm font-bold text-slate-600">
+                                                <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                                                    <CheckCircle2 size={12} />
+                                                </div>
+                                                {item}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    {formData.type === ProjectType.CHARITY && (
+                                        <div className="absolute top-6 right-6 text-emerald-600 hidden md:block">
+                                            <CheckCircle2 size={32} />
+                                        </div>
+                                    )}
+                                </button>
+
+                                <button
+                                    onClick={() => setFormData({ ...formData, type: ProjectType.ROI })}
+                                    className={`relative p-8 md:p-10 rounded-[2.5rem] text-left transition-all duration-500 overflow-hidden group border-4 ${formData.type === ProjectType.ROI
+                                        ? 'border-blue-600 bg-blue-50/30'
+                                        : 'border-slate-50 bg-slate-50/30 hover:bg-blue-50/10 hover:border-blue-200'
+                                        }`}
+                                >
+                                    <div className={`w-16 h-16 md:w-20 md:h-20 rounded-3xl flex items-center justify-center mb-8 transition-all duration-500 ${formData.type === ProjectType.ROI ? 'bg-blue-600 text-white shadow-2xl shadow-blue-500/40 -rotate-6' : 'bg-white text-slate-400 border-2 border-slate-100'}`}>
+                                        <TrendingUp size={36} />
+                                    </div>
+                                    <h3 className="text-2xl md:text-3xl font-black text-slate-900 mb-4 tracking-tight">Investment / ROI</h3>
+                                    <p className="text-sm md:text-base text-slate-500 font-medium leading-relaxed mb-6">
+                                        For businesses and innovations seeking growth capital in exchange for returns or stake.
+                                    </p>
+                                    <ul className="space-y-4">
+                                        {[
+                                            'Equity-based model',
+                                            'Backer financial returns',
+                                            'Scalability and profit focused',
+                                            'Strategic investor network'
+                                        ].map((item, idx) => (
+                                            <li key={idx} className="flex items-center gap-3 text-sm font-bold text-slate-600">
+                                                <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                                                    <CheckCircle2 size={12} />
+                                                </div>
+                                                {item}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    {formData.type === ProjectType.ROI && (
+                                        <div className="absolute top-6 right-6 text-blue-600 hidden md:block">
+                                            <CheckCircle2 size={32} />
+                                        </div>
+                                    )}
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+
                     {/* Step 2: Basic Info */}
                     {step === 2 && (
                         <motion.div
@@ -332,25 +452,40 @@ export default function CreateProjectPage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Category</label>
+                                    <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">
+                                        {formData.type === ProjectType.CHARITY ? 'Category' : 'Industry'}
+                                    </label>
                                     <select
-                                        value={formData.category}
-                                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                        value={formData.type === ProjectType.CHARITY ? formData.category : formData.industry}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (formData.type === ProjectType.CHARITY) {
+                                                setFormData({ ...formData, category: val });
+                                            } else {
+                                                setFormData({ ...formData, industry: val });
+                                            }
+                                        }}
                                         className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-gray-900 outline-none focus:ring-4 focus:ring-blue-100"
                                     >
-                                        {CHARITY_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                                        {formData.type === ProjectType.CHARITY ? (
+                                            CHARITY_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)
+                                        ) : (
+                                            ROI_INDUSTRIES.map(i => <option key={i.value} value={i.value}>{i.label}</option>)
+                                        )}
                                     </select>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Subcategory</label>
-                                    <select
-                                        value={formData.subcategory}
-                                        onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
-                                        className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-gray-900 outline-none focus:ring-4 focus:ring-blue-100"
-                                    >
-                                        {CHARITY_SUBCATEGORIES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                                    </select>
-                                </div>
+                                {formData.type === ProjectType.CHARITY && (
+                                    <div>
+                                        <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Subcategory</label>
+                                        <select
+                                            value={formData.subcategory}
+                                            onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
+                                            className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-gray-900 outline-none focus:ring-4 focus:ring-blue-100"
+                                        >
+                                            {CHARITY_SUBCATEGORIES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                                        </select>
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Country of Operation</label>
                                     <div className="relative">
@@ -798,6 +933,49 @@ export default function CreateProjectPage() {
                 </div>
             </div>
 
+            {/* Confirmation Modal */}
+            <AnimatePresence>
+                {showConfirmModal && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
+                            onClick={() => setShowConfirmModal(false)}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl p-10 text-center border border-slate-100"
+                        >
+                            <div className={`w-20 h-20 rounded-3xl mx-auto flex items-center justify-center mb-8 ${formData.type === ProjectType.CHARITY ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'}`}>
+                                {formData.type === ProjectType.CHARITY ? <Heart size={36} /> : <TrendingUp size={36} />}
+                            </div>
+                            <h2 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">Confirm Project Path</h2>
+                            <p className="text-slate-500 font-medium leading-relaxed mb-10 text-lg">
+                                You are choosing to create a <span className="font-bold text-slate-900">{formData.type}</span> project.
+                                This decision <span className="text-rose-500 font-bold underline">cannot be changed</span> once you proceed to the next step.
+                            </p>
+                            <div className="space-y-3">
+                                <button
+                                    onClick={confirmTypeAndNext}
+                                    className={`w-full py-5 rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl hover:-translate-y-1 transition-all ${formData.type === ProjectType.CHARITY ? 'bg-emerald-600 text-white shadow-emerald-200' : 'bg-blue-600 text-white shadow-blue-200'}`}
+                                >
+                                    Proceed to Basics
+                                </button>
+                                <button
+                                    onClick={() => setShowConfirmModal(false)}
+                                    className="w-full py-5 text-slate-400 font-black uppercase tracking-widest text-xs hover:text-slate-900 transition-colors"
+                                >
+                                    Go Back
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
