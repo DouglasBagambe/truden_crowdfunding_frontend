@@ -1,5 +1,7 @@
 import { apiClient } from './api-client';
 
+// NOTE: projectOnchainId, nft fields, walletAddress preserved in blockchain/nfts-future branch.
+
 export enum InvestmentStatus {
     Pending = 'pending',
     Active = 'active',
@@ -10,7 +12,8 @@ export enum InvestmentStatus {
 export interface CreateInvestmentDto {
     projectId: string;
     amount: string;
-    projectOnchainId?: string;
+    currency?: string;
+    notes?: string;
 }
 
 export interface Investment {
@@ -18,8 +21,9 @@ export interface Investment {
     projectId: string;
     investorId: string;
     amount: number;
+    currency?: string;
     txHash: string | null;
-    nftId: string | null;
+    nftId?: string | null; // future use — see blockchain/nfts-future branch
     status: InvestmentStatus;
     createdAt: Date;
     updatedAt: Date;
@@ -32,12 +36,7 @@ export interface Investment {
     };
     investor?: {
         id: string;
-        walletAddress?: string;
         kycStatus?: string;
-    };
-    nft?: {
-        id: string | null;
-        metadata: Record<string, unknown> | null;
     };
 }
 
@@ -48,7 +47,7 @@ export const investmentService = {
     },
 
     async getMyInvestments(): Promise<Investment[]> {
-        const response = await apiClient.get('/investments/me'); // ← was '/investments/my'
+        const response = await apiClient.get('/investments/my');
         return response.data;
     },
 

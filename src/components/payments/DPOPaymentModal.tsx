@@ -477,7 +477,7 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
                                         <div>
                                             <h3 className="text-xl font-black text-[var(--text-main)]">Investment Confirmed!</h3>
                                             <p className="text-sm text-[var(--text-muted)] mt-1 font-medium">
-                                                {currency} {parseFloat(amount).toLocaleString()} received. Your investment NFT is being minted.
+                                                {currency} {parseFloat(amount).toLocaleString()} received. Your investment has been recorded successfully.
                                             </p>
                                         </div>
                                         <button
