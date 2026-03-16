@@ -12,11 +12,12 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { projectService } from '@/lib/project-service';
 import { apiClient } from '@/lib/api-client';
+import { kycAdminService, type KycAdminListItem } from '@/lib/kyc-admin-service';
 import toast from 'react-hot-toast';
 
 const ADMIN_USER_ID = process.env.NEXT_PUBLIC_ADMIN_USER_ID || '';
 
-type AdminTab = 'overview' | 'projects' | 'users';
+type AdminTab = 'overview' | 'projects' | 'kyc' | 'users';
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
@@ -57,11 +58,15 @@ export default function AdminPage() {
   // Data
   const [allProjects, setAllProjects] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [kycProfiles, setKycProfiles] = useState<KycAdminListItem[]>([]);
+  const [kycTotal, setKycTotal] = useState(0);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [loadingKyc, setLoadingKyc] = useState(false);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('');
+  const [kycStatusFilter, setKycStatusFilter] = useState('');
   const [projectSearch, setProjectSearch] = useState('');
   const [userSearch, setUserSearch] = useState('');
 
@@ -90,7 +95,7 @@ export default function AdminPage() {
   }, [authLoading, isAuthenticated, isAdmin, router]);
 
   useEffect(() => {
-    if (isAdmin) { loadProjects(); loadUsers(); }
+    if (isAdmin) { loadProjects(); loadUsers(); loadKycProfiles(); }
   }, [isAdmin]);
 
   const loadProjects = async () => {
@@ -119,6 +124,27 @@ export default function AdminPage() {
       setUsers(list);
     } catch { setUsers([]); }
     finally { setLoadingUsers(false); }
+  };
+
+  const loadKycProfiles = async (status?: string) => {
+    setLoadingKyc(true);
+    try {
+      const res = await kycAdminService.listProfiles({ status: status || kycStatusFilter || undefined, pageSize: 50 });
+      setKycProfiles(res.items);
+      setKycTotal(res.total);
+    } catch { setKycProfiles([]); }
+    finally { setLoadingKyc(false); }
+  };
+
+  const overrideKycStatus = async (profileId: string, status: string, reason?: string) => {
+    const tid = toast.loading(status === 'APPROVED' ? 'Approving KYC...' : 'Rejecting KYC...');
+    try {
+      await kycAdminService.overrideStatus(profileId, { status, rejectionReason: reason });
+      toast.success(`KYC ${status.toLowerCase()}`, { id: tid });
+      await loadKycProfiles();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || 'Action failed', { id: tid });
+    }
   };
 
   // Project decision (approve / reject / changes-requested / revoke / re-approve)
@@ -182,6 +208,7 @@ export default function AdminPage() {
     ), [users, userSearch]);
 
   const pendingCount = allProjects.filter(p => p.status === 'PENDING_REVIEW').length;
+  const pendingKycCount = kycProfiles.filter(p => p.status === 'PENDING' || p.status === 'UNDER_REVIEW').length;
   const approvedCount = allProjects.filter(p => ['APPROVED', 'FUNDING', 'FUNDED'].includes(p.status)).length;
   const rejectedCount = allProjects.filter(p => p.status === 'REJECTED').length;
 
@@ -206,6 +233,7 @@ export default function AdminPage() {
   const tabs: { key: AdminTab; label: string; icon: React.ReactNode; badge?: number }[] = [
     { key: 'overview', label: 'Overview', icon: <LayoutDashboard size={16} /> },
     { key: 'projects', label: 'Campaigns', icon: <FolderOpen size={16} />, badge: pendingCount || undefined },
+    { key: 'kyc', label: 'KYC Review', icon: <ShieldCheck size={16} />, badge: pendingKycCount || undefined },
     { key: 'users', label: 'Users', icon: <Users size={16} />, badge: users.length || undefined },
   ];
 
@@ -394,7 +422,14 @@ export default function AdminPage() {
                         {/* Top bar */}
                         <div className="p-5 border-b border-[var(--border)] flex items-center gap-3 flex-wrap">
                           <StatusBadge status={p.status} />
-                          <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-slate-500/10 text-slate-400">
+                          <span
+                            className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full border"
+                            style={{
+                              background: (p.projectType || p.type) === 'ROI' ? 'rgba(59,130,246,0.1)' : 'rgba(16,185,129,0.1)',
+                              color: (p.projectType || p.type) === 'ROI' ? '#60a5fa' : '#34d399',
+                              borderColor: (p.projectType || p.type) === 'ROI' ? 'rgba(59,130,246,0.3)' : 'rgba(16,185,129,0.3)',
+                            }}
+                          >
                             {p.projectType || p.type || 'CHARITY'}
                           </span>
                           {p.category && (
@@ -504,6 +539,97 @@ export default function AdminPage() {
                     );
                   })}
                 </div>
+              </div>
+            )}
+
+            {/* ── KYC REVIEW ── */}
+            {activeTab === 'kyc' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  <div>
+                    <h2 className="text-2xl font-black">KYC Review</h2>
+                    <p className="text-sm text-[var(--text-muted)] mt-1">
+                      Review and approve/reject identity verifications submitted by users.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <select
+                      value={kycStatusFilter}
+                      onChange={e => { setKycStatusFilter(e.target.value); loadKycProfiles(e.target.value); }}
+                      className="px-3 py-2 rounded-xl bg-[var(--secondary)] border border-[var(--border)] text-sm font-bold outline-none"
+                    >
+                      <option value="">All Statuses</option>
+                      <option value="PENDING">Pending</option>
+                      <option value="UNDER_REVIEW">Under Review</option>
+                      <option value="APPROVED">Approved</option>
+                      <option value="REJECTED">Rejected</option>
+                      <option value="EXPIRED">Expired</option>
+                    </select>
+                    <button onClick={() => loadKycProfiles()} disabled={loadingKyc}
+                      className="p-2 rounded-xl bg-[var(--secondary)] border border-[var(--border)] hover:border-[var(--primary)] transition-all">
+                      <RefreshCw size={16} className={loadingKyc ? 'animate-spin text-[var(--primary)]' : 'text-[var(--text-muted)]'} />
+                    </button>
+                  </div>
+                </div>
+
+                {loadingKyc ? (
+                  <div className="py-20 flex items-center justify-center bg-[var(--card)] rounded-3xl border border-[var(--border)]">
+                    <Loader2 className="w-8 h-8 text-[var(--primary)] animate-spin" />
+                  </div>
+                ) : kycProfiles.length === 0 ? (
+                  <div className="py-20 text-center bg-[var(--card)] rounded-3xl border border-[var(--border)] text-[var(--text-muted)] font-medium">
+                    No KYC submissions found.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {kycProfiles.map(kyc => {
+                      const statusColors: Record<string, string> = {
+                        APPROVED: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+                        PENDING: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+                        UNDER_REVIEW: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+                        REJECTED: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+                        EXPIRED: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+                      };
+                      const sc = statusColors[kyc.status] ?? 'bg-gray-500/10 text-gray-400 border-gray-500/20';
+                      const isPending = kyc.status === 'PENDING' || kyc.status === 'UNDER_REVIEW';
+                      return (
+                        <div key={kyc.id} className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 flex items-center gap-4 flex-wrap hover:border-[var(--primary)]/30 transition-all">
+                          <div className="w-10 h-10 rounded-xl bg-[var(--secondary)] flex items-center justify-center flex-shrink-0">
+                            <ShieldCheck size={18} className="text-[var(--text-muted)]" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-black text-sm">User: {kyc.userId.slice(-8)}</p>
+                            <p className="text-xs text-[var(--text-muted)] font-medium">
+                              {kyc.documentCount} document(s) · Submitted {kyc.submittedAt ? new Date(kyc.submittedAt).toLocaleDateString() : '—'}
+                            </p>
+                          </div>
+                          <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border ${sc}`}>
+                            {kyc.status}
+                          </span>
+                          {isPending && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => overrideKycStatus(kyc.id, 'APPROVED')}
+                                className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest transition-all"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const reason = prompt('Rejection reason (shown to user):');
+                                  if (reason !== null) overrideKycStatus(kyc.id, 'REJECTED', reason);
+                                }}
+                                className="px-4 py-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[10px] font-black uppercase tracking-widest hover:bg-rose-500/20 transition-all"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
