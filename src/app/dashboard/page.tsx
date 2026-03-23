@@ -340,6 +340,13 @@ export default function DashboardPage() {
                                     <div className="space-y-6">
                                         <div className="flex items-center justify-between">
                                             <h3 className="text-lg font-bold tracking-tight">Your NFT Portfolio</h3>
+                                            <Link
+                                                href="/marketplace"
+                                                className="flex items-center gap-1.5 text-purple-500 font-bold text-sm hover:text-purple-400 transition"
+                                            >
+                                                <ImageIcon size={14} />
+                                                Browse Marketplace →
+                                            </Link>
                                         </div>
                                         <NFTPortfolio />
                                     </div>

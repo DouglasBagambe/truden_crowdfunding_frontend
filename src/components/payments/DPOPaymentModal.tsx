@@ -19,7 +19,7 @@ import { useQueryClient } from '@tanstack/react-query';
 // ─── Types ────────────────────────────────────────────────────
 type PaymentMethod = 'mobile_money' | 'card';
 type MNO = 'MTN' | 'AIRTEL';
-type Step = 'method' | 'details' | 'waiting' | 'success' | 'failed';
+type Step = 'method' | 'details' | 'wallet' | 'waiting' | 'success' | 'failed';
 
 interface DPOPaymentModalProps {
     isOpen: boolean;
@@ -66,6 +66,10 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
     const [cardCvv, setCardCvv] = useState('');
     const [cardName, setCardName] = useState('');
 
+    // Wallet (NFT) — only relevant for ROI projects
+    const [walletAddress, setWalletAddress] = useState('');
+    const isROI = !['CHARITY', 'charity'].includes(project.projectType ?? '');
+
     const reset = useCallback(() => {
         setStep('method');
         setAmount('');
@@ -78,6 +82,7 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
         setCardExpiry('');
         setCardCvv('');
         setCardName('');
+        setWalletAddress('');
     }, []);
 
     const handleClose = () => {
@@ -85,7 +90,7 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
         onClose();
     };
 
-    // ── Step 1: Proceed from method/amount to details ──────────────────────────
+    // ── Step 1: Proceed from method/amount ────────────────────────────────────
     const handleProceed = () => {
         setError('');
         const amt = parseFloat(amount);
@@ -93,6 +98,17 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
             setError('Please enter a valid amount');
             return;
         }
+        // For ROI projects, ask for wallet address before entering payment details
+        if (isROI) {
+            setStep('wallet');
+        } else {
+            setStep('details');
+        }
+    };
+
+    // ── Step 1b: Proceed from wallet step ────────────────────────────────────
+    const handleWalletProceed = () => {
+        // Wallet is optional — user can skip it (NFT won't be minted automatically)
         setStep('details');
     };
 
@@ -120,6 +136,7 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
                     paymentMethod: 'mobile_money',
                     phoneNumber: formattedPhone,
                     mno,
+                    walletAddress: walletAddress.trim() || undefined,
                 });
             } else {
                 // Card
@@ -136,6 +153,7 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
                         cvv: cardCvv,
                         holderName: cardName,
                     },
+                    walletAddress: walletAddress.trim() || undefined,
                 });
             }
 
@@ -303,6 +321,54 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
                                         >
                                             Continue →
                                         </button>
+                                    </motion.div>
+                                )}
+
+                                {/* ── Step: wallet ─────────────────────────────────── */}
+                                {step === 'wallet' && (
+                                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
+                                        <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-2xl p-4 flex gap-3">
+                                            <span className="text-2xl">🎫</span>
+                                            <div>
+                                                <p className="font-black text-sm text-[var(--text-main)]">Receive your Investment NFT</p>
+                                                <p className="text-xs text-[var(--text-muted)] mt-1 font-medium">
+                                                    After payment, we'll mint an ERC-1155 NFT representing your stake.
+                                                    Provide your wallet address to receive it automatically. You can skip and claim later from your dashboard.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                                                Your Wallet Address (optional)
+                                            </label>
+                                            <input
+                                                id="dpo-wallet-address"
+                                                type="text"
+                                                value={walletAddress}
+                                                onChange={(e) => setWalletAddress(e.target.value)}
+                                                placeholder="0x..."
+                                                className="input_field font-mono text-sm"
+                                            />
+                                            <p className="text-[10px] text-[var(--text-muted)] font-medium pl-1">
+                                                MetaMask, Coinbase Wallet, or any Ethereum-compatible wallet on Base network.
+                                            </p>
+                                        </div>
+
+                                        <div className="flex gap-3">
+                                            <button
+                                                onClick={() => setStep('method')}
+                                                className="flex-1 py-4 border border-[var(--border)] rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white/5 transition-all"
+                                            >
+                                                ← Back
+                                            </button>
+                                            <button
+                                                onClick={handleWalletProceed}
+                                                className="flex-[2] py-4 bg-[var(--primary)] text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:opacity-90 active:scale-[0.98] transition-all shadow-xl shadow-blue-500/20"
+                                            >
+                                                {walletAddress.trim() ? 'Continue →' : 'Skip & Continue →'}
+                                            </button>
+                                        </div>
                                     </motion.div>
                                 )}
 
@@ -475,10 +541,20 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
                                             <CheckCircle className="w-10 h-10 text-emerald-400" />
                                         </div>
                                         <div>
-                                            <h3 className="text-xl font-black text-[var(--text-main)]">Investment Confirmed!</h3>
+                                            <h3 className="text-xl font-black text-[var(--text-main)]">Investment Confirmed! 🎫</h3>
                                             <p className="text-sm text-[var(--text-muted)] mt-1 font-medium">
-                                                {currency} {parseFloat(amount).toLocaleString()} received. Your investment has been recorded successfully.
+                                                {currency} {parseFloat(amount).toLocaleString()} received. Your investment has been recorded.
                                             </p>
+                                            {isROI && walletAddress && (
+                                                <p className="text-xs text-purple-400 mt-2 font-medium">
+                                                    🎫 NFT will be minted to {walletAddress.slice(0, 6)}…{walletAddress.slice(-4)} shortly.
+                                                </p>
+                                            )}
+                                            {isROI && !walletAddress && (
+                                                <p className="text-xs text-gray-400 mt-2">
+                                                    Connect your wallet in the Dashboard → My NFTs to claim your NFT stake.
+                                                </p>
+                                            )}
                                         </div>
                                         <button
                                             onClick={handleClose}

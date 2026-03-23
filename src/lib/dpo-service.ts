@@ -36,6 +36,8 @@ export const dpoService = {
       cvv: string;
       holderName: string;
     };
+    /** Self-custodial wallet address for NFT minting (ROI projects) */
+    walletAddress?: string;
   }): Promise<DPOInitializeResult> {
     const res = await apiClient.post<DPOInitializeResult>('/payments/dpo/initialize', params);
     return res.data;

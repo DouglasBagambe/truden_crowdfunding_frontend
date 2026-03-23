@@ -16,6 +16,7 @@ import {
   X,
   ArrowRight,
   ShieldCheck,
+  Store,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -121,6 +122,15 @@ const Navbar = () => {
                 </div>
               </div>
             </div>
+
+            {/* Marketplace link
+            <Link
+              href="/marketplace"
+              className="flex items-center gap-1.5 text-sm font-bold text-[var(--text-muted)] hover:text-purple-500 transition-colors tracking-tight px-3 py-2 rounded-xl hover:bg-purple-500/5"
+            >
+              <Store size={15} className="text-purple-500" />
+              Marketplace
+            </Link> */}
 
             {/* Search bar */}
             <div ref={searchWrapRef} className="relative w-[320px]">
@@ -286,6 +296,12 @@ const Navbar = () => {
             <div className="flex-1 p-4 space-y-1">
               {user && (
                 <>
+                  <MobileNavLink
+                    href="/marketplace"
+                    icon={<Store size={18} className="text-purple-500" />}
+                    label="Marketplace"
+                    onClick={() => setMobileMenuOpen(false)}
+                  />
                   <MobileNavLink
                     href="/dashboard"
                     icon={<LayoutDashboard size={18} />}
