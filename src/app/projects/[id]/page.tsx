@@ -861,35 +861,32 @@ export default function ProjectDetailPage() {
 
             {/* ── KYC Prompt Modal ── */}
             {isKycPromptOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-6">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-6" onClick={() => setIsKycPromptOpen(false)}>
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        className="w-full max-w-md bg-[var(--card)] border border-[var(--border)] rounded-3xl overflow-hidden shadow-2xl"
+                        initial={{ opacity: 0, scale: 0.97 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="w-full max-w-sm bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-2xl"
+                        onClick={e => e.stopPropagation()}
                     >
-                        <div className="p-8 text-center space-y-6">
-                            <div className="w-20 h-20 bg-blue-500/10 rounded-[2rem] flex items-center justify-center mx-auto border border-blue-500/20">
-                                <ShieldCheck className="w-9 h-9 text-blue-500" />
-                            </div>
-
+                        <div className="p-6 space-y-5">
                             {(user as any)?.kycStatus === 'PENDING' ? (
                                 <>
-                                    <div className="space-y-2">
-                                        <h3 className="text-xl font-black">Verification In Progress</h3>
-                                        <p className="text-sm text-[var(--text-muted)] font-medium leading-relaxed max-w-xs mx-auto">
-                                            Your identity verification is currently under review. You'll be able to invest once it's approved.
+                                    <div>
+                                        <h3 className="text-lg font-bold">Verification In Progress</h3>
+                                        <p className="text-sm text-[var(--text-muted)] mt-1.5 leading-relaxed">
+                                            Your identity verification is under review. You'll be able to invest once it's approved.
                                         </p>
                                     </div>
                                     <div className="flex gap-3">
                                         <button
                                             onClick={() => setIsKycPromptOpen(false)}
-                                            className="flex-1 py-3 border border-[var(--border)] rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white/5 transition-all"
+                                            className="flex-1 py-2.5 border border-[var(--border)] rounded-xl text-sm font-semibold hover:bg-[var(--secondary)] transition-all"
                                         >
                                             Close
                                         </button>
                                         <button
                                             onClick={() => { setIsKycPromptOpen(false); router.push('/dashboard?tab=kyc'); }}
-                                            className="flex-1 py-3 bg-blue-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-500 transition-all"
+                                            className="flex-1 py-2.5 bg-[var(--primary)] text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-all"
                                         >
                                             Check Status
                                         </button>
@@ -897,38 +894,31 @@ export default function ProjectDetailPage() {
                                 </>
                             ) : (
                                 <>
-                                    <div className="space-y-2">
-                                        <h3 className="text-xl font-black">Identity Verification Required</h3>
-                                        <p className="text-sm text-[var(--text-muted)] font-medium leading-relaxed max-w-xs mx-auto">
-                                            To protect investors and comply with regulations, you must complete identity verification (KYC) before making investments.
+                                    <div>
+                                        <h3 className="text-lg font-bold">Verify Your Identity</h3>
+                                        <p className="text-sm text-[var(--text-muted)] mt-1.5 leading-relaxed">
+                                            Identity verification is required before you can invest. It only takes a couple of minutes.
                                         </p>
                                     </div>
 
-                                    <div className="space-y-2 text-left bg-[var(--secondary)] rounded-2xl p-4">
-                                        {[
-                                            'Government-issued photo ID',
-                                            'Quick selfie verification',
-                                            'Takes about 2 minutes',
-                                        ].map((item, i) => (
-                                            <div key={i} className="flex items-center gap-2.5 text-sm text-[var(--text-muted)] font-medium">
-                                                <CheckCircle size={14} className="text-emerald-400 flex-shrink-0" />
-                                                {item}
-                                            </div>
-                                        ))}
-                                    </div>
+                                    <ul className="text-sm text-[var(--text-muted)] space-y-1.5 pl-1">
+                                        <li>• Government-issued photo ID</li>
+                                        <li>• Quick selfie for liveness check</li>
+                                        <li>• Usually takes under 2 minutes</li>
+                                    </ul>
 
                                     <div className="flex gap-3">
                                         <button
                                             onClick={() => setIsKycPromptOpen(false)}
-                                            className="flex-1 py-3 border border-[var(--border)] rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white/5 transition-all"
+                                            className="flex-1 py-2.5 border border-[var(--border)] rounded-xl text-sm font-semibold hover:bg-[var(--secondary)] transition-all"
                                         >
-                                            Maybe Later
+                                            Later
                                         </button>
                                         <button
                                             onClick={() => { setIsKycPromptOpen(false); router.push('/dashboard?tab=kyc'); }}
-                                            className="flex-1 py-3 bg-blue-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-500 transition-all flex items-center justify-center gap-2"
+                                            className="flex-1 py-2.5 bg-[var(--primary)] text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-all"
                                         >
-                                            <ShieldCheck size={14} /> Verify Now
+                                            Verify Now
                                         </button>
                                     </div>
                                 </>
