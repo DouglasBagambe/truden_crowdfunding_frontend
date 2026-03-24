@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import {
   User, Wallet, Shield, Bell, Sun, Moon, Mail,
   HelpCircle, Send, TrendingUp, TrendingDown,
-  Activity, Loader2, Eye, EyeOff, CheckCircle
+  Activity, Loader2, Eye, EyeOff, CheckCircle, ShieldCheck, XCircle, Clock
 } from 'lucide-react';
 import { userService } from '@/lib/user-service';
 import { walletService, type WalletBalance } from '@/lib/wallet-service';
@@ -130,8 +130,8 @@ export default function SettingsPage() {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex-shrink-0 ${activeTab === tab.id
-                        ? 'bg-[var(--primary)] text-white shadow-sm'
-                        : 'text-[var(--text-muted)] hover:bg-[var(--secondary)] hover:text-[var(--text-main)]'
+                      ? 'bg-[var(--primary)] text-white shadow-sm'
+                      : 'text-[var(--text-muted)] hover:bg-[var(--secondary)] hover:text-[var(--text-main)]'
                       }`}
                   >
                     {tab.icon}
@@ -197,11 +197,49 @@ export default function SettingsPage() {
                       <div>
                         <p className="font-bold">{firstName} {lastName}</p>
                         <p className="text-sm text-[var(--text-muted)]">{email}</p>
-                        {user?.emailVerifiedAt && (
-                          <span className="inline-flex items-center gap-1 text-xs text-emerald-500 font-semibold mt-1">
-                            <CheckCircle size={12} /> Verified
-                          </span>
-                        )}
+                        <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                          {user?.emailVerifiedAt && (
+                            <span className="inline-flex items-center gap-1 text-xs text-emerald-500 font-semibold">
+                              <CheckCircle size={12} /> Email Verified
+                            </span>
+                          )}
+                          {/* KYC Status Badge */}
+                          {(() => {
+                            const kycStatus = (user as any)?.kycStatus || 'NOT_VERIFIED';
+                            if (kycStatus === 'VERIFIED') {
+                              return (
+                                <span className="inline-flex items-center gap-1 text-xs text-emerald-500 font-semibold bg-emerald-500/10 px-2.5 py-1 rounded-lg">
+                                  <ShieldCheck size={12} /> KYC Verified
+                                </span>
+                              );
+                            }
+                            if (kycStatus === 'PENDING') {
+                              return (
+                                <span className="inline-flex items-center gap-1 text-xs text-amber-500 font-semibold bg-amber-500/10 px-2.5 py-1 rounded-lg">
+                                  <Clock size={12} /> KYC Under Review
+                                </span>
+                              );
+                            }
+                            if (kycStatus === 'REJECTED') {
+                              return (
+                                <button
+                                  onClick={() => router.push('/dashboard?tab=kyc')}
+                                  className="inline-flex items-center gap-1 text-xs text-rose-500 font-semibold bg-rose-500/10 px-2.5 py-1 rounded-lg hover:bg-rose-500/20 transition-all cursor-pointer"
+                                >
+                                  <XCircle size={12} /> KYC Rejected · Re-verify →
+                                </button>
+                              );
+                            }
+                            return (
+                              <button
+                                onClick={() => router.push('/dashboard?tab=kyc')}
+                                className="inline-flex items-center gap-1 text-xs text-blue-400 font-semibold bg-blue-500/10 px-2.5 py-1 rounded-lg hover:bg-blue-500/20 transition-all cursor-pointer"
+                              >
+                                <ShieldCheck size={12} /> Verify Identity →
+                              </button>
+                            );
+                          })()}
+                        </div>
                       </div>
                     </div>
 

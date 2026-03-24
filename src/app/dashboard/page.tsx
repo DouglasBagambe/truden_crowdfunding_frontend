@@ -63,7 +63,7 @@ export default function DashboardPage() {
     const [isInvestModalOpen, setIsInvestModalOpen] = useState(false);
     const [selectedProject, setSelectedProject] = useState<any>(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeTab, setActiveTab] = useState<'investments' | 'donations' | 'campaigns' | 'nfts'>('investments');
+    const [activeTab, setActiveTab] = useState<'investments' | 'donations' | 'campaigns' | 'nfts' | 'kyc'>('investments');
 
     const handleTriggerCreate = () => {
         router.push('/dashboard/create-project');
@@ -74,7 +74,10 @@ export default function DashboardPage() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('create') === 'true') {
                 setIsCreateModalOpen(true);
-                // Clean up the URL
+                window.history.replaceState({}, '', '/dashboard');
+            }
+            if (urlParams.get('tab') === 'kyc') {
+                setActiveTab('kyc');
                 window.history.replaceState({}, '', '/dashboard');
             }
         }
@@ -212,7 +215,23 @@ export default function DashboardPage() {
 
                     <div className="flex-1 space-y-6">
                         {/* KYC Banner */}
-                        {/* KYC Removed */}
+                        {isAuthenticated && user && user.kycStatus !== 'VERIFIED' && user.kycStatus !== 'PENDING' && (
+                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                <div className="flex items-start gap-3">
+                                    <ShieldCheck size={18} className="text-blue-400 flex-shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="text-sm font-bold text-blue-300">Identity Verification Required</p>
+                                        <p className="text-xs text-[var(--text-muted)] mt-0.5">Complete KYC to invest in ROI projects and access all platform features.</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setActiveTab('kyc')}
+                                    className="flex-shrink-0 flex items-center gap-1.5 bg-blue-500 hover:bg-blue-400 text-white text-xs font-black px-5 py-2.5 rounded-xl transition-all uppercase tracking-wider"
+                                >
+                                    <ShieldCheck size={13} /> Verify Now
+                                </button>
+                            </div>
+                        )}
 
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                             <KPICard
@@ -259,7 +278,8 @@ export default function DashboardPage() {
                                             { key: 'investments', label: 'Investments', icon: <Activity size={14} /> },
                                             { key: 'donations', label: 'Donations', icon: <Heart size={14} /> },
                                             { key: 'campaigns', label: 'My Projects', icon: <Briefcase size={14} /> },
-                                            { key: 'nfts', label: 'My NFTs', icon: <ImageIcon size={14} /> }
+                                            { key: 'nfts', label: 'My NFTs', icon: <ImageIcon size={14} /> },
+                                            { key: 'kyc', label: 'Identity', icon: <ShieldCheck size={14} /> }
                                         ].map(tab => (
                                             <button
                                                 key={tab.key}
@@ -289,7 +309,9 @@ export default function DashboardPage() {
                             </div>
 
                             <div className="p-4 sm:p-8">
-                                {activeTab === 'investments' || activeTab === 'donations' ? (
+                                {activeTab === 'kyc' ? (
+                                    <KYCView />
+                                ) : activeTab === 'investments' || activeTab === 'donations' ? (
                                     <div className="space-y-6">
                                         <div className="flex items-center justify-between">
                                             <h3 className="text-lg font-bold tracking-tight">
