@@ -23,7 +23,7 @@ export default function ProjectDetailPage() {
     const [project, setProject] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [activeTab, setActiveTab] = useState<'story' | 'timeline' | 'updates'>('story');
+    const [activeTab, setActiveTab] = useState<'story' | 'timeline'>('story');
     const [bookmarked, setBookmarked] = useState(false);
     const [isSubmittingForReview, setIsSubmittingForReview] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -426,7 +426,7 @@ export default function ProjectDetailPage() {
                             {/* Tabs */}
                             <div>
                                 <div className="flex items-center gap-1 border-b border-[var(--border)] mb-6 overflow-x-auto scrollbar-hide">
-                                    {(['story', 'timeline', 'updates'] as const).map((tab) => (
+                                    {(['story', 'timeline'] as const).map((tab) => (
                                         <button
                                             key={tab}
                                             onClick={() => setActiveTab(tab)}
@@ -526,7 +526,7 @@ export default function ProjectDetailPage() {
                                                             <p className="text-sm text-[var(--text-muted)]">{m.description}</p>
                                                             {(m.dueDate || m.date) && (
                                                                 <p className="text-xs text-[var(--text-muted)] mt-2 flex items-center gap-1">
-                                                                    <Calendar size={12} /> {m.dueDate || m.date}
+                                                                    <Calendar size={12} /> {new Date(m.dueDate || m.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                                                                 </p>
                                                             )}
                                                         </div>
@@ -542,17 +542,7 @@ export default function ProjectDetailPage() {
                                     </motion.div>
                                 )}
 
-                                {/* Updates Tab */}
-                                {activeTab === 'updates' && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="text-center py-16 text-[var(--text-muted)]"
-                                    >
-                                        <Calendar className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                                        <p>No updates posted yet.</p>
-                                    </motion.div>
-                                )}
+                                {/* Updates tab removed */}
                             </div>
                         </div>
 
