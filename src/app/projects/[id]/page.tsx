@@ -99,17 +99,17 @@ export default function ProjectDetailPage() {
             setPaymentError('');
             setIsInitiatingPayment(true);
             const resolvedProjectId = (project as any)?.id || (project as any)?._id || projectId;
-            const projectType = 'CHARITY';
-            const description = `Donation to ${project?.name} - Keibo`;
+            const currentProjectType = paymentMode === 'invest' ? 'ROI' : 'CHARITY';
+            const description = paymentMode === 'invest' ? `Investment in ${project?.name} - Keibo` : `Donation to ${project?.name} - Keibo`;
 
             const result = await paymentService.initializeDPOPayment({
                 projectId: String(resolvedProjectId),
                 amount,
                 currency: currency,
                 paymentMethod: 'card',
-                projectType,
+                projectType: currentProjectType,
                 description,
-                donorName: donorName?.trim() || 'Anonymous',
+                donorName: paymentMode === 'donate' ? (donorName?.trim() || 'Anonymous') : undefined,
             });
 
             // Redirect user to DPO hosted payment page
@@ -607,13 +607,23 @@ export default function ProjectDetailPage() {
 
                                         {/* CTA */}
                                         <div className="space-y-3">
-                                            <button
-                                                onClick={openDonateModal}
-                                                className={`w-full py-4 ${accentBg} text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl ${accentShadow} hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2`}
-                                            >
-                                                <Heart size={16} />
-                                                Donate Now
-                                            </button>
+                                            {!isCharity ? (
+                                                <button
+                                                    onClick={openInvestModal}
+                                                    className={`w-full py-4 ${accentBg} text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl ${accentShadow} hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2`}
+                                                >
+                                                    <TrendingUp size={16} />
+                                                    Invest Now
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={openDonateModal}
+                                                    className={`w-full py-4 ${accentBg} text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl ${accentShadow} hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2`}
+                                                >
+                                                    <Heart size={16} />
+                                                    Donate Now
+                                                </button>
+                                            )}
                                             <div className="flex gap-3">
                                                 <button
                                                     onClick={() => setBookmarked(!bookmarked)}
@@ -728,7 +738,7 @@ export default function ProjectDetailPage() {
                         <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
                             <div>
                                 <h3 className="text-lg font-black">
-                                    Donate to Project
+                                    {paymentMode === 'invest' ? 'Invest in Project' : 'Donate to Project'}
                                 </h3>
                             </div>
                             <button
@@ -812,12 +822,12 @@ export default function ProjectDetailPage() {
                                 <button
                                     onClick={handleDPOPayment}
                                     disabled={isInitiatingPayment || !paymentAmount}
-                                    className="flex-1 py-3 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500"
+                                    className={`flex-1 py-3 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2 ${paymentMode === 'invest' ? 'bg-blue-600 hover:bg-blue-500' : 'bg-emerald-600 hover:bg-emerald-500'}`}
                                 >
                                     {isInitiatingPayment ? (
                                         <><Loader2 size={14} className="animate-spin" /> Processing...</>
                                     ) : (
-                                        <>Donate Now →</>
+                                        <>{paymentMode === 'invest' ? 'Invest Now →' : 'Donate Now →'}</>
                                     )}
                                 </button>
                             </div>
