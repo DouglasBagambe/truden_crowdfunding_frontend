@@ -139,7 +139,9 @@ export default function AdminKycPage() {
                   </div>
 
                   <p className="text-sm font-black break-words">Profile: {p.id}</p>
-                  <p className="text-xs text-[var(--text-muted)] font-semibold break-words">User: {p.userId}</p>
+                  <p className="text-xs text-[var(--text-muted)] font-semibold break-words">
+                    User: {p.userName || 'Unknown'} {p.userEmail ? `(${p.userEmail})` : ''} — {p.userId}
+                  </p>
                   {p.rejectionReason && (
                     <p className="text-xs text-rose-300 font-bold break-words">Reason: {p.rejectionReason}</p>
                   )}

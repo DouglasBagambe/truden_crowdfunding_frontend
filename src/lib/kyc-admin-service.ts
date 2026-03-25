@@ -3,6 +3,8 @@ import { apiClient } from './api-client';
 export type KycAdminListItem = {
   id: string;
   userId: string;
+  userEmail?: string;
+  userName?: string;
   status: string;
   userKycStatus: string;
   level?: string | null;

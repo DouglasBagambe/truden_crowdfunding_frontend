@@ -598,9 +598,9 @@ export default function AdminPage() {
                             <ShieldCheck size={18} className="text-[var(--text-muted)]" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-black text-sm">User: {kyc.userId.slice(-8)}</p>
+                            <p className="font-black text-sm">{kyc.userName || `User ${kyc.userId.slice(-8)}`}</p>
                             <p className="text-xs text-[var(--text-muted)] font-medium">
-                              {kyc.documentCount} document(s) · Submitted {kyc.submittedAt ? new Date(kyc.submittedAt).toLocaleDateString() : '—'}
+                              {kyc.userEmail ? `${kyc.userEmail} · ` : ''}{kyc.documentCount} document(s) · Submitted {kyc.submittedAt ? new Date(kyc.submittedAt).toLocaleDateString() : '—'}
                             </p>
                           </div>
                           <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border ${sc}`}>
