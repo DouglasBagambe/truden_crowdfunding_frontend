@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface ProjectCardProps {
   project: {
@@ -66,10 +67,12 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
         {/* Project Image */}
         <div className="relative h-48 bg-[var(--secondary)] overflow-hidden">
           {(project.imageUrl || (project.galleryImages && project.galleryImages[0])) ? (
-            <img
-              src={project.imageUrl || project.galleryImages?.[0]}
+            <Image
+              src={project.imageUrl || project.galleryImages?.[0] || ''}
               alt={projectName}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
