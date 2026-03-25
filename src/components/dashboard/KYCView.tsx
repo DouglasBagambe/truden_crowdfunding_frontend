@@ -156,6 +156,15 @@ export function KYCView() {
         }
     };
 
+    // Auto-poll while pending
+    useEffect(() => {
+        if (step !== 'pending') return;
+        const interval = setInterval(() => {
+            refreshFromProvider();
+        }, 10000); // poll every 10s
+        return () => clearInterval(interval);
+    }, [step]);
+
     if (loadingProfile) {
         return (
             <div className="py-20 flex items-center justify-center">
@@ -219,15 +228,6 @@ export function KYCView() {
             </motion.div>
         );
     }
-
-    // Auto-poll while pending
-    useEffect(() => {
-        if (step !== 'pending') return;
-        const interval = setInterval(() => {
-            refreshFromProvider();
-        }, 10000); // poll every 10s
-        return () => clearInterval(interval);
-    }, [step]);
 
     // ─── PENDING ───
     if (step === 'pending') {
