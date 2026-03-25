@@ -81,6 +81,29 @@ export function KYCView() {
         }
     };
 
+    /** Explicitly poll Didit for latest status and update local DB */
+    const refreshFromProvider = async () => {
+        try {
+            console.log('[KYC] Refreshing from provider...');
+            const res = await apiClient.post('/kyc/refresh');
+            console.log('[KYC] Refresh result:', res.data);
+            setProfile(res.data);
+            await refetchUser();
+            const newStatus = res.data?.userKycStatus || res.data?.status;
+            if (newStatus === 'VERIFIED' || newStatus === 'APPROVED') {
+                toast.success('Identity verified successfully!');
+                setStep('overview');
+            } else if (newStatus === 'REJECTED') {
+                toast.error('Verification was rejected. You can re-submit.');
+                setStep('overview');
+            }
+        } catch (err: any) {
+            console.warn('[KYC] Refresh failed:', err?.message);
+            // Fallback to regular profile load
+            await loadProfile();
+        }
+    };
+
     const handleSubmit = async () => {
         if (!form.firstName.trim() || !form.lastName.trim()) {
             toast.error('First and last name are required');
@@ -197,6 +220,15 @@ export function KYCView() {
         );
     }
 
+    // Auto-poll while pending
+    useEffect(() => {
+        if (step !== 'pending') return;
+        const interval = setInterval(() => {
+            refreshFromProvider();
+        }, 10000); // poll every 10s
+        return () => clearInterval(interval);
+    }, [step]);
+
     // ─── PENDING ───
     if (step === 'pending') {
         return (
@@ -208,18 +240,18 @@ export function KYCView() {
                     <div className="space-y-2">
                         <h3 className="text-xl font-bold">Under Review</h3>
                         <p className="text-sm text-[var(--text-muted)] max-w-sm mx-auto">
-                            Your documents have been submitted. You'll be notified once verification is complete. This usually takes a few minutes.
+                            Your documents have been submitted. Status is refreshing automatically — this usually takes a few minutes.
                         </p>
                     </div>
+                    <div className="flex items-center justify-center gap-2 text-xs text-[var(--text-muted)]">
+                        <Loader2 size={12} className="animate-spin" />
+                        <span>Checking verification status...</span>
+                    </div>
                     <button
-                        onClick={async () => {
-                            await loadProfile();
-                            await refetchUser();
-                            setStep('overview');
-                        }}
+                        onClick={refreshFromProvider}
                         className="flex items-center gap-2 text-sm text-[var(--primary)] hover:underline mx-auto"
                     >
-                        <RefreshCw size={14} /> Refresh Status
+                        <RefreshCw size={14} /> Refresh Now
                     </button>
                 </div>
             </motion.div>
@@ -351,9 +383,9 @@ export function KYCView() {
                 </div>
                 {isPending && (
                     <button
-                        onClick={async () => { await loadProfile(); await refetchUser(); }}
+                        onClick={refreshFromProvider}
                         className="flex-shrink-0 p-2 rounded-xl hover:bg-[var(--secondary)] transition-colors"
-                        title="Refresh status"
+                        title="Refresh status from Didit"
                     >
                         <RefreshCw size={16} className="text-[var(--text-muted)]" />
                     </button>
