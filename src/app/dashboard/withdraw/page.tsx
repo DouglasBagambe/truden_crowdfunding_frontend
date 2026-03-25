@@ -153,7 +153,8 @@ function WithdrawPageContent() {
     const youReceive = amountNum - platformFee;
 
     const validateAndNext = () => {
-        if (!amount || Number(amount) < 10000) { setError('Minimum withdrawal is UGX 10,000'); return; }
+        const minAmount = balanceType === 'CHARITY' ? 500 : 10000;
+        if (!amount || Number(amount) < minAmount) { setError(`Minimum withdrawal is UGX ${minAmount.toLocaleString()}`); return; }
         if (walletBalance !== null && Number(amount) > walletBalance) {
             setError(`Amount exceeds available balance of UGX ${walletBalance.toLocaleString()}`);
             return;
@@ -270,7 +271,7 @@ function WithdrawPageContent() {
                                     <div className="text-sm text-[var(--text-muted)] space-y-1">
                                         <p>Withdrawals are processed within 24 hours on business days.</p>
                                         <p>A <strong className="text-white">2% Keibo platform fee</strong> is charged per withdrawal.</p>
-                                        <p>Minimum withdrawal: <strong className="text-white">UGX 10,000</strong></p>
+                                        <p>Minimum withdrawal: <strong className="text-white">UGX {balanceType === 'CHARITY' ? '500' : '10,000'}</strong></p>
                                     </div>
                                 </div>
                             </motion.div>
