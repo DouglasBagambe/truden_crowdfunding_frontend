@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import {
     ArrowLeft, Calendar, Users, Clock, CheckCircle, AlertCircle,
     Heart, Share2, Bookmark, Globe, TrendingUp, BarChart3,
-    Flag, Wallet, Loader2, CheckCircle2, ExternalLink, X, Smartphone, ShieldCheck
+    Flag, Loader2, CheckCircle2, ExternalLink, X, Smartphone
 } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -23,7 +23,7 @@ export default function ProjectDetailPage() {
     const [project, setProject] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [activeTab, setActiveTab] = useState<'story' | 'timeline'>('story');
+    const [activeTab, setActiveTab] = useState<'story' | 'timeline' | 'updates'>('story');
     const [bookmarked, setBookmarked] = useState(false);
     const [isSubmittingForReview, setIsSubmittingForReview] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -31,7 +31,6 @@ export default function ProjectDetailPage() {
     const [paymentAmount, setPaymentAmount] = useState('');
     const [isInitiatingPayment, setIsInitiatingPayment] = useState(false);
     const [paymentError, setPaymentError] = useState('');
-    const [isKycPromptOpen, setIsKycPromptOpen] = useState(false);
 
     // Donors (charity projects)
     const [donors, setDonors] = useState<any[]>([]);
@@ -84,12 +83,6 @@ export default function ProjectDetailPage() {
             window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
             return;
         }
-        // KYC gate: check if user is verified
-        const kycStatus = (user as any)?.kycStatus || 'NOT_VERIFIED';
-        if (kycStatus !== 'VERIFIED') {
-            setIsKycPromptOpen(true);
-            return;
-        }
         setPaymentMode('invest');
         setPaymentAmount('');
         setPaymentError('');
@@ -106,10 +99,8 @@ export default function ProjectDetailPage() {
             setPaymentError('');
             setIsInitiatingPayment(true);
             const resolvedProjectId = (project as any)?.id || (project as any)?._id || projectId;
-            const projectType = isCharity ? 'CHARITY' : 'ROI';
-            const description = paymentMode === 'donate'
-                ? `Donation to ${project?.name} - Keibo`
-                : `Investment in ${project?.name} - Keibo`;
+            const projectType = 'CHARITY';
+            const description = `Donation to ${project?.name} - Keibo`;
 
             const result = await paymentService.initializeDPOPayment({
                 projectId: String(resolvedProjectId),
@@ -118,7 +109,7 @@ export default function ProjectDetailPage() {
                 paymentMethod: 'card',
                 projectType,
                 description,
-                donorName: paymentMode === 'donate' ? (donorName?.trim() || 'Anonymous') : undefined,
+                donorName: donorName?.trim() || 'Anonymous',
             });
 
             // Redirect user to DPO hosted payment page
@@ -362,8 +353,9 @@ export default function ProjectDetailPage() {
                             {/* Project Header */}
                             <div>
                                 <div className="flex items-center gap-3 mb-4">
-                                    <span className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest shadow-lg ${accentBg} text-white`}>
-                                        {isCharityProject ? 'Charity' : 'ROI Project'}
+                                    <span className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest shadow-lg
+                                        bg-emerald-600 text-white`}>
+                                        Charity
                                     </span>
                                     <span className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${statusColor}`}>
                                         {project.status}
@@ -433,18 +425,23 @@ export default function ProjectDetailPage() {
                             {/* Tabs */}
                             <div>
                                 <div className="flex items-center gap-1 border-b border-[var(--border)] mb-6 overflow-x-auto scrollbar-hide">
-                                    {(['story', 'timeline'] as const).map((tab) => (
-                                        <button
-                                            key={tab}
-                                            onClick={() => setActiveTab(tab)}
-                                            className={`px-4 sm:px-6 py-3 text-xs sm:text-sm font-black uppercase tracking-widest border-b-2 transition-all -mb-px whitespace-nowrap flex-shrink-0 ${activeTab === tab
-                                                ? 'border-[var(--primary)] text-[var(--primary)]'
-                                                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'
-                                                }`}
-                                        >
-                                            {tab}
-                                        </button>
-                                    ))}
+                                    {(['story', 'timeline', 'updates'] as const).map((tab) => {
+                                        // Hide timeline and updates for Charity projects
+                                        if (isCharity && (tab === 'timeline' || tab === 'updates')) return null;
+
+                                        return (
+                                            <button
+                                                key={tab}
+                                                onClick={() => setActiveTab(tab)}
+                                                className={`px-4 sm:px-6 py-3 text-xs sm:text-sm font-black uppercase tracking-widest border-b-2 transition-all -mb-px whitespace-nowrap flex-shrink-0 ${activeTab === tab
+                                                    ? 'border-[var(--primary)] text-[var(--primary)]'
+                                                    : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                                                    }`}
+                                            >
+                                                {tab}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
 
                                 {/* Story Tab */}
@@ -533,7 +530,7 @@ export default function ProjectDetailPage() {
                                                             <p className="text-sm text-[var(--text-muted)]">{m.description}</p>
                                                             {(m.dueDate || m.date) && (
                                                                 <p className="text-xs text-[var(--text-muted)] mt-2 flex items-center gap-1">
-                                                                    <Calendar size={12} /> {new Date(m.dueDate || m.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                                                    <Calendar size={12} /> {m.dueDate || m.date}
                                                                 </p>
                                                             )}
                                                         </div>
@@ -549,7 +546,17 @@ export default function ProjectDetailPage() {
                                     </motion.div>
                                 )}
 
-                                {/* Updates tab removed */}
+                                {/* Updates Tab */}
+                                {activeTab === 'updates' && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="text-center py-16 text-[var(--text-muted)]"
+                                    >
+                                        <Calendar className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                                        <p>No updates posted yet.</p>
+                                    </motion.div>
+                                )}
                             </div>
                         </div>
 
@@ -600,31 +607,13 @@ export default function ProjectDetailPage() {
 
                                         {/* CTA */}
                                         <div className="space-y-3">
-                                            {isCharity ? (
-                                                <button
-                                                    onClick={openDonateModal}
-                                                    className={`w-full py-4 ${accentBg} text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl ${accentShadow} hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2`}
-                                                >
-                                                    <Heart size={16} />
-                                                    Donate Now
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    disabled={!isAuthenticated}
-                                                    onClick={() => {
-                                                        if (!isAuthenticated) {
-                                                            const next = typeof window !== 'undefined' ? window.location.pathname : '/';
-                                                            window.location.href = `/login?next=${encodeURIComponent(next)}`;
-                                                            return;
-                                                        }
-                                                        openInvestModal();
-                                                    }}
-                                                    className={`w-full py-4 ${accentBg} text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl ${accentShadow} hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
-                                                >
-                                                    <Wallet size={16} />
-                                                    {isAuthenticated ? 'Invest in Project' : 'Sign In to Invest'}
-                                                </button>
-                                            )}
+                                            <button
+                                                onClick={openDonateModal}
+                                                className={`w-full py-4 ${accentBg} text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl ${accentShadow} hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2`}
+                                            >
+                                                <Heart size={16} />
+                                                Donate Now
+                                            </button>
                                             <div className="flex gap-3">
                                                 <button
                                                     onClick={() => setBookmarked(!bookmarked)}
@@ -691,53 +680,31 @@ export default function ProjectDetailPage() {
                                 )}
 
                                 {/* Trust Badges */}
-                                <div className={`bg-[var(--card)] p-6 rounded-2xl border border-[var(--border)] space-y-3`}>
-                                    {isRoi && (
-                                        <>
-                                            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                                                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                                                <span>Smart Contract Escrow Protection</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                                                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                                                <span>Milestone-Based Fund Release</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                                                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                                                <span>NFT Investment Certificate</span>
-                                            </div>
-                                        </>
-                                    )}
-                                    {isCharity && (
-                                        <>
-                                            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                                                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                                                <span>Donation Transparency Tracking</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                                                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                                                <span>Milestone-Based Release (if applicable)</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                                                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                                                <span>Community Accountability</span>
-                                            </div>
-                                        </>
-                                    )}
+                                <div className="bg-[var(--card)] p-6 rounded-2xl border border-[var(--border)] space-y-3">
+                                    <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                                        <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                                        <span>Donation Transparency Tracking</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                                        <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                                        <span>Milestone-Based Release</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                                        <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                                        <span>Community Accountability</span>
+                                    </div>
                                 </div>
 
                                 {/* Disclosure */}
-                                <div className={`p-6 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-2`}>
+                                <div className="p-6 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-2">
                                     <div className="flex items-center gap-2 text-amber-400">
                                         <Flag size={16} />
                                         <h4 className="font-black text-xs uppercase tracking-widest">
-                                            {isCharity ? 'Donation Disclosure' : 'Investment Disclosure'}
+                                            Donation Disclosure
                                         </h4>
                                     </div>
                                     <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-                                        {isCharity
-                                            ? "Keibo facilitates fundraising but doesn't guarantee project delivery or outcomes. Donations are non-refundable unless explicitly stated. Contribute what you can afford."
-                                            : "Keibo facilitates crowdfunding but doesn't guarantee project delivery. Investments carry risks. Only contribute what you can afford to lose."}
+                                        Keibo facilitates fundraising but doesn't guarantee project delivery or outcomes. Donations are non-refundable unless explicitly stated. Contribute what you can afford.
                                     </p>
                                 </div>
                             </div>
@@ -761,7 +728,7 @@ export default function ProjectDetailPage() {
                         <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
                             <div>
                                 <h3 className="text-lg font-black">
-                                    {paymentMode === 'donate' ? 'Donate to Project' : 'Invest in Project'}
+                                    Donate to Project
                                 </h3>
                             </div>
                             <button
@@ -845,84 +812,15 @@ export default function ProjectDetailPage() {
                                 <button
                                     onClick={handleDPOPayment}
                                     disabled={isInitiatingPayment || !paymentAmount}
-                                    className={`flex-1 py-3 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2 ${paymentMode === 'donate' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-blue-600 hover:bg-blue-500'}`}
+                                    className="flex-1 py-3 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500"
                                 >
                                     {isInitiatingPayment ? (
                                         <><Loader2 size={14} className="animate-spin" /> Processing...</>
                                     ) : (
-                                        <>{paymentMode === 'donate' ? 'Donate Now' : 'Invest Now'} →</>
+                                        <>Donate Now →</>
                                     )}
                                 </button>
                             </div>
-                        </div>
-                    </motion.div>
-                </div>
-            )}
-
-            {/* ── KYC Prompt Modal ── */}
-            {isKycPromptOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-6" onClick={() => setIsKycPromptOpen(false)}>
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.97 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="w-full max-w-sm bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-2xl"
-                        onClick={e => e.stopPropagation()}
-                    >
-                        <div className="p-6 space-y-5">
-                            {(user as any)?.kycStatus === 'PENDING' ? (
-                                <>
-                                    <div>
-                                        <h3 className="text-lg font-bold">Verification In Progress</h3>
-                                        <p className="text-sm text-[var(--text-muted)] mt-1.5 leading-relaxed">
-                                            Your identity verification is under review. You'll be able to invest once it's approved.
-                                        </p>
-                                    </div>
-                                    <div className="flex gap-3">
-                                        <button
-                                            onClick={() => setIsKycPromptOpen(false)}
-                                            className="flex-1 py-2.5 border border-[var(--border)] rounded-xl text-sm font-semibold hover:bg-[var(--secondary)] transition-all"
-                                        >
-                                            Close
-                                        </button>
-                                        <button
-                                            onClick={() => { setIsKycPromptOpen(false); router.push('/dashboard?tab=kyc'); }}
-                                            className="flex-1 py-2.5 bg-[var(--primary)] text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-all"
-                                        >
-                                            Check Status
-                                        </button>
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <div>
-                                        <h3 className="text-lg font-bold">Verify Your Identity</h3>
-                                        <p className="text-sm text-[var(--text-muted)] mt-1.5 leading-relaxed">
-                                            Identity verification is required before you can invest. It only takes a couple of minutes.
-                                        </p>
-                                    </div>
-
-                                    <ul className="text-sm text-[var(--text-muted)] space-y-1.5 pl-1">
-                                        <li>• Government-issued photo ID</li>
-                                        <li>• Quick selfie for liveness check</li>
-                                        <li>• Usually takes under 2 minutes</li>
-                                    </ul>
-
-                                    <div className="flex gap-3">
-                                        <button
-                                            onClick={() => setIsKycPromptOpen(false)}
-                                            className="flex-1 py-2.5 border border-[var(--border)] rounded-xl text-sm font-semibold hover:bg-[var(--secondary)] transition-all"
-                                        >
-                                            Later
-                                        </button>
-                                        <button
-                                            onClick={() => { setIsKycPromptOpen(false); router.push('/dashboard?tab=kyc'); }}
-                                            className="flex-1 py-2.5 bg-[var(--primary)] text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-all"
-                                        >
-                                            Verify Now
-                                        </button>
-                                    </div>
-                                </>
-                            )}
                         </div>
                     </motion.div>
                 </div>
