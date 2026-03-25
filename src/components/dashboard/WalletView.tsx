@@ -43,7 +43,8 @@ export function WalletView() {
         );
     }
 
-    const ugxBalance = balance?.fiatBalance?.UGX ?? 0;
+    const charityBalance = balance?.fiatBalance?.UGX ?? 0;
+    const roiBalance = balance?.roiBalance?.UGX ?? 0;
 
     return (
         <motion.div
@@ -67,17 +68,34 @@ export function WalletView() {
                                 <h2 className="text-2xl font-black tracking-tight">Keibo Wallet</h2>
                             </div>
 
-                            <div className="space-y-1">
-                                <p className="text-white/70 text-xs font-black uppercase tracking-widest">Withdrawable Balance</p>
-                                <div className="flex items-baseline gap-2">
-                                    <span className="text-sm font-bold opacity-60">UGX</span>
-                                    <h3 className="text-5xl font-black">
-                                        {ugxBalance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                                    </h3>
+                            <div className="flex flex-col md:flex-row gap-6">
+                                <div className="space-y-1 flex-1">
+                                    <p className="text-white/70 text-xs font-black uppercase tracking-widest">Charity Balance</p>
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="text-sm font-bold opacity-60">UGX</span>
+                                        <h3 className="text-4xl font-black">
+                                            {charityBalance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                        </h3>
+                                    </div>
+                                    <p className="text-white/50 text-[10px] mt-1 pr-4">
+                                        Available funding from charity donations. Withdraw anytime directly to mobile money or bank.
+                                    </p>
                                 </div>
-                                <p className="text-white/50 text-xs mt-1">
-                                    Your balance from funding received. Withdraw anytime to mobile money or bank.
-                                </p>
+
+                                <div className="w-px bg-white/10 hidden md:block"></div>
+
+                                <div className="space-y-1 flex-1">
+                                    <p className="text-white/70 text-xs font-black uppercase tracking-widest">ROI Investment Balance</p>
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="text-sm font-bold opacity-60">UGX</span>
+                                        <h3 className="text-4xl font-black">
+                                            {roiBalance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                        </h3>
+                                    </div>
+                                    <p className="text-white/50 text-[10px] mt-1 pr-4">
+                                        Locked funding from your ROI projects. Withdrawable only from the Projects page upon 100% target completion.
+                                    </p>
+                                </div>
                             </div>
                         </div>
 

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import Image from 'next/image';
 import { projectService } from '@/lib/project-service';
 import { useAuth } from '@/hooks/useAuth';
 import { paymentService } from '@/lib/payment-service';
@@ -379,7 +380,14 @@ export default function ProjectDetailPage() {
                                 {mediaItems.length > 0 ? (
                                     <>
                                         {currentMedia?.type === 'image' && (
-                                            <img src={currentMedia.url} alt={project.name} className="w-full h-full object-cover" />
+                                            <Image
+                                                src={currentMedia.url}
+                                                alt={project.name}
+                                                fill
+                                                className="object-cover"
+                                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                                priority
+                                            />
                                         )}
                                         {currentMedia?.type === 'video' && (
                                             <video src={currentMedia.url} controls className="w-full h-full object-cover" />

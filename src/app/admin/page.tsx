@@ -17,7 +17,7 @@ import toast from 'react-hot-toast';
 
 const ADMIN_USER_ID = process.env.NEXT_PUBLIC_ADMIN_USER_ID || '';
 
-type AdminTab = 'overview' | 'projects' | 'kyc' | 'users';
+type AdminTab = 'overview' | 'projects' | 'kyc' | 'users' | 'payouts';
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
@@ -59,10 +59,12 @@ export default function AdminPage() {
   const [allProjects, setAllProjects] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [kycProfiles, setKycProfiles] = useState<KycAdminListItem[]>([]);
+  const [payouts, setPayouts] = useState<any[]>([]);
   const [kycTotal, setKycTotal] = useState(0);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [loadingKyc, setLoadingKyc] = useState(false);
+  const [loadingPayouts, setLoadingPayouts] = useState(false);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('');
@@ -95,7 +97,7 @@ export default function AdminPage() {
   }, [authLoading, isAuthenticated, isAdmin, router]);
 
   useEffect(() => {
-    if (isAdmin) { loadProjects(); loadUsers(); loadKycProfiles(); }
+    if (isAdmin) { loadProjects(); loadUsers(); loadKycProfiles(); loadPayouts(); }
   }, [isAdmin]);
 
   const loadProjects = async () => {
@@ -134,6 +136,15 @@ export default function AdminPage() {
       setKycTotal(res.total);
     } catch { setKycProfiles([]); }
     finally { setLoadingKyc(false); }
+  };
+
+  const loadPayouts = async () => {
+    setLoadingPayouts(true);
+    try {
+      const res = await apiClient.get('/wallet/admin/withdrawals/pending');
+      setPayouts(res.data);
+    } catch { setPayouts([]); }
+    finally { setLoadingPayouts(false); }
   };
 
   const overrideKycStatus = async (profileId: string, status: string, reason?: string) => {
@@ -235,6 +246,7 @@ export default function AdminPage() {
     { key: 'projects', label: 'Campaigns', icon: <FolderOpen size={16} />, badge: pendingCount || undefined },
     { key: 'kyc', label: 'KYC Review', icon: <ShieldCheck size={16} />, badge: pendingKycCount || undefined },
     { key: 'users', label: 'Users', icon: <Users size={16} />, badge: users.length || undefined },
+    { key: 'payouts', label: 'Payouts', icon: <RotateCcw size={16} />, badge: payouts.length || undefined },
   ];
 
   return (
@@ -292,6 +304,7 @@ export default function AdminPage() {
                   <StatCard label="Pending Review" value={pendingCount} icon={<Clock size={18} />} color="bg-amber-500/10 text-amber-400" />
                   <StatCard label="Approved / Live" value={approvedCount} icon={<CheckCircle size={18} />} color="bg-emerald-500/10 text-emerald-400" />
                   <StatCard label="Total Users" value={users.length} icon={<Users size={18} />} color="bg-violet-500/10 text-violet-400" />
+                  <StatCard label="Pending Payouts" value={payouts.length} icon={<RotateCcw size={18} />} color="bg-rose-500/10 text-rose-400" />
                 </div>
 
                 {/* Pending campaigns quick list */}
@@ -787,6 +800,104 @@ export default function AdminPage() {
                     })}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeTab === 'payouts' && (
+              <div className="space-y-8">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-black tracking-tight">Pending ROI Payouts</h3>
+                  <button onClick={loadPayouts} className="p-2 bg-[var(--card)] border border-[var(--border)] rounded-xl hover:bg-white/5 transition-all">
+                    <RefreshCw size={18} className={loadingPayouts ? "animate-spin" : ""} />
+                  </button>
+                </div>
+
+                {loadingPayouts ? (
+                  <div className="py-20 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-[var(--primary)]" /></div>
+                ) : payouts.length === 0 ? (
+                  <div className="py-20 text-center text-[var(--text-muted)] space-y-4">
+                    <CheckCircle className="w-12 h-12 mx-auto text-emerald-500/30" />
+                    <p>No pending ROI payouts requiring approval.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {payouts.map(payout => (
+                      <div key={payout._id} className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6">
+                        <div className="flex flex-col md:flex-row justify-between gap-6">
+                          <div className="space-y-3 flex-1">
+                            <div className="flex items-center gap-3">
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-500 border border-amber-500/20">ROI WithDrawal</span>
+                              <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-bold">Ref: {payout._id}</span>
+                            </div>
+                            <div>
+                              <p className="font-black text-lg">{payout.projectId?.name || 'Unknown Project'}</p>
+                              <p className="text-sm text-[var(--text-muted)]">Requested by: {payout.userId?.firstName} {payout.userId?.lastName} ({payout.userId?.email})</p>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+                              <div>
+                                <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-wider mb-1">Amount Requested</p>
+                                <p className="font-bold text-sm text-[var(--foreground)]">UGX {Math.abs(payout.amount).toLocaleString()}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-wider mb-1">Fee (2%)</p>
+                                <p className="font-bold text-sm text-amber-400">UGX {(payout.metadata?.platformFee || 0).toLocaleString()}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-wider mb-1">Net Payout</p>
+                                <p className="font-black text-lg text-emerald-400">UGX {(payout.metadata?.payoutAmount || 0).toLocaleString()}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-wider mb-1">Destination</p>
+                                <p className="text-xs text-[var(--foreground)] font-bold">{payout.metadata?.method?.provider} • {payout.metadata?.method?.accountNumber}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col gap-2 min-w-[200px] justify-center">
+                            <button
+                              onClick={async () => {
+                                const tid = toast.loading('Approving payment...');
+                                try {
+                                  setActingOn(payout._id);
+                                  await apiClient.post(`/wallet/admin/withdrawals/${payout._id}/approve`);
+                                  toast.success('Payment approved & processed successfully!', { id: tid });
+                                  loadPayouts();
+                                } catch (e: any) {
+                                  toast.error(e?.response?.data?.message || 'Approval failed', { id: tid });
+                                } finally { setActingOn(null); }
+                              }}
+                              disabled={actingOn === payout._id}
+                              className="bg-emerald-500 text-white font-black text-xs uppercase tracking-widest py-3 px-4 rounded-xl hover:bg-emerald-600 transition-all flex items-center justify-center gap-2"
+                            >
+                              {actingOn === payout._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                              Approve & Disburse
+                            </button>
+
+                            <button
+                              onClick={async () => {
+                                if (!confirm('Are you sure you want to REJECT and refund this payout to the user?')) return;
+                                const tid = toast.loading('Rejecting payment...');
+                                try {
+                                  setActingOn(`reject_${payout._id}`);
+                                  await apiClient.post(`/wallet/admin/withdrawals/${payout._id}/reject`);
+                                  toast.success('Payment rejected & refunded', { id: tid });
+                                  loadPayouts();
+                                } catch (e: any) {
+                                  toast.error(e?.response?.data?.message || 'Rejection failed', { id: tid });
+                                } finally { setActingOn(null); }
+                              }}
+                              disabled={actingOn === `reject_${payout._id}`}
+                              className="bg-transparent border border-rose-500/30 text-rose-500 font-bold text-xs uppercase tracking-widest py-3 px-4 rounded-xl hover:bg-rose-500/10 transition-all flex items-center justify-center gap-2"
+                            >
+                              {actingOn === `reject_${payout._id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                              Reject & Refund
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

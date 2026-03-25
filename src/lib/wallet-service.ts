@@ -5,6 +5,10 @@ export interface WalletBalance {
         UGX: number;
         USD: number;
     };
+    roiBalance?: {
+        UGX: number;
+        USD: number;
+    };
     cryptoBalance: {
         ETH: number;
         USDC: number;

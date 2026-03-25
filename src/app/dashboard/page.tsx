@@ -431,14 +431,14 @@ export default function DashboardPage() {
                                                                         >
                                                                             View →
                                                                         </Link>
-                                                                        {raised > 0 && (
+                                                                        {(isCharity && raised > 0) || (!isCharity && raised > 0 && raised >= target) ? (
                                                                             <Link
-                                                                                href={`/dashboard/withdraw?projectId=${pId}&projectName=${pName}`}
+                                                                                href={`/dashboard/withdraw?projectId=${pId}&projectName=${pName}&type=${isCharity ? 'CHARITY' : 'ROI'}&amount=${raised}`}
                                                                                 className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs font-black text-emerald-400 hover:bg-emerald-500/20 transition-all flex items-center gap-1"
                                                                             >
                                                                                 <Wallet size={14} /> Withdraw Funds
                                                                             </Link>
-                                                                        )}
+                                                                        ) : null}
                                                                     </div>
                                                                 </div>
                                                             </div>

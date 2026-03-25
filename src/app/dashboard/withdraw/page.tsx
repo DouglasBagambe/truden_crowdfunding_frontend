@@ -40,6 +40,7 @@ function WithdrawPageContent() {
     const { user, isAuthenticated } = useAuth();
     const projectId = searchParams.get('projectId');
     const projectName = searchParams.get('projectName') || 'Your Project';
+    const balanceType = (searchParams.get('type') as 'CHARITY' | 'ROI') || 'CHARITY';
 
     const [step, setStep] = useState<Step>('method');
     const [method, setMethod] = useState<WithdrawMethod>('mobile_money');
@@ -69,13 +70,15 @@ function WithdrawPageContent() {
             setLoadingBalance(true);
             apiClient.get('/wallet/balance')
                 .then(res => {
-                    const ugx = res.data?.fiatBalance?.UGX ?? 0;
-                    setWalletBalance(ugx);
+                    const uiBalance = balanceType === 'ROI'
+                        ? (res.data?.roiBalance?.UGX ?? 0)
+                        : (res.data?.fiatBalance?.UGX ?? 0);
+                    setWalletBalance(uiBalance);
                 })
                 .catch(() => setWalletBalance(null))
                 .finally(() => setLoadingBalance(false));
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, balanceType]);
 
     // Pre-fill account name from user profile
     useEffect(() => {
@@ -127,6 +130,8 @@ function WithdrawPageContent() {
                 amount: amountNum,
                 currency: 'UGX',
                 withdrawalMethodIndex: 0,
+                balanceType: balanceType,
+                projectId: projectId,
                 note: note.trim() || `Withdrawal from ${projectName}`,
             });
 
@@ -437,6 +442,18 @@ function WithdrawPageContent() {
                                         The 2% Keibo platform fee helps maintain and improve the Keibo platform.
                                     </p>
                                 </div>
+
+                                {balanceType === 'ROI' && (
+                                    <div className="p-4 bg-[var(--primary)]/10 border border-[var(--primary)]/30 rounded-2xl space-y-1">
+                                        <div className="flex items-center gap-2 text-[var(--primary)] mb-1">
+                                            <Info size={16} />
+                                            <span className="font-bold text-sm">ROI Investment Rules</span>
+                                        </div>
+                                        <p className="text-xs text-[var(--text-muted)]">
+                                            ROI payout requests require administrative approval before the 98% net amount is disbursed. The minimum withdrawal allowed must be equal to or greater than the 100% completion target of your project.
+                                        </p>
+                                    </div>
+                                )}
 
                                 {error && (
                                     <div className="p-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 text-rose-300 text-sm font-medium flex gap-2 items-start">
