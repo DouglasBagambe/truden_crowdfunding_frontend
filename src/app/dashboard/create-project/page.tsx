@@ -152,6 +152,12 @@ export default function CreateProjectPage() {
                 return;
             }
         }
+        if (step === 4) {
+            if (formData.type === ProjectType.ROI && (!formData.milestones || formData.milestones.length === 0)) {
+                setError('At least one milestone is required for ROI projects.');
+                return;
+            }
+        }
 
         setError('');
         setStep(s => Math.min(s + 1, 6));
@@ -172,6 +178,7 @@ export default function CreateProjectPage() {
             const payload: any = { ...formData };
             if (payload.type === ProjectType.CHARITY) {
                 delete payload.industry;
+                delete payload.milestones;
             } else {
                 delete payload.category;
                 delete payload.subcategory;
@@ -625,68 +632,70 @@ export default function CreateProjectPage() {
                                 </div>
                             </div>
 
-                            <div className="space-y-6">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="font-black text-xl text-gray-900 tracking-tight">Project Milestones</h3>
-                                    <button
-                                        onClick={addMilestone}
-                                        className="flex items-center gap-2 bg-blue-100 text-blue-600 px-5 py-2.5 rounded-xl font-black text-xs hover:bg-blue-600 hover:text-white transition-all"
-                                    >
-                                        <Plus className="w-4 h-4" /> ADD MILESTONE
-                                    </button>
-                                </div>
-
-                                {(!formData.milestones || formData.milestones.length === 0) && (
-                                    <div className="text-center py-20 border-4 border-dashed border-gray-100 rounded-[2.5rem] flex flex-col items-center justify-center grayscale opacity-50">
-                                        <Target className="w-16 h-16 text-gray-300 mb-4" />
-                                        <p className="text-sm font-black text-gray-400 uppercase tracking-widest">At least one milestone required</p>
-                                    </div>
-                                )}
-
+                            {formData.type === ProjectType.ROI && (
                                 <div className="space-y-6">
-                                    {formData.milestones?.map((milestone, idx) => (
-                                        <div key={idx} className="p-8 bg-white rounded-3xl border border-gray-200 relative group transition-all hover:border-blue-400 hover:shadow-2xl">
-                                            <button
-                                                onClick={() => removeMilestone(idx)}
-                                                className="absolute right-6 top-6 w-10 h-10 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-rose-500 hover:text-white"
-                                            >
-                                                <Trash2 className="w-5 h-5" />
-                                            </button>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                                <div className="md:col-span-2">
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 block">Milestone {idx + 1} Title</label>
-                                                    <input
-                                                        type="text"
-                                                        value={milestone.title}
-                                                        onChange={(e) => updateMilestone(idx, 'title', e.target.value)}
-                                                        placeholder="e.g. Groundbreaking & Foundations"
-                                                        className="w-full bg-transparent border-b-4 border-gray-100 py-2 text-2xl font-black text-gray-900 focus:border-blue-500 outline-none transition-colors"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 block">Target Date</label>
-                                                    <input
-                                                        type="date"
-                                                        value={milestone.dueDate}
-                                                        onChange={(e) => updateMilestone(idx, 'dueDate', e.target.value)}
-                                                        className="w-full bg-gray-50 px-4 py-3 rounded-xl font-bold text-gray-900 outline-none"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 block">Budget Allocation (%)</label>
-                                                    <input
-                                                        type="number"
-                                                        value={milestone.payoutPercentage || ''}
-                                                        onChange={(e) => updateMilestone(idx, 'payoutPercentage', Number(e.target.value))}
-                                                        placeholder="e.g. 25"
-                                                        className="w-full bg-gray-50 px-4 py-3 rounded-xl font-bold text-gray-900 outline-none"
-                                                    />
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="font-black text-xl text-gray-900 tracking-tight">Project Milestones</h3>
+                                        <button
+                                            onClick={addMilestone}
+                                            className="flex items-center gap-2 bg-blue-100 text-blue-600 px-5 py-2.5 rounded-xl font-black text-xs hover:bg-blue-600 hover:text-white transition-all"
+                                        >
+                                            <Plus className="w-4 h-4" /> ADD MILESTONE
+                                        </button>
+                                    </div>
+
+                                    {(!formData.milestones || formData.milestones.length === 0) && (
+                                        <div className="text-center py-20 border-4 border-dashed border-gray-100 rounded-[2.5rem] flex flex-col items-center justify-center grayscale opacity-50">
+                                            <Target className="w-16 h-16 text-gray-300 mb-4" />
+                                            <p className="text-sm font-black text-gray-400 uppercase tracking-widest">At least one milestone required</p>
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-6">
+                                        {formData.milestones?.map((milestone, idx) => (
+                                            <div key={idx} className="p-8 bg-white rounded-3xl border border-gray-200 relative group transition-all hover:border-blue-400 hover:shadow-2xl">
+                                                <button
+                                                    onClick={() => removeMilestone(idx)}
+                                                    className="absolute right-6 top-6 w-10 h-10 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-rose-500 hover:text-white"
+                                                >
+                                                    <Trash2 className="w-5 h-5" />
+                                                </button>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                    <div className="md:col-span-2">
+                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 block">Milestone {idx + 1} Title</label>
+                                                        <input
+                                                            type="text"
+                                                            value={milestone.title}
+                                                            onChange={(e) => updateMilestone(idx, 'title', e.target.value)}
+                                                            placeholder="e.g. Groundbreaking & Foundations"
+                                                            className="w-full bg-transparent border-b-4 border-gray-100 py-2 text-2xl font-black text-gray-900 focus:border-blue-500 outline-none transition-colors"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 block">Target Date</label>
+                                                        <input
+                                                            type="date"
+                                                            value={milestone.dueDate}
+                                                            onChange={(e) => updateMilestone(idx, 'dueDate', e.target.value)}
+                                                            className="w-full bg-gray-50 px-4 py-3 rounded-xl font-bold text-gray-900 outline-none"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 block">Budget Allocation (%)</label>
+                                                        <input
+                                                            type="number"
+                                                            value={milestone.payoutPercentage || ''}
+                                                            onChange={(e) => updateMilestone(idx, 'payoutPercentage', Number(e.target.value))}
+                                                            placeholder="e.g. 25"
+                                                            className="w-full bg-gray-50 px-4 py-3 rounded-xl font-bold text-gray-900 outline-none"
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </motion.div>
                     )}
 
