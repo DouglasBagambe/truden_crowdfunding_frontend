@@ -89,10 +89,12 @@ function WithdrawPageContent() {
         }
     }, [user]);
 
+    const minAmount = balanceType === 'CHARITY' ? 500 : 10000;
+
     const handleSubmitWithdrawal = async () => {
         const amountNum = Number(amount);
-        if (!Number.isFinite(amountNum) || amountNum < 10000) {
-            setError('Minimum withdrawal is UGX 10,000');
+        if (!Number.isFinite(amountNum) || amountNum < minAmount) {
+            setError(`Minimum withdrawal is UGX ${minAmount.toLocaleString()}`);
             return;
         }
         if (walletBalance !== null && amountNum > walletBalance) {
@@ -153,7 +155,6 @@ function WithdrawPageContent() {
     const youReceive = amountNum - platformFee;
 
     const validateAndNext = () => {
-        const minAmount = balanceType === 'CHARITY' ? 500 : 10000;
         if (!amount || Number(amount) < minAmount) { setError(`Minimum withdrawal is UGX ${minAmount.toLocaleString()}`); return; }
         if (walletBalance !== null && Number(amount) > walletBalance) {
             setError(`Amount exceeds available balance of UGX ${walletBalance.toLocaleString()}`);
@@ -342,9 +343,9 @@ function WithdrawPageContent() {
                                         value={amount}
                                         onChange={e => setAmount(e.target.value)}
                                         type="number"
-                                        min="10000"
-                                        step="1000"
-                                        placeholder="Minimum 10,000"
+                                        min={minAmount}
+                                        step={balanceType === 'CHARITY' ? 100 : 1000}
+                                        placeholder={`Minimum ${minAmount.toLocaleString()}`}
                                         className="input_field"
                                     />
                                     {/* Quick amounts from wallet balance */}
@@ -364,7 +365,7 @@ function WithdrawPageContent() {
                                 </div>
 
                                 {/* Fee breakdown (live) */}
-                                {amountNum >= 10000 && (
+                                {amountNum >= minAmount && (
                                     <div className="p-4 bg-[var(--card)] border border-[var(--border)] rounded-2xl space-y-2">
                                         <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-3">Fee Breakdown</p>
                                         <div className="flex justify-between text-sm">
