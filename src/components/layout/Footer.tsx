@@ -1,89 +1,107 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Logo } from '../common/Logo';
 import Link from 'next/link';
-import { ChevronDown } from 'lucide-react';
+import { Mail, Twitter, MessageCircle } from 'lucide-react';
 
 const Footer = () => {
   return (
-    <footer className="bg-[var(--card)] border-t border-[var(--border)] pt-12 pb-8 transition-colors duration-300">
-      <div className="container mx-auto px-4 sm:px-6">
-        {/* Top Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+    <footer className="bg-[var(--card)] border-t border-[var(--border)] pt-14 pb-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+
+        {/* Top grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-10 mb-12">
+
           {/* Brand */}
-          <div className="sm:col-span-2 lg:col-span-1 space-y-4">
+          <div className="col-span-2 sm:col-span-2 md:col-span-1 space-y-4">
             <Logo size={24} />
-            <p className="text-sm text-[var(--text-muted)] font-medium leading-relaxed max-w-xs">
-              Empowering global innovation through decentralized milestone-based funding on the Celo network.
+            <p className="text-sm text-[var(--text-muted)] leading-relaxed max-w-[220px]">
+              Uganda's crowdfunding platform for charity causes and high-growth investments.
             </p>
+            <div className="flex items-center gap-3 pt-1">
+              <a
+                href="https://x.com/realdyson_"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="X / Twitter"
+                className="w-8 h-8 rounded-lg bg-[var(--secondary)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border)] transition-all"
+              >
+                <Twitter size={14} />
+              </a>
+              <a
+                href="https://wa.me/256770919175"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="WhatsApp"
+                className="w-8 h-8 rounded-lg bg-[var(--secondary)] flex items-center justify-center text-[var(--text-muted)] hover:text-emerald-500 hover:bg-emerald-500/10 transition-all"
+              >
+                <MessageCircle size={14} />
+              </a>
+              <a
+                href="mailto:hello@keiboroi.netlify.app"
+                aria-label="Email"
+                className="w-8 h-8 rounded-lg bg-[var(--secondary)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/10 transition-all"
+              >
+                <Mail size={14} />
+              </a>
+            </div>
           </div>
 
-          {/* Footer sections — collapse on mobile */}
-          <CollapsibleFooterSection title="Protocol">
-            <FooterLink href="/explore">Explore Projects</FooterLink>
-            <FooterLink href="/how-it-works">How It Works</FooterLink>
-            <FooterLink href="/dao">Governance</FooterLink>
-            <FooterLink href="/stats">Market Stats</FooterLink>
-          </CollapsibleFooterSection>
+          {/* Platform */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-bold uppercase tracking-widest text-[var(--text-main)]">Platform</h4>
+            <ul className="space-y-3">
+              <FooterLink href="/explore">Browse Projects</FooterLink>
+              <FooterLink href="/explore?type=CHARITY">Charity Causes</FooterLink>
+              <FooterLink href="/explore?type=ROI">Investments</FooterLink>
+              <FooterLink href="/dashboard/create-project">Start a Campaign</FooterLink>
+            </ul>
+          </div>
 
-          <CollapsibleFooterSection title="Resources">
-            <FooterLink href="/docs">Documentation</FooterLink>
-            <FooterLink href="/terms">Terms of Service</FooterLink>
-            <FooterLink href="/privacy">Privacy Policy</FooterLink>
-            <FooterLink href="/audit">Security Audit</FooterLink>
-          </CollapsibleFooterSection>
+          {/* Company */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-bold uppercase tracking-widest text-[var(--text-main)]">Company</h4>
+            <ul className="space-y-3">
+              <FooterLink href="/dashboard">Dashboard</FooterLink>
+              <FooterLink href="/settings">Account Settings</FooterLink>
+              <FooterLink href="/explore">Explore</FooterLink>
+            </ul>
+          </div>
 
-          <CollapsibleFooterSection title="Connect">
-            <FooterLink href="https://twitter.com/keibo">X / Twitter</FooterLink>
-            <FooterLink href="https://discord.gg/keibo">Discord</FooterLink>
-            <FooterLink href="https://github.com/keibo">GitHub</FooterLink>
-            <FooterLink href="mailto:hello@keibo.io">Email Support</FooterLink>
-          </CollapsibleFooterSection>
+          {/* Legal */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-bold uppercase tracking-widest text-[var(--text-main)]">Legal</h4>
+            <ul className="space-y-3">
+              <FooterLink href="/terms">Terms of Service</FooterLink>
+              <FooterLink href="/privacy">Privacy Policy</FooterLink>
+              <FooterLink href="mailto:hello@keiboroi.netlify.app">Contact Support</FooterLink>
+            </ul>
+          </div>
+
         </div>
 
-        {/* Bottom Bar */}
-        <div className="pt-6 border-t border-[var(--border)] flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--text-muted)] opacity-60 text-center sm:text-left">
-            © 2026 Keibo. Build trust, fund the future.
+        {/* Bottom bar */}
+        <div className="pt-6 border-t border-[var(--border)] flex flex-col sm:flex-row justify-between items-center gap-3">
+          <p className="text-xs text-[var(--text-muted)]">
+            © {new Date().getFullYear()} Keibo by Truden Technologies. All rights reserved.
           </p>
-          <div className="flex gap-6">
-            <button className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors">Network Status</button>
-            <button className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors">Security</button>
-            <button className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors">Contact</button>
-          </div>
+          <p className="text-xs text-[var(--text-muted)]">
+            Built in Kampala, Uganda 🇺🇬
+          </p>
         </div>
+
       </div>
     </footer>
   );
 };
 
-const CollapsibleFooterSection = ({ title, children }: { title: string; children: React.ReactNode }) => {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div className="space-y-3">
-      {/* Mobile: collapsible header */}
-      <button
-        className="sm:cursor-default flex items-center justify-between w-full sm:pointer-events-none"
-        onClick={() => setOpen((v) => !v)}
-      >
-        <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-main)]">{title}</h4>
-        <ChevronDown
-          size={14}
-          className={`text-[var(--text-muted)] transition-transform sm:hidden ${open ? 'rotate-180' : ''}`}
-        />
-      </button>
-      <ul className={`space-y-3 overflow-hidden transition-all duration-300 ${open ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0 sm:max-h-none sm:opacity-100'}`}>
-        {children}
-      </ul>
-    </div>
-  );
-};
-
 const FooterLink = ({ href, children }: { href: string; children: React.ReactNode }) => (
   <li>
-    <Link href={href} className="text-sm font-bold text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors">
+    <Link
+      href={href}
+      className="text-sm text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors font-medium"
+    >
       {children}
     </Link>
   </li>

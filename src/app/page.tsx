@@ -14,10 +14,8 @@ import {
   Leaf,
   Palette,
   FlaskConical,
-  Plus,
   ArrowRight,
   TrendingUp,
-  Zap,
 } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import ProjectCard from '@/components/dashboard/ProjectCard';
@@ -36,13 +34,14 @@ export default function LandingPage() {
       }),
     [],
   );
+
   const heroImages = useMemo(
     () => [
       'https://picsum.photos/seed/fundflow-hero-1/1600/900',
       'https://picsum.photos/seed/fundflow-hero-2/1600/900',
       'https://picsum.photos/seed/fundflow-hero-3/1600/900',
     ],
-    []
+    [],
   );
   const [heroIndex, setHeroIndex] = useState(0);
 
@@ -56,23 +55,24 @@ export default function LandingPage() {
 
   const projects = projectsData?.items || [];
 
-  const charity = useMemo(() =>
-    projects.filter((p: any) => p.projectType === 'CHARITY'),
-    [projects]);
+  const charity = useMemo(
+    () => projects.filter((p: any) => p.projectType === 'CHARITY'),
+    [projects],
+  );
 
-  const roi = useMemo(() =>
-    projects.filter((p: any) => p.projectType === 'ROI'),
-    [projects]);
+  const roi = useMemo(
+    () => projects.filter((p: any) => p.projectType === 'ROI'),
+    [projects],
+  );
 
   const stats = useMemo(() => {
     const charityTotal = charity.reduce((acc: number, p: any) => acc + (p.raisedAmount || 0), 0);
     const roiTotal = roi.reduce((acc: number, p: any) => acc + (p.raisedAmount || 0), 0);
-
     return {
       charity: charityTotal,
       roi: roiTotal,
       charityCount: charity.length,
-      roiCount: roi.length
+      roiCount: roi.length,
     };
   }, [charity, roi]);
 
@@ -81,16 +81,17 @@ export default function LandingPage() {
       <Navbar />
 
       <main className="flex-grow">
-        {/* Hero Section */}
-        <section className="relative py-16 sm:py-24 lg:py-32 overflow-hidden">
+
+        {/* ── Hero ── */}
+        <section className="relative py-20 sm:py-28 lg:py-36 overflow-hidden">
           <div className="absolute inset-0">
             <AnimatePresence mode="wait">
               <motion.div
                 key={heroImages[heroIndex]}
                 initial={{ opacity: 0 }}
-                animate={{ opacity: 1, scale: 1.03 }}
+                animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 1.1, ease: 'easeOut' }}
+                transition={{ duration: 1.2, ease: 'easeInOut' }}
                 className="absolute inset-0"
                 style={{
                   backgroundImage: `url(${heroImages[heroIndex]})`,
@@ -100,265 +101,241 @@ export default function LandingPage() {
                 }}
               />
             </AnimatePresence>
-
-            <div className="absolute inset-0 bg-white/65 dark:bg-black/55" />
-            <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-white/40 to-white/70 dark:from-black/10 dark:via-black/40 dark:to-black/70" />
-            <div className="absolute inset-0 bg-gradient-to-r from-white/35 via-transparent to-white/20 dark:from-black/35 dark:via-transparent dark:to-black/20" />
+            <div className="absolute inset-0 bg-white/60 dark:bg-black/60" />
+            <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-white/30 to-white/80 dark:from-black/5 dark:via-black/30 dark:to-black/80" />
           </div>
-          <div className="container mx-auto px-4 sm:px-6 relative z-10 text-center space-y-8">
+
+          <div className="container mx-auto px-4 sm:px-6 relative z-10 text-center">
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
-              className="space-y-6 max-w-4xl mx-auto"
+              transition={{ duration: 0.7 }}
+              className="max-w-3xl mx-auto space-y-5"
             >
-              <h1
-                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-950 dark:text-white px-2"
-                style={{ textShadow: '0 10px 35px rgba(0,0,0,0.22)' }}
-              >
-                Your Ideas, Our Community, Keibo
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight px-2">
+                Fund what matters.<br className="hidden sm:block" /> Give. Invest. Grow.
               </h1>
-              <p
-                className="text-base sm:text-lg max-w-3xl mx-auto text-slate-700 dark:text-slate-200 px-4"
-                style={{ textShadow: '0 10px 30px rgba(0,0,0,0.14)' }}
-              >
-                Ignite your dreams and bring impactful projects to life with the support of a global community. Keibo makes crowdfunding simple and accessible.
+              <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-xl mx-auto px-4 leading-relaxed">
+                Keibo connects passionate creators with a community ready to support charity causes and back high-growth investments — all in one place.
               </p>
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="flex flex-col sm:flex-row gap-3 justify-center items-center px-4"
+              transition={{ delay: 0.25, duration: 0.6 }}
+              className="flex flex-col sm:flex-row gap-3 justify-center items-center px-4 mt-8"
             >
-              <Link href="/dashboard/create-project" className="relative z-10 w-full sm:w-auto bg-blue-600 text-white font-bold py-3.5 px-8 rounded-xl hover:bg-blue-700 transition-all active:scale-95 shadow-lg hover:shadow-xl text-base sm:text-lg tracking-wide text-center">
+              <Link
+                href="/dashboard/create-project"
+                className="w-full sm:w-auto bg-[var(--primary)] hover:opacity-90 text-white font-semibold py-3 px-7 rounded-xl transition-all active:scale-[0.98] text-center text-sm sm:text-base"
+              >
                 Start a Campaign
               </Link>
-              <Link href="/explore" className="w-full sm:w-auto bg-white/85 dark:bg-slate-900/65 backdrop-blur text-slate-950 dark:text-white font-semibold px-8 py-3 rounded-xl border border-white/40 dark:border-white/10 hover:bg-white dark:hover:bg-slate-900 transition-colors shadow-sm hover:shadow text-center">
+              <Link
+                href="/explore"
+                className="w-full sm:w-auto bg-white/80 dark:bg-slate-900/60 backdrop-blur text-slate-900 dark:text-white font-semibold px-7 py-3 rounded-xl border border-white/50 dark:border-white/10 hover:bg-white dark:hover:bg-slate-900 transition-all text-center text-sm sm:text-base"
+              >
                 Explore Projects
               </Link>
             </motion.div>
           </div>
         </section>
 
-        {/* Filter Tabs */}
-        <section className="bg-[var(--background)] border-b border-[var(--border)] py-6">
-          <div className="container mx-auto px-6 flex justify-center">
-            <div className="inline-flex gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-full sm:w-auto overflow-x-auto mx-4 sm:mx-0 min-w-max">
-              <button
-                onClick={() => setActiveTab('ALL')}
-                className={`flex-1 sm:flex-none px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'ALL'
-                  ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+        {/* ── Filter Tabs ── */}
+        <section className="bg-[var(--background)] border-b border-[var(--border)] py-5">
+          <div className="container mx-auto px-4 sm:px-6 flex justify-center">
+            <div className="inline-flex gap-1 bg-[var(--card)] border border-[var(--border)] p-1 rounded-xl shadow-sm">
+              {(['ALL', 'CHARITY', 'ROI'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
+                    activeTab === tab
+                      ? 'bg-[var(--primary)] text-white shadow-sm'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                   }`}
-              >
-                All Projects
-              </button>
-              <button
-                onClick={() => setActiveTab('CHARITY')}
-                className={`flex-1 sm:flex-none px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'CHARITY'
-                  ? 'bg-white dark:bg-gray-700 text-emerald-600 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
-                  }`}
-              >
-                Charity
-              </button>
-              <button
-                onClick={() => setActiveTab('ROI')}
-                className={`flex-1 sm:flex-none px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'ROI'
-                  ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
-                  }`}
-              >
-                Investments
-              </button>
+                >
+                  {tab === 'ALL' ? 'All Projects' : tab === 'CHARITY' ? 'Charity' : 'Investments'}
+                </button>
+              ))}
             </div>
           </div>
         </section>
 
         <div className="bg-[var(--background)]">
-          <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-16 space-y-16 sm:space-y-20">
+          <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-16 space-y-20">
 
-            {/* Charity Projects Section */}
+            {/* ── Charity Section ── */}
             {(activeTab === 'ALL' || activeTab === 'CHARITY') && (
               <motion.section
-                initial={{ opacity: 0, y: 40 }}
+                initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
+                transition={{ duration: 0.5 }}
                 className="space-y-10"
               >
-                <div className="text-center space-y-4 max-w-3xl mx-auto">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-gray-800 border border-[var(--border)]">
-                    <Heart size={16} className="text-emerald-600" />
-                    <span className="text-sm font-semibold text-emerald-600">Active Causes</span>
+                <div className="text-center space-y-3 max-w-2xl mx-auto">
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50">
+                    <Heart size={14} className="text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Active Causes</span>
                   </div>
-                  <h2 className="text-3xl md:text-4xl font-bold text-[var(--text-main)]">
-                    Make a Difference, One Donation at a Time
+                  <h2 className="text-2xl sm:text-3xl font-bold text-[var(--text-main)]">
+                    Give where it counts
                   </h2>
-                  <p className="text-base text-[var(--text-muted)]">
-                    Support causes that matter. Our projects focus on social impact, environmental sustainability, and community development. Every contribution helps build a better world.
+                  <p className="text-sm sm:text-base text-[var(--text-muted)] leading-relaxed">
+                    Every donation goes directly to verified causes — from healthcare and education to community development across Uganda and beyond.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {isLoading ? (
-                    Array(3).fill(0).map((_, i) => (
-                      <div key={i} className="h-96 bg-[var(--card)] rounded-xl animate-pulse border border-[var(--border)]" />
-                    ))
-                  ) : charity.length > 0 ? (
-                    charity.slice(0, 3).map((project: any) => (
-                      <ProjectCard key={project.id || project._id} project={project} />
-                    ))
-                  ) : (
-                    <div className="col-span-3 text-center py-12">
-                      <p className="text-[var(--text-muted)]">No charity projects available yet. Be the first to start a campaign!</p>
-                    </div>
-                  )}
+                  {isLoading
+                    ? Array(3).fill(0).map((_, i) => (
+                        <div key={i} className="h-80 bg-[var(--card)] rounded-2xl animate-pulse border border-[var(--border)]" />
+                      ))
+                    : charity.length > 0
+                      ? charity.slice(0, 3).map((project: any) => (
+                          <ProjectCard key={project.id || project._id} project={project} />
+                        ))
+                      : (
+                          <div className="col-span-3 py-16 text-center space-y-3">
+                            <Heart size={36} className="mx-auto text-[var(--border)]" />
+                            <p className="text-[var(--text-muted)] font-medium">No charity causes yet — be the first to start one.</p>
+                          </div>
+                        )
+                  }
                 </div>
 
-                <div className="text-center space-y-4 pt-6">
-                  <p className="text-base sm:text-lg font-semibold text-[var(--text-main)]">
-                    Total Impact: <span className="text-emerald-600">{ugxFormatter.format(stats.charity)} Raised</span> | {stats.charityCount} Projects
-                  </p>
-                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                    <Link href="/explore?type=CHARITY" className="w-full sm:w-auto px-8 py-3 rounded-lg inline-flex items-center justify-center gap-2 font-semibold border border-emerald-600/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-colors">
-                      Explore all causes
-                      <ArrowRight size={18} />
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                  {stats.charityCount > 0 && (
+                    <span className="text-sm text-[var(--text-muted)]">
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">{ugxFormatter.format(stats.charity)}</span> raised across {stats.charityCount} cause{stats.charityCount !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                  <div className="flex gap-2">
+                    <Link
+                      href="/explore?type=CHARITY"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold border border-[var(--border)] text-[var(--text-main)] hover:bg-[var(--card)] transition-all"
+                    >
+                      View all causes <ArrowRight size={15} />
                     </Link>
-                    <Link href="/dashboard/create-project" className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-8 py-3 rounded-lg inline-flex items-center justify-center gap-2 transition-colors">
-                      <Plus size={20} />
-                      Start a Charity
+                    <Link
+                      href="/dashboard/create-project"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-all"
+                    >
+                      Start a cause
                     </Link>
                   </div>
                 </div>
               </motion.section>
             )}
 
-            {/* ROI Section */}
+            {/* ── ROI Section ── */}
             {(activeTab === 'ALL' || activeTab === 'ROI') && (
               <motion.section
-                initial={{ opacity: 0, y: 40 }}
+                initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
+                transition={{ duration: 0.5 }}
                 className="space-y-10"
               >
-                <div className="text-center space-y-4 max-w-3xl mx-auto">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-gray-800 border border-[var(--border)]">
-                    <TrendingUp size={16} className="text-blue-600" />
-                    <span className="text-sm font-semibold text-blue-600">ROI Projects</span>
+                <div className="text-center space-y-3 max-w-2xl mx-auto">
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50">
+                    <TrendingUp size={14} className="text-blue-600 dark:text-blue-400" />
+                    <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">Investment Projects</span>
                   </div>
-                  <h2 className="text-3xl md:text-4xl font-bold text-[var(--text-main)]">
-                    Invest in Innovation, Expect Returns
+                  <h2 className="text-2xl sm:text-3xl font-bold text-[var(--text-main)]">
+                    Back businesses that grow
                   </h2>
-                  <p className="text-base text-[var(--text-muted)]">
-                    Discover high-potential ventures designed for financial returns. Our ROI projects connect investors with innovative startups and growth opportunities across various industries.
+                  <p className="text-sm sm:text-base text-[var(--text-muted)] leading-relaxed">
+                    Invest in vetted startups and revenue-generating ventures across Uganda. Transparent milestones, real returns.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {isLoading ? (
-                    Array(3).fill(0).map((_, i) => (
-                      <div key={i} className="h-96 bg-[var(--card)] rounded-xl animate-pulse border border-[var(--border)]" />
-                    ))
-                  ) : roi.length > 0 ? (
-                    roi.slice(0, 3).map((project: any) => (
-                      <ProjectCard key={project.id || project._id} project={project} />
-                    ))
-                  ) : (
-                    <div className="col-span-3 text-center py-12">
-                      <p className="text-[var(--text-muted)]">No ROI projects available yet. Be the first to start a campaign!</p>
-                    </div>
-                  )}
+                  {isLoading
+                    ? Array(3).fill(0).map((_, i) => (
+                        <div key={i} className="h-80 bg-[var(--card)] rounded-2xl animate-pulse border border-[var(--border)]" />
+                      ))
+                    : roi.length > 0
+                      ? roi.slice(0, 3).map((project: any) => (
+                          <ProjectCard key={project.id || project._id} project={project} />
+                        ))
+                      : (
+                          <div className="col-span-3 py-16 text-center space-y-3">
+                            <TrendingUp size={36} className="mx-auto text-[var(--border)]" />
+                            <p className="text-[var(--text-muted)] font-medium">No investment projects yet — submit your startup.</p>
+                          </div>
+                        )
+                  }
                 </div>
 
-                <div className="text-center space-y-4 pt-6">
-                  <p className="text-base sm:text-lg font-semibold text-[var(--text-main)]">
-                    Total Investment: <span className="text-blue-600">{ugxFormatter.format(stats.roi)} Raised</span> | {stats.roiCount} Startups
-                  </p>
-                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                    <Link href="/explore?type=ROI" className="w-full sm:w-auto px-8 py-3 rounded-lg inline-flex items-center justify-center gap-2 font-semibold border border-blue-600/30 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-colors">
-                      Explore investments
-                      <ArrowRight size={18} />
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                  {stats.roiCount > 0 && (
+                    <span className="text-sm text-[var(--text-muted)]">
+                      <span className="font-semibold text-blue-600 dark:text-blue-400">{ugxFormatter.format(stats.roi)}</span> invested across {stats.roiCount} startup{stats.roiCount !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                  <div className="flex gap-2">
+                    <Link
+                      href="/explore?type=ROI"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold border border-[var(--border)] text-[var(--text-main)] hover:bg-[var(--card)] transition-all"
+                    >
+                      View investments <ArrowRight size={15} />
                     </Link>
-                    <Link href="/dashboard/create-project" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg inline-flex items-center justify-center gap-2 transition-colors">
-                      <Plus size={20} />
-                      Submit Your Startup
+                    <Link
+                      href="/dashboard/create-project"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-[var(--primary)] hover:opacity-90 text-white transition-all"
+                    >
+                      Submit your startup
                     </Link>
                   </div>
                 </div>
               </motion.section>
             )}
 
-            {/* Categories */}
-            <section className="space-y-8 py-4 text-center">
-              <div className="space-y-3 max-w-2xl mx-auto">
-                <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-blue-900 dark:text-white">Explore Categories</h2>
-                <p className="text-gray-500 dark:text-gray-400 font-medium text-sm sm:text-base">Find projects that align with your passions and investment goals.</p>
+            {/* ── Categories ── */}
+            <section className="space-y-8 py-2">
+              <div className="text-center space-y-2">
+                <h2 className="text-2xl sm:text-3xl font-bold text-[var(--text-main)]">Browse by category</h2>
+                <p className="text-sm text-[var(--text-muted)]">Find projects that match what you care about.</p>
               </div>
 
-              <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-                <Category
-                  icon={<Lightbulb className="w-8 h-8" />}
-                  label="Technology"
-                  href="/explore?category=TECHNOLOGY"
-                  color="blue"
-                />
-                <Category
-                  icon={<GraduationCap className="w-8 h-8" />}
-                  label="Education"
-                  href="/explore?category=EDUCATION"
-                  color="indigo"
-                />
-                <Category
-                  icon={<UtensilsCrossed className="w-8 h-8" />}
-                  label="Food & Craft"
-                  href="/explore?category=COMMUNITY"
-                  color="amber"
-                />
-                <Category
-                  icon={<Leaf className="w-8 h-8" />}
-                  label="Environment"
-                  href="/explore?category=ENVIRONMENT"
-                  color="emerald"
-                />
-                <Category
-                  icon={<Palette className="w-8 h-8" />}
-                  label="Arts & Culture"
-                  href="/explore?category=COMMUNITY"
-                  color="rose"
-                />
-                <Category
-                  icon={<FlaskConical className="w-8 h-8" />}
-                  label="Health"
-                  href="/explore?category=HEALTH"
-                  color="cyan"
-                />
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                <CategoryCard icon={<Lightbulb />} label="Technology" href="/explore?category=TECHNOLOGY" color="blue" />
+                <CategoryCard icon={<GraduationCap />} label="Education" href="/explore?category=EDUCATION" color="indigo" />
+                <CategoryCard icon={<UtensilsCrossed />} label="Food & Craft" href="/explore?category=COMMUNITY" color="amber" />
+                <CategoryCard icon={<Leaf />} label="Environment" href="/explore?category=ENVIRONMENT" color="emerald" />
+                <CategoryCard icon={<Palette />} label="Arts" href="/explore?category=COMMUNITY" color="rose" />
+                <CategoryCard icon={<FlaskConical />} label="Health" href="/explore?category=HEALTH" color="cyan" />
               </div>
             </section>
 
-            {/* Bottom CTAs */}
-            <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 py-4 sm:py-8">
-              <div className="bg-blue-50 dark:bg-blue-950/10 border border-blue-100 dark:border-blue-900/30 rounded-2xl p-6 sm:p-10 space-y-4 sm:space-y-6 text-center">
-                <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-[var(--text-main)]">
-                  Ready to Launch Your Vision?
-                </h3>
-                <p className="text-[var(--text-muted)] text-sm sm:text-base">
-                  Keibo provides the tools and community support you need to turn your innovative ideas into reality. Start your crowdfunding journey today.
+            {/* ── Bottom CTAs ── */}
+            <section className="grid grid-cols-1 md:grid-cols-2 gap-5 py-2">
+              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 rounded-2xl p-8 space-y-4 text-center">
+                <h3 className="text-xl font-bold text-[var(--text-main)]">Ready to launch your idea?</h3>
+                <p className="text-sm text-[var(--text-muted)] leading-relaxed">
+                  Whether it's a charity cause or a business looking for backers, Keibo gives you the tools to raise funds and grow.
                 </p>
-                <Link href="/dashboard/create-project" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg inline-block transition-colors">
-                  Start Your Campaign
+                <Link
+                  href="/dashboard/create-project"
+                  className="inline-block bg-[var(--primary)] hover:opacity-90 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-all"
+                >
+                  Start your campaign
                 </Link>
               </div>
 
-              <div className="bg-emerald-50 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl p-6 sm:p-10 space-y-4 sm:space-y-6 text-center">
-                <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-[var(--text-main)]">
-                  Support a Cause, Invest in Growth
-                </h3>
-                <p className="text-[var(--text-muted)] text-sm sm:text-base">
-                  Discover groundbreaking projects and passionate creators. Your contribution can make a real difference in bringing new ideas to the world.
+              <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl p-8 space-y-4 text-center">
+                <h3 className="text-xl font-bold text-[var(--text-main)]">Find something worth backing</h3>
+                <p className="text-sm text-[var(--text-muted)] leading-relaxed">
+                  Explore verified projects from creators and entrepreneurs across Uganda. Your support changes lives.
                 </p>
-                <Link href="/explore" className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-8 py-3 rounded-lg inline-block transition-colors">
-                  Explore Projects
+                <Link
+                  href="/explore"
+                  className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-all"
+                >
+                  Explore projects
                 </Link>
               </div>
             </section>
@@ -372,14 +349,24 @@ export default function LandingPage() {
   );
 }
 
-function Category({ icon, label, color, href }: { icon: React.ReactNode, label: string, color: string, href: string }) {
+const colorMap: Record<string, string> = {
+  blue:    'text-blue-600 bg-blue-50 dark:bg-blue-950/30 border-blue-100 dark:border-blue-900/40 group-hover:border-blue-400',
+  indigo:  'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 border-indigo-100 dark:border-indigo-900/40 group-hover:border-indigo-400',
+  amber:   'text-amber-600 bg-amber-50 dark:bg-amber-950/30 border-amber-100 dark:border-amber-900/40 group-hover:border-amber-400',
+  emerald: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/40 group-hover:border-emerald-400',
+  rose:    'text-rose-600 bg-rose-50 dark:bg-rose-950/30 border-rose-100 dark:border-rose-900/40 group-hover:border-rose-400',
+  cyan:    'text-cyan-600 bg-cyan-50 dark:bg-cyan-950/30 border-cyan-100 dark:border-cyan-900/40 group-hover:border-cyan-400',
+};
+
+function CategoryCard({ icon, label, color, href }: { icon: React.ReactNode; label: string; color: string; href: string }) {
+  const cls = colorMap[color] || colorMap.blue;
   return (
-    <Link href={href}>
-      <div className="bg-white dark:bg-[var(--card)] border border-gray-100 dark:border-[var(--border)] p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl flex flex-col items-center gap-2 sm:gap-4 hover:border-blue-500 hover:shadow-xl hover:-translate-y-1 sm:hover:-translate-y-2 transition-all group cursor-pointer shadow-sm">
-        <div className="text-blue-500 transition-transform group-hover:scale-110 duration-500 [&>svg]:w-6 [&>svg]:h-6 sm:[&>svg]:w-8 sm:[&>svg]:h-8">
+    <Link href={href} className="group">
+      <div className={`border rounded-2xl p-4 sm:p-5 flex flex-col items-center gap-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer ${cls}`}>
+        <div className="[&>svg]:w-5 [&>svg]:h-5 sm:[&>svg]:w-6 sm:[&>svg]:h-6 transition-transform group-hover:scale-110 duration-300">
           {icon}
         </div>
-        <span className="text-[9px] sm:text-xs font-black uppercase tracking-widest text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors text-center leading-tight">
+        <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-center leading-tight opacity-80 group-hover:opacity-100 transition-opacity">
           {label}
         </span>
       </div>

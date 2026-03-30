@@ -789,17 +789,20 @@ const MilestonesStep = ({ formData, updateFormData }: any) => {
               type="text"
               value={milestone.title}
               onChange={(e) => updateMilestone(index, 'title', e.target.value)}
-              placeholder="Milestone title"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="e.g. Product launch, MVP release..."
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
             />
 
-            <textarea
-              value={milestone.description}
-              onChange={(e) => updateMilestone(index, 'description', e.target.value)}
-              rows={2}
-              placeholder="Milestone description"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Description <span className="text-gray-400">(optional)</span></label>
+              <textarea
+                value={milestone.description}
+                onChange={(e) => updateMilestone(index, 'description', e.target.value)}
+                rows={2}
+                placeholder="Briefly describe what happens at this milestone..."
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-3">
               <input

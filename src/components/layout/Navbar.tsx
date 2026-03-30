@@ -159,7 +159,7 @@ const Navbar = () => {
               <div className="flex items-center gap-3">
                 <Link
                   href="/dashboard/create-project"
-                  className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold transition-all hover:bg-emerald-700"
+                  className="hidden lg:flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-xs font-semibold transition-all hover:opacity-90"
                 >
                   + Start Campaign
                 </Link>
