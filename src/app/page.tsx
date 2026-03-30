@@ -35,11 +35,19 @@ export default function LandingPage() {
     [],
   );
 
+  // 10 real Unsplash images across our categories: health, education, community, tech, environment, arts, agriculture
   const heroImages = useMemo(
     () => [
-      'https://picsum.photos/seed/fundflow-hero-1/1600/900',
-      'https://picsum.photos/seed/fundflow-hero-2/1600/900',
-      'https://picsum.photos/seed/fundflow-hero-3/1600/900',
+      'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1600&auto=format&fit=crop&q=80', // community group Africa
+      'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=1600&auto=format&fit=crop&q=80', // kids education
+      'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=1600&auto=format&fit=crop&q=80', // tech startup woman
+      'https://images.unsplash.com/photo-1444210971048-6130cf0c46cf?w=1600&auto=format&fit=crop&q=80', // farming agriculture
+      'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1600&auto=format&fit=crop&q=80', // healthcare doctor
+      'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=1600&auto=format&fit=crop&q=80', // environment nature
+      'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=1600&auto=format&fit=crop&q=80', // community celebration diverse
+      'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1600&auto=format&fit=crop&q=80', // arts creative
+      'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1600&auto=format&fit=crop&q=80', // business office startup
+      'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=1600&auto=format&fit=crop&q=80', // volunteer charity
     ],
     [],
   );
@@ -113,10 +121,10 @@ export default function LandingPage() {
               className="max-w-3xl mx-auto space-y-5"
             >
               <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight px-2">
-                Fund what matters.<br className="hidden sm:block" /> Give. Invest. Grow.
+                Back what matters.<br className="hidden sm:block" /> Fund the future.
               </h1>
               <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-xl mx-auto px-4 leading-relaxed">
-                Keibo connects passionate creators with a community ready to support charity causes and back high-growth investments — all in one place.
+                Support charity causes making a real impact, or invest in businesses built for growth — all on one trusted platform.
               </p>
             </motion.div>
 

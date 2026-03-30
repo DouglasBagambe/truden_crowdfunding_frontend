@@ -103,21 +103,34 @@ const Navbar = () => {
 
           {/* Desktop Center: Explore dropdown + Search */}
           <div className="hidden md:flex items-center gap-3 absolute left-1/2 -translate-x-1/2">
-            {/* Explore dropdown */}
+            {/* Explore — click navigates, hover shows dropdown */}
             <div className="relative group">
-              <button className="flex items-center gap-2 text-sm font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors tracking-tight px-3 py-2 rounded-xl hover:bg-[var(--secondary)]">
+              <Link
+                href="/explore"
+                className="flex items-center gap-1.5 text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors px-3 py-2 rounded-xl hover:bg-[var(--secondary)]"
+              >
                 Explore
-                <ChevronDown size={16} className="opacity-70" />
-              </button>
-              <div className="absolute left-0 mt-3 w-52 bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                {navCategories.map((cat) => (
-                  <Link key={cat.href} href={cat.href} className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold hover:bg-[var(--secondary)] transition-colors">
-                    {cat.label}
+                <ChevronDown size={14} className="opacity-60" />
+              </Link>
+              <div className="absolute left-0 top-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="w-56 bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden py-2">
+                  <p className="px-4 pt-1 pb-2 text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)]">Browse by type</p>
+                  <Link href="/explore" className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-[var(--secondary)] transition-colors">
+                    <span className="w-6 h-6 rounded-lg bg-[var(--secondary)] flex items-center justify-center text-[var(--text-muted)] text-xs">★</span>
+                    All Projects
                   </Link>
-                ))}
-                <div className="border-t border-[var(--border)] mt-1 pt-1">
-                  <Link href="/dashboard/create-project" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-colors">
-                    + Start a Campaign
+                  <Link href="/explore?type=CHARITY" className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-[var(--secondary)] transition-colors">
+                    <span className="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 text-xs">♥</span>
+                    Charity Causes
+                  </Link>
+                  <Link href="/explore?type=ROI" className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-[var(--secondary)] transition-colors">
+                    <span className="w-6 h-6 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 text-xs">↑</span>
+                    Investments
+                  </Link>
+                  <div className="border-t border-[var(--border)] mx-3 my-1" />
+                  <Link href="/dashboard/create-project" className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-colors">
+                    <span className="w-6 h-6 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] text-xs font-black">+</span>
+                    Start a Campaign
                   </Link>
                 </div>
               </div>

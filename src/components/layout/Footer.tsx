@@ -17,7 +17,7 @@ const Footer = () => {
           <div className="col-span-2 sm:col-span-2 md:col-span-1 space-y-4">
             <Logo size={24} />
             <p className="text-sm text-[var(--text-muted)] leading-relaxed max-w-[220px]">
-              Uganda's crowdfunding platform for charity causes and high-growth investments.
+              A platform where ideas get funded, causes get supported, and communities grow.
             </p>
             <div className="flex items-center gap-3 pt-1">
               <a
@@ -84,11 +84,9 @@ const Footer = () => {
         {/* Bottom bar */}
         <div className="pt-6 border-t border-[var(--border)] flex flex-col sm:flex-row justify-between items-center gap-3">
           <p className="text-xs text-[var(--text-muted)]">
-            © {new Date().getFullYear()} Keibo by Truden Technologies. All rights reserved.
+            © {new Date().getFullYear()} <a href="https://www.truden.net/" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--text-main)] transition-colors font-semibold">Truden Tech Ltd.</a> All rights reserved.
           </p>
-          <p className="text-xs text-[var(--text-muted)]">
-            Built in Kampala, Uganda 🇺🇬
-          </p>
+
         </div>
 
       </div>
