@@ -435,11 +435,10 @@ export default function SettingsPage() {
                             <button
                               key={opt.id}
                               onClick={() => setTheme(opt.id)}
-                              className={`flex flex-col items-center gap-3 p-5 rounded-2xl border-2 transition-all text-center ${
-                                active
+                              className={`flex flex-col items-center gap-3 p-5 rounded-2xl border-2 transition-all text-center ${active
                                   ? 'border-[var(--primary)] bg-[var(--primary)]/5'
                                   : 'border-[var(--border)] hover:border-[var(--text-muted)]/40 hover:bg-[var(--secondary)]'
-                              }`}
+                                }`}
                             >
                               <div className={`w-full h-16 rounded-xl border ${opt.preview} flex items-center justify-center`}>
                                 {opt.icon}
@@ -480,13 +479,13 @@ export default function SettingsPage() {
                       </div>
 
                       {/* 2FA */}
-                      <div className="flex items-center justify-between p-5 rounded-2xl border border-[var(--border)] bg-[var(--secondary)]">
+                      {/* <div className="flex items-center justify-between p-5 rounded-2xl border border-[var(--border)] bg-[var(--secondary)]">
                         <div className="space-y-0.5">
                           <p className="font-semibold text-sm">Two-Factor Authentication</p>
                           <p className="text-xs text-[var(--text-muted)]">Add an extra verification step when signing in.</p>
                         </div>
                         <Toggle checked={!!user?.mfaEnabled} onChange={() => toast('2FA setup coming soon', { icon: '🔒' })} />
-                      </div>
+                      </div> */}
 
                       {/* KYC */}
                       {(() => {
@@ -497,9 +496,9 @@ export default function SettingsPage() {
                               <p className="font-semibold text-sm">Identity Verification (KYC)</p>
                               <p className="text-xs text-[var(--text-muted)]">
                                 {kycStatus === 'VERIFIED' ? 'Your identity has been successfully verified.' :
-                                 kycStatus === 'PENDING' ? 'Verification is under review — we will notify you.' :
-                                 kycStatus === 'REJECTED' ? 'Your submission was not approved. Please re-verify.' :
-                                 'Required to withdraw funds and create investment projects.'}
+                                  kycStatus === 'PENDING' ? 'Verification is under review — we will notify you.' :
+                                    kycStatus === 'REJECTED' ? 'Your submission was not approved. Please re-verify.' :
+                                      'Required to withdraw funds and create investment projects.'}
                               </p>
                             </div>
                             {kycStatus === 'VERIFIED' ? (
