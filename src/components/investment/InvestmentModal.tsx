@@ -108,8 +108,7 @@ export default function InvestmentModal({ isOpen, onClose, project, userEmail }:
                     setError('Payment failed. Please try again.');
                     setStep('payment');
                 }
-            } catch (err) {
-                console.error('Error polling payment status:', err);
+            } catch {
             }
 
             if (attempts >= maxAttempts) {

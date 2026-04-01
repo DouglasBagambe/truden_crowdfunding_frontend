@@ -10,6 +10,7 @@
  */
 
 import DPOPaymentModal from '@/components/payments/DPOPaymentModal';
+import { useRoiAccess } from '@/hooks/useRoiAccess';
 
 interface InvestModalProps {
   isOpen: boolean;
@@ -17,8 +18,12 @@ interface InvestModalProps {
   project: any;
 }
 
-const InvestModal = ({ isOpen, onClose, project }: InvestModalProps) => (
-  <DPOPaymentModal isOpen={isOpen} onClose={onClose} project={project} />
-);
+const InvestModal = ({ isOpen, onClose, project }: InvestModalProps) => {
+  const { hasRoiAccess } = useRoiAccess();
+
+  if (!hasRoiAccess) return null;
+
+  return <DPOPaymentModal isOpen={isOpen} onClose={onClose} project={project} />;
+};
 
 export default InvestModal;

@@ -5,8 +5,10 @@ import { Activity, Wallet, TrendingUp, TrendingDown, Loader2, Send } from 'lucid
 import { walletService, type WalletBalance } from '@/lib/wallet-service';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { useRoiAccess } from '@/hooks/useRoiAccess';
 
 export function WalletView() {
+    const { hasRoiAccess } = useRoiAccess();
     const [wallet, setWallet] = useState<any>(null);
     const [balance, setBalance] = useState<WalletBalance | null>(null);
     const [transactions, setTransactions] = useState<any[]>([]);
@@ -28,8 +30,7 @@ export function WalletView() {
             setWallet(walletData);
             setBalance(balanceData);
             setTransactions(txData);
-        } catch (error) {
-            console.error('Error loading wallet:', error);
+        } catch {
         } finally {
             setLoading(false);
         }
@@ -68,7 +69,7 @@ export function WalletView() {
                                 <h2 className="text-2xl font-black tracking-tight">Keibo Wallet</h2>
                             </div>
 
-                            <div className="flex flex-col md:flex-row gap-6">
+                            <div className={`flex flex-col ${hasRoiAccess ? 'md:flex-row gap-6' : 'gap-4'}`}>
                                 <div className="space-y-1 flex-1">
                                     <p className="text-white/70 text-xs font-black uppercase tracking-widest">Charity Balance</p>
                                     <div className="flex items-baseline gap-2">
@@ -82,37 +83,43 @@ export function WalletView() {
                                     </p>
                                 </div>
 
-                                <div className="w-px bg-white/10 hidden md:block"></div>
+                                {hasRoiAccess && (
+                                    <>
+                                        <div className="w-px bg-white/10 hidden md:block"></div>
 
-                                <div className="space-y-1 flex-1">
-                                    <p className="text-white/70 text-xs font-black uppercase tracking-widest">ROI Investment Balance</p>
-                                    <div className="flex items-baseline gap-2">
-                                        <span className="text-sm font-bold opacity-60">UGX</span>
-                                        <h3 className="text-4xl font-black">
-                                            {roiBalance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                                        </h3>
-                                    </div>
-                                    <p className="text-white/50 text-[10px] mt-1 pr-4">
-                                        Locked funding from your ROI projects. Withdrawable only from the Projects page upon 100% target completion.
-                                    </p>
-                                </div>
+                                        <div className="space-y-1 flex-1">
+                                            <p className="text-white/70 text-xs font-black uppercase tracking-widest">ROI Investment Balance</p>
+                                            <div className="flex items-baseline gap-2">
+                                                <span className="text-sm font-bold opacity-60">UGX</span>
+                                                <h3 className="text-4xl font-black">
+                                                    {roiBalance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                                </h3>
+                                            </div>
+                                            <p className="text-white/50 text-[10px] mt-1 pr-4">
+                                                Locked funding from your ROI projects. Withdrawable only from the Projects page upon 100% target completion.
+                                            </p>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
 
-                        {/* Crypto Balances */}
-                        <div className="pt-6 border-t border-white/10">
-                            <p className="text-white/70 text-[10px] font-black uppercase tracking-widest mb-4">Crypto Balances (Coming Soon)</p>
-                            <div className="flex gap-4">
-                                <div className="bg-white/10 rounded-xl p-3 flex-1 backdrop-blur-sm border border-white/5 opacity-50">
-                                    <p className="text-white/50 text-[10px] uppercase font-bold tracking-wider mb-1">USDT (TRC20)</p>
-                                    <p className="font-black">0.00</p>
-                                </div>
-                                <div className="bg-white/10 rounded-xl p-3 flex-1 backdrop-blur-sm border border-white/5 opacity-50">
-                                    <p className="text-white/50 text-[10px] uppercase font-bold tracking-wider mb-1">USDC (ERC20)</p>
-                                    <p className="font-black">0.00</p>
+                        {hasRoiAccess && (
+                            <div className="pt-6 border-t border-white/10">
+                                <p className="text-white/70 text-[10px] font-black uppercase tracking-widest mb-4">Crypto Balances (Coming Soon)</p>
+                                <div className="flex gap-4">
+                                    <div className="bg-white/10 rounded-xl p-3 flex-1 backdrop-blur-sm border border-white/5 opacity-50">
+                                        <p className="text-white/50 text-[10px] uppercase font-bold tracking-wider mb-1">USDT (TRC20)</p>
+                                        <p className="font-black">0.00</p>
+                                    </div>
+                                    <div className="bg-white/10 rounded-xl p-3 flex-1 backdrop-blur-sm border border-white/5 opacity-50">
+                                        <p className="text-white/50 text-[10px] uppercase font-bold tracking-wider mb-1">USDC (ERC20)</p>
+                                        <p className="font-black">0.00</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>                    </div>
+                        )}
+                    </div>
 
                     <div className="flex flex-col gap-3 justify-center min-w-[200px]">
                         <button

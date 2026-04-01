@@ -168,7 +168,28 @@ export const projectService = {
         'Content-Type': 'multipart/form-data',
       },
     });
-    return response.data;
+    const data = response.data || {};
+    const apiBase = String(apiClient.defaults.baseURL || '').replace(/\/+$/, '');
+    const origin = apiBase.replace(/\/api$/, '');
+
+    const toAbsoluteUrl = (value?: string) => {
+      if (!value || typeof value !== 'string') return '';
+      if (/^https?:\/\//i.test(value)) return value;
+      if (value.startsWith('/api/')) return `${origin}${value}`;
+      if (value.startsWith('/projects/files/')) return `${origin}/api${value}`;
+      if (value.startsWith('/')) return `${origin}${value}`;
+      return '';
+    };
+
+    return {
+      ...data,
+      url:
+        toAbsoluteUrl(data.url) ||
+        toAbsoluteUrl(data.fileUrl) ||
+        toAbsoluteUrl(data.path) ||
+        toAbsoluteUrl(data.location) ||
+        (data.fileId ? `${origin}/api/projects/files/${data.fileId}` : ''),
+    };
   },
 
   /**

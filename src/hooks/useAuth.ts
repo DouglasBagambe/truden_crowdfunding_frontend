@@ -23,12 +23,8 @@ export function useAuth() {
   const isAuthenticated = !!user;
 
   const loginMutation = useMutation({
-    mutationFn: (data: any) => {
-      console.log('[AUTH_FRONTEND_DEBUG] Attempting login with:', data.email);
-      return authService.login(data);
-    },
+    mutationFn: (data: any) => authService.login(data),
     onSuccess: (data) => {
-      console.log('[AUTH_FRONTEND_DEBUG] Login success response:', data);
       if (data.accessToken || data.access_token) {
         const token = data.accessToken || data.access_token;
         const refreshToken = data.refreshToken || data.refresh_token;
@@ -51,8 +47,6 @@ export function useAuth() {
       }
     },
     onError: (error: any, variables: any) => {
-      console.error('[AUTH_FRONTEND_DEBUG] Login error:', error);
-      console.error('[AUTH_FRONTEND_DEBUG] Error response data:', error.response?.data);
       const msg: string = error.response?.data?.message || 'Authentication failed';
       if (msg.toLowerCase().includes('not verified')) {
         toast.error('Please verify your email first.');

@@ -22,6 +22,8 @@ import {
     ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRoiAccess } from '@/hooks/useRoiAccess';
+import toast from 'react-hot-toast';
 
 // ─── BuyModal ────────────────────────────────────────────────────────────────
 
@@ -301,9 +303,18 @@ function SkeletonCard() {
 // ─── Main Marketplace Page ────────────────────────────────────────────────────
 
 export default function MarketplacePage() {
+    const { hasRoiAccess, isLoading: roiLoading } = useRoiAccess();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!roiLoading && !hasRoiAccess) {
+            toast.error('The marketplace is available to internal ROI users only.');
+            router.replace('/dashboard');
+        }
+    }, [hasRoiAccess, roiLoading, router]);
+
     const { address, isConnected } = useAccount();
     const { open } = useWeb3Modal();
-    const router = useRouter();
     const [listings, setListings] = useState<MarketplaceListing[]>([]);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);

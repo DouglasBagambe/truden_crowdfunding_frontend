@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { dpoService } from '@/lib/dpo-service';
 import { useQueryClient } from '@tanstack/react-query';
+import { useRoiAccess } from '@/hooks/useRoiAccess';
+import { isCharityProject } from '@/lib/roi-access';
 
 // ─── Types ────────────────────────────────────────────────────
 type PaymentMethod = 'mobile_money' | 'card';
@@ -45,6 +47,7 @@ function formatPhone(raw: string) {
 // ─── Component ───────────────────────────────────────────────
 export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPaymentModalProps) {
     const queryClient = useQueryClient();
+    const { hasRoiAccess } = useRoiAccess();
     const currency = project.currency || 'UGX';
     const projectId = String(project.id || project._id || '');
 
@@ -68,7 +71,7 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
 
     // Wallet (NFT) — only relevant for ROI projects
     const [walletAddress, setWalletAddress] = useState('');
-    const isROI = !['CHARITY', 'charity'].includes(project.projectType ?? '');
+    const isROI = hasRoiAccess && !isCharityProject(project);
 
     const reset = useCallback(() => {
         setStep('method');

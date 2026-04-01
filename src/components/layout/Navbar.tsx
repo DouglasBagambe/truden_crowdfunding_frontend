@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { canAccessROI } from '@/lib/roi-access';
 import { Logo } from '../common/Logo';
 import {
   LayoutDashboard,
@@ -34,6 +35,8 @@ const Navbar = () => {
     );
     return (ADMIN_USER_ID && uid === ADMIN_USER_ID) || hasAdminRole;
   }, [user, ADMIN_USER_ID]);
+
+  const hasRoiAccess = React.useMemo(() => canAccessROI(user), [user]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -83,10 +86,14 @@ const Navbar = () => {
     { href: '/explore?category=EDUCATION', label: 'Education' },
     { href: '/explore?category=ENVIRONMENT', label: 'Environment' },
     { href: '/explore?category=COMMUNITY', label: 'Community' },
-    { href: '/explore?industry=REAL_ESTATE', label: 'Real Estate' },
-    { href: '/explore?industry=TECHNOLOGY', label: 'Technology' },
-    { href: '/explore?industry=AGRICULTURE', label: 'Agriculture' },
-    { href: '/explore?industry=ENERGY', label: 'Energy' },
+    ...(hasRoiAccess
+      ? [
+          { href: '/explore?industry=REAL_ESTATE', label: 'Real Estate' },
+          { href: '/explore?industry=TECHNOLOGY', label: 'Technology' },
+          { href: '/explore?industry=AGRICULTURE', label: 'Agriculture' },
+          { href: '/explore?industry=ENERGY', label: 'Energy' },
+        ]
+      : []),
   ];
 
   return (
@@ -123,10 +130,12 @@ const Navbar = () => {
                     <span className="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 text-xs">♥</span>
                     Charity Causes
                   </Link>
-                  <Link href="/explore?type=ROI" className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-[var(--secondary)] transition-colors">
-                    <span className="w-6 h-6 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 text-xs">↑</span>
-                    Investments
-                  </Link>
+                  {hasRoiAccess && (
+                    <Link href="/explore?type=ROI" className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-[var(--secondary)] transition-colors">
+                      <span className="w-6 h-6 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 text-xs">↑</span>
+                      Investments
+                    </Link>
+                  )}
                   <div className="border-t border-[var(--border)] mx-3 my-1" />
                   <Link href="/dashboard/create-project" className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-colors">
                     <span className="w-6 h-6 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] text-xs font-black">+</span>
@@ -309,12 +318,14 @@ const Navbar = () => {
             <div className="flex-1 p-4 space-y-1">
               {user && (
                 <>
-                  <MobileNavLink
-                    href="/marketplace"
-                    icon={<Store size={18} className="text-purple-500" />}
-                    label="Marketplace"
-                    onClick={() => setMobileMenuOpen(false)}
-                  />
+                  {hasRoiAccess && (
+                    <MobileNavLink
+                      href="/marketplace"
+                      icon={<Store size={18} className="text-purple-500" />}
+                      label="Marketplace"
+                      onClick={() => setMobileMenuOpen(false)}
+                    />
+                  )}
                   <MobileNavLink
                     href="/dashboard"
                     icon={<LayoutDashboard size={18} />}

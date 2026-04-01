@@ -21,6 +21,8 @@ function PaymentResultContent() {
     type VerifyState = 'verifying' | 'paid' | 'failed' | 'cancelled' | 'pending';
 
     const [verifyState, setVerifyState] = useState<VerifyState>(() => {
+        if (statusParam === 'success') return 'paid';
+        if (statusParam === 'pending') return 'pending';
         if (statusParam === 'cancelled') return 'cancelled';
         if (!token) return 'cancelled';   // No token at all — nothing to verify
         return 'verifying';
@@ -66,6 +68,12 @@ function PaymentResultContent() {
     };
 
     useEffect(() => {
+        if (statusParam === 'success') {
+            setVerifyState('paid');
+            setMessage('Your payment was confirmed successfully.');
+            return;
+        }
+
         if (!token || statusParam === 'cancelled') return;
 
         verify(token);

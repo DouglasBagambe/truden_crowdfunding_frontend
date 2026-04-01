@@ -6,6 +6,8 @@ import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRoiAccess } from '@/hooks/useRoiAccess';
+import { isCharityProject, isROIProject } from '@/lib/roi-access';
 
 interface ProjectCardProps {
   project: {
@@ -26,6 +28,7 @@ interface ProjectCardProps {
 }
 
 export default function ProjectCard({ project, onClick }: ProjectCardProps) {
+  const { hasRoiAccess } = useRoiAccess();
   const projectId = project._id || project.id;
   const router = useRouter();
   const projectName = project.name || project.title || 'Untitled Project';
@@ -39,15 +42,18 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
     } else {
       const projectId = project.id || project._id;
       if (!projectId) {
-        console.error('[ProjectCard] Cannot navigate: Project ID is undefined', project);
         return;
       }
       router.push(`/projects/${projectId}`);
     }
   };
 
-  const projectType = (project.projectType || project.type || '').toUpperCase();
-  const isCharity = projectType === 'CHARITY';
+  const isCharity = isCharityProject(project);
+
+  if (isROIProject(project) && !hasRoiAccess) {
+    return null;
+  }
+
   const accentBg = isCharity ? 'bg-emerald-600' : 'bg-blue-600';
   const accentText = isCharity ? 'text-emerald-600' : 'text-blue-600';
   const accentHoverText = isCharity ? 'group-hover:text-emerald-600' : 'group-hover:text-blue-600';

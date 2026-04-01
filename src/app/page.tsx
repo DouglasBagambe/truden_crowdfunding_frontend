@@ -18,11 +18,14 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
+import { useRoiAccess } from '@/hooks/useRoiAccess';
 import ProjectCard from '@/components/dashboard/ProjectCard';
+import { filterVisibleProjects, isCharityProject, isROIProject } from '@/lib/roi-access';
 
 export default function LandingPage() {
   const router = useRouter();
   const { data: projectsData, isLoading } = useProjects();
+  const { hasRoiAccess } = useRoiAccess();
   const [activeTab, setActiveTab] = useState<'ALL' | 'CHARITY' | 'ROI'>('ALL');
 
   const ugxFormatter = useMemo(
@@ -61,15 +64,18 @@ export default function LandingPage() {
     return () => clearInterval(interval);
   }, [heroImages]);
 
-  const projects = projectsData?.items || [];
+  const projects = useMemo(
+    () => filterVisibleProjects(projectsData?.items || [], hasRoiAccess),
+    [projectsData, hasRoiAccess],
+  );
 
   const charity = useMemo(
-    () => projects.filter((p: any) => p.projectType === 'CHARITY'),
+    () => projects.filter((p: any) => isCharityProject(p)),
     [projects],
   );
 
   const roi = useMemo(
-    () => projects.filter((p: any) => p.projectType === 'ROI'),
+    () => projects.filter((p: any) => isROIProject(p)),
     [projects],
   );
 
@@ -83,6 +89,12 @@ export default function LandingPage() {
       roiCount: roi.length,
     };
   }, [charity, roi]);
+
+  useEffect(() => {
+    if (!hasRoiAccess && activeTab === 'ROI') {
+      setActiveTab('ALL');
+    }
+  }, [activeTab, hasRoiAccess]);
 
   return (
     <div className="bg-[var(--background)] min-h-screen flex flex-col pt-[68px] transition-colors duration-300">
@@ -124,7 +136,9 @@ export default function LandingPage() {
                 Back what matters.<br className="hidden sm:block" /> Fund the future.
               </h1>
               <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-xl mx-auto px-4 leading-relaxed">
-                Support charity causes making a real impact, or invest in businesses built for growth — all on one trusted platform.
+                {hasRoiAccess
+                  ? 'Support charity causes making a real impact, or invest in businesses built for growth — all on one trusted platform.'
+                  : 'Support charity causes making a real impact and help communities grow through trusted fundraising.'}
               </p>
             </motion.div>
 
@@ -154,7 +168,7 @@ export default function LandingPage() {
         <section className="bg-[var(--background)] border-b border-[var(--border)] py-5">
           <div className="container mx-auto px-4 sm:px-6 flex justify-center">
             <div className="inline-flex gap-1 bg-[var(--card)] border border-[var(--border)] p-1 rounded-xl shadow-sm">
-              {(['ALL', 'CHARITY', 'ROI'] as const).map((tab) => (
+              {(['ALL', 'CHARITY', ...(hasRoiAccess ? (['ROI'] as const) : [])] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -239,7 +253,7 @@ export default function LandingPage() {
             )}
 
             {/* ── ROI Section ── */}
-            {(activeTab === 'ALL' || activeTab === 'ROI') && (
+            {hasRoiAccess && (activeTab === 'ALL' || activeTab === 'ROI') && (
               <motion.section
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -324,7 +338,9 @@ export default function LandingPage() {
               <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 rounded-2xl p-8 space-y-4 text-center">
                 <h3 className="text-xl font-bold text-[var(--text-main)]">Ready to launch your idea?</h3>
                 <p className="text-sm text-[var(--text-muted)] leading-relaxed">
-                  Whether it's a charity cause or a business looking for backers, Keibo gives you the tools to raise funds and grow.
+                  {hasRoiAccess
+                    ? "Whether it's a charity cause or a business looking for backers, Keibo gives you the tools to raise funds and grow."
+                    : 'Launch a charity campaign, tell your story clearly, and raise support from a wider community.'}
                 </p>
                 <Link
                   href="/dashboard/create-project"

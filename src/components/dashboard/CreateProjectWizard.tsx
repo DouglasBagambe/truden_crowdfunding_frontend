@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { projectService } from '@/lib/project-service';
+import { useRoiAccess } from '@/hooks/useRoiAccess';
 
 interface CreateProjectWizardProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ const isProbablyUrl = (value: unknown): value is string => {
 
 export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWizardProps) {
   const router = useRouter();
+  const { hasRoiAccess } = useRoiAccess();
   const [currentStep, setCurrentStep] = useState<Step>('type');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showTypeConfirmation, setShowTypeConfirmation] = useState(false);
@@ -43,7 +45,7 @@ export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWi
     industry: '',
     country: 'Uganda',
     beneficiary: '',
-    projectType: 'ROI',
+    projectType: 'CHARITY',
     summary: '',
 
     // Details
@@ -100,7 +102,7 @@ export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWi
       // Convert form data to API format matching CreateProjectDto
       const projectData: any = {
         name: formData.name,
-        type: formData.projectType, // Backend expects 'type'
+        type: hasRoiAccess ? formData.projectType : 'CHARITY', // Backend expects 'type'
         summary: formData.summary,
         story: formData.story || formData.description, // Backend story is mandatory
         country: formData.country,
@@ -111,7 +113,7 @@ export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWi
         fundingEndDate: formData.deadline ? new Date(formData.deadline).toISOString() : undefined,
 
         // Conditional category/industry
-        ...(formData.projectType === 'ROI'
+        ...((hasRoiAccess ? formData.projectType : 'CHARITY') === 'ROI'
           ? { industry: formData.industry || 'technology' }
           : {
             category: formData.category || 'community_group',
@@ -137,8 +139,6 @@ export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWi
       if (!isProbablyUrl(projectData.imageUrl)) delete projectData.imageUrl;
       if (!isProbablyUrl(projectData.website)) delete projectData.website;
 
-      console.log('[CREATE_PROJECT_WIZARD_DEBUG] createProject payload:', projectData);
-
       const res = await projectService.createProject(projectData);
 
       // Success - redirect to the new project detail page
@@ -150,9 +150,6 @@ export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWi
       }
       onClose();
     } catch (error: any) {
-      console.error('[CREATE_PROJECT_WIZARD_DEBUG] Error creating project:', error);
-      console.error('[CREATE_PROJECT_WIZARD_DEBUG] Error Response:', error.response?.data);
-
       const errorMessage = error.response?.data?.message;
       const errorDetail = Array.isArray(errorMessage) ? errorMessage.join(', ') : errorMessage;
 
@@ -213,10 +210,10 @@ export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWi
           <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
             <AnimatePresence mode="wait">
               {currentStep === 'type' && (
-                <TypeStep formData={formData} updateFormData={updateFormData} />
+                <TypeStep formData={formData} updateFormData={updateFormData} hasRoiAccess={hasRoiAccess} />
               )}
               {currentStep === 'basics' && (
-                <BasicsStep formData={formData} updateFormData={updateFormData} />
+                <BasicsStep formData={formData} updateFormData={updateFormData} hasRoiAccess={hasRoiAccess} />
               )}
               {currentStep === 'details' && (
                 <DetailsStep formData={formData} updateFormData={updateFormData} />
@@ -314,7 +311,7 @@ export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWi
 }
 
 // Step Components
-const TypeStep = ({ formData, updateFormData }: any) => (
+const TypeStep = ({ formData, updateFormData, hasRoiAccess }: any) => (
   <motion.div
     initial={{ opacity: 0, x: 20 }}
     animate={{ opacity: 1, x: 0 }}
@@ -326,25 +323,27 @@ const TypeStep = ({ formData, updateFormData }: any) => (
       <p className="text-sm text-gray-500 mt-2">Choose the funding model that best suits your goals.</p>
     </div>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <button
-        type="button"
-        onClick={() => updateFormData('projectType', 'ROI')}
-        className={`p-6 border-2 rounded-xl text-left transition-all ${formData.projectType === 'ROI'
-          ? 'border-blue-600 bg-blue-50 relative overflow-hidden'
-          : 'border-gray-200 hover:border-gray-300'
-          }`}
-      >
-        <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center mb-4 shadow-sm">
-          <DollarSign className="w-6 h-6" />
-        </div>
-        <h4 className="font-bold text-lg text-gray-900 mb-2">ROI Investment</h4>
-        <p className="text-sm text-gray-600 leading-relaxed font-medium">
-          Standard investment projects where backers expect a financial return. This is ideal for startups, businesses, or revenue-generating projects. You will share a percentage of revenue or pay back the principal with interest over your selected milestones, creating a sustainable ecosystem for your growth and investor profits.
-        </p>
-        <div className={`absolute top-4 right-4 transition-all duration-300 ${formData.projectType === 'ROI' ? 'opacity-100 scale-100 text-blue-600' : 'opacity-0 scale-50'}`}>
-          <CheckCircle className="w-6 h-6" />
-        </div>
-      </button>
+      {hasRoiAccess && (
+        <button
+          type="button"
+          onClick={() => updateFormData('projectType', 'ROI')}
+          className={`p-6 border-2 rounded-xl text-left transition-all ${formData.projectType === 'ROI'
+            ? 'border-blue-600 bg-blue-50 relative overflow-hidden'
+            : 'border-gray-200 hover:border-gray-300'
+            }`}
+        >
+          <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center mb-4 shadow-sm">
+            <DollarSign className="w-6 h-6" />
+          </div>
+          <h4 className="font-bold text-lg text-gray-900 mb-2">ROI Investment</h4>
+          <p className="text-sm text-gray-600 leading-relaxed font-medium">
+            Standard investment projects where backers expect a financial return. This is ideal for startups, businesses, or revenue-generating projects. You will share a percentage of revenue or pay back the principal with interest over your selected milestones, creating a sustainable ecosystem for your growth and investor profits.
+          </p>
+          <div className={`absolute top-4 right-4 transition-all duration-300 ${formData.projectType === 'ROI' ? 'opacity-100 scale-100 text-blue-600' : 'opacity-0 scale-50'}`}>
+            <CheckCircle className="w-6 h-6" />
+          </div>
+        </button>
+      )}
 
       <button
         type="button"
@@ -368,7 +367,7 @@ const TypeStep = ({ formData, updateFormData }: any) => (
     </div>
   </motion.div>
 );
-const BasicsStep = ({ formData, updateFormData }: any) => (
+const BasicsStep = ({ formData, updateFormData, hasRoiAccess }: any) => (
   <motion.div
     initial={{ opacity: 0, x: 20 }}
     animate={{ opacity: 1, x: 0 }}
@@ -430,7 +429,7 @@ const BasicsStep = ({ formData, updateFormData }: any) => (
       </div>
     </div>
 
-    {formData.projectType === 'ROI' ? (
+    {hasRoiAccess && formData.projectType === 'ROI' ? (
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Industry *
@@ -567,16 +566,13 @@ const DetailsStep = ({ formData, updateFormData }: any) => (
               if (!file) return;
               try {
                 const res = await projectService.uploadMedia(file);
-                console.log('[CREATE_PROJECT_WIZARD_DEBUG] uploadMedia response:', res);
                 const candidateUrl = (res as any)?.url;
                 if (isProbablyUrl(candidateUrl)) {
                   updateFormData('imageUrl', candidateUrl);
                 } else {
-                  console.warn('[CREATE_PROJECT_WIZARD_DEBUG] uploadMedia returned invalid url:', candidateUrl);
                   updateFormData('imageUrl', '');
                 }
-              } catch (err) {
-                console.error('[CREATE_PROJECT_WIZARD_DEBUG] Upload failed', err);
+              } catch {
               }
             }}
             className="hidden"

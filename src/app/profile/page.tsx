@@ -15,12 +15,14 @@ import { walletService, type WalletBalance } from '@/lib/wallet-service';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import toast from 'react-hot-toast';
+import { useRoiAccess } from '@/hooks/useRoiAccess';
 
 type Tab = 'profile' | 'wallet' | 'notifications' | 'appearance' | 'security';
 
 export default function SettingsPage() {
   const router = useRouter();
   const { user, refetchUser, isAuthenticated, isLoading, logout } = useAuth();
+  const { hasRoiAccess } = useRoiAccess();
   const { theme, setTheme } = useTheme();
   const [themeReady, setThemeReady] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('profile');
@@ -203,7 +205,7 @@ export default function SettingsPage() {
                             </span>
                           )}
                           {/* KYC Status Badge */}
-                          {(() => {
+                          {hasRoiAccess && (() => {
                             const kycStatus = (user as any)?.kycStatus || 'NOT_VERIFIED';
                             if (kycStatus === 'VERIFIED') {
                               return (
@@ -488,7 +490,7 @@ export default function SettingsPage() {
                       </div> */}
 
                       {/* KYC */}
-                      {(() => {
+                      {hasRoiAccess && (() => {
                         const kycStatus = (user as any)?.kycStatus || 'NOT_VERIFIED';
                         return (
                           <div className="flex items-center justify-between p-5 rounded-2xl border border-[var(--border)] bg-[var(--secondary)]">

@@ -14,12 +14,16 @@ import Image from 'next/image';
 import { projectService } from '@/lib/project-service';
 import { useAuth } from '@/hooks/useAuth';
 import { paymentService } from '@/lib/payment-service';
+import { useRoiAccess } from '@/hooks/useRoiAccess';
+import { isCharityProject, isROIProject } from '@/lib/roi-access';
+import toast from 'react-hot-toast';
 
 export default function ProjectDetailPage() {
     const params = useParams();
     const router = useRouter();
     const projectId = params.id as string;
     const { isAuthenticated, user } = useAuth();
+    const { hasRoiAccess } = useRoiAccess();
 
     const [project, setProject] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -48,9 +52,8 @@ export default function ProjectDetailPage() {
 
     // Donate/Invest combined modal handled above
 
-    const projectType = project?.projectType || project?.type;
-    const isCharity = projectType === 'CHARITY';
-    const isRoi = projectType === 'ROI';
+    const isCharity = isCharityProject(project);
+    const isRoi = isROIProject(project);
 
     const [mediaIndex, setMediaIndex] = useState(0);
     const mediaItems = project ? [
@@ -140,6 +143,13 @@ export default function ProjectDetailPage() {
     }, [projectId, isCharity]);
 
     useEffect(() => {
+        if (!loading && project && isRoi && !hasRoiAccess) {
+            toast.error('ROI projects are currently available to internal users only.');
+            router.replace('/explore');
+        }
+    }, [hasRoiAccess, isRoi, loading, project, router]);
+
+    useEffect(() => {
         setMediaIndex(0);
     }, [project]);
 
@@ -150,12 +160,10 @@ export default function ProjectDetailPage() {
             // Handle backend response structure { project, milestones }
             if (data && data.project) {
                 setProject({ ...data.project, milestones: data.milestones || data.project.milestones || [] });
-                console.log('[PROJECT_DEBUG] project.creator:', data.project.creator);
             } else {
                 setProject(data);
             }
         } catch (err: any) {
-            console.error('Error loading project:', err);
             setError(err?.response?.data?.message || 'Project not found');
         } finally {
             setLoading(false);
@@ -201,7 +209,6 @@ export default function ProjectDetailPage() {
             // Redirect user to DPO hosted payment page
             window.location.href = result.redirectUrl;
         } catch (err: any) {
-            console.error('Donation error:', err);
             setDonationError(err?.response?.data?.message || 'Failed to initialize payment. Please try again.');
             setIsDonating(false);
         }
@@ -213,7 +220,6 @@ export default function ProjectDetailPage() {
             await projectService.submitForReview(projectId);
             await loadProject();
         } catch (err: any) {
-            console.error('Error submitting project for review:', err);
             setError(err?.response?.data?.message || 'Failed to submit project for review');
         } finally {
             setIsSubmittingForReview(false);
@@ -273,12 +279,12 @@ export default function ProjectDetailPage() {
     const statusColor = statusColorMap[project.status] || 'bg-gray-500/10 text-gray-400';
     const isOwner = isAuthenticated && (user?.id || user?._id) && (project.creatorId === (user?.id || user?._id));
 
-    const isCharityProject = project.projectType === 'CHARITY' || project.type === 'CHARITY';
-    const accentText = isCharityProject ? 'text-emerald-400' : 'text-blue-400';
-    const accentBorderText = isCharityProject ? 'bg-emerald-500/10 text-emerald-400' : 'bg-blue-500/10 text-blue-400';
-    const accentBg = isCharityProject ? 'bg-emerald-600' : 'bg-blue-600';
-    const accentShadow = isCharityProject ? 'shadow-emerald-500/20' : 'shadow-blue-500/20';
-    const accentGlow = isCharityProject ? 'bg-emerald-500/10' : 'bg-blue-500/10';
+    const charityProject = project.projectType === 'CHARITY' || project.type === 'CHARITY';
+    const accentText = charityProject ? 'text-emerald-400' : 'text-blue-400';
+    const accentBorderText = charityProject ? 'bg-emerald-500/10 text-emerald-400' : 'bg-blue-500/10 text-blue-400';
+    const accentBg = charityProject ? 'bg-emerald-600' : 'bg-blue-600';
+    const accentShadow = charityProject ? 'shadow-emerald-500/20' : 'shadow-blue-500/20';
+    const accentGlow = charityProject ? 'bg-emerald-500/10' : 'bg-blue-500/10';
 
     return (
         <div className="min-h-screen bg-[var(--background)] text-[var(--text-main)]">

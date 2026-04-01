@@ -5,16 +5,26 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, XCircle, Loader2, ArrowRight, ShieldCheck } from 'lucide-react';
 import { flutterwaveService } from '@/lib/flutterwave-service';
+import { useRoiAccess } from '@/hooks/useRoiAccess';
+import toast from 'react-hot-toast';
 
 function VerifyPaymentPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
+    const { hasRoiAccess, isLoading: roiLoading } = useRoiAccess();
     const [status, setStatus] = useState<'verifying' | 'success' | 'failed'>('verifying');
     const [orderDetails, setOrderDetails] = useState<any>(null);
     const [error, setError] = useState('');
 
     const txRef = searchParams.get('tx_ref');
     const transactionId = searchParams.get('transaction_id');
+
+    useEffect(() => {
+        if (!roiLoading && !hasRoiAccess) {
+            toast.error('Investment verification is available to internal ROI users only.');
+            router.replace('/dashboard');
+        }
+    }, [hasRoiAccess, roiLoading, router]);
 
     useEffect(() => {
         if (txRef || transactionId) {

@@ -1,11 +1,14 @@
 'use client';
 
 import React from 'react';
+import { useRoiAccess } from '@/hooks/useRoiAccess';
 import { Logo } from '../common/Logo';
 import Link from 'next/link';
 import { Mail, Twitter, MessageCircle } from 'lucide-react';
 
 const Footer = () => {
+  const { hasRoiAccess } = useRoiAccess();
+
   return (
     <footer className="bg-[var(--card)] border-t border-[var(--border)] pt-14 pb-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -54,7 +57,7 @@ const Footer = () => {
             <ul className="space-y-3">
               <FooterLink href="/explore">Browse Projects</FooterLink>
               <FooterLink href="/explore?type=CHARITY">Charity Causes</FooterLink>
-              <FooterLink href="/explore?type=ROI">Investments</FooterLink>
+              {hasRoiAccess && <FooterLink href="/explore?type=ROI">Investments</FooterLink>}
               <FooterLink href="/dashboard/create-project">Start a Campaign</FooterLink>
             </ul>
           </div>

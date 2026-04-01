@@ -13,6 +13,7 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { dealRoomService, type DealRoomFileItem } from '@/lib/deal-room-service';
 import { useAuth } from '@/hooks/useAuth';
+import { useRoiAccess } from '@/hooks/useRoiAccess';
 import { useToast } from '@/components/common/ToastProvider';
 import { apiClient } from '@/lib/api-client';
 import Link from 'next/link';
@@ -188,6 +189,7 @@ export default function DealRoomProjectPage() {
   const router = useRouter();
   const projectId = String((params as any)?.projectId || '');
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const { hasRoiAccess, isLoading: roiLoading } = useRoiAccess();
   const { showError } = useToast();
 
   const [items, setItems] = useState<DealRoomFileItem[]>([]);
@@ -230,6 +232,13 @@ export default function DealRoomProjectPage() {
     if (projectId) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, isAuthenticated, projectId]);
+
+  useEffect(() => {
+    if (!roiLoading && !hasRoiAccess) {
+      showError('Access restricted', 'The deal room is available to internal ROI users only.');
+      router.replace('/explore');
+    }
+  }, [hasRoiAccess, roiLoading, router, showError]);
 
   const openPreview = async (doc: DealRoomFileItem) => {
     try {

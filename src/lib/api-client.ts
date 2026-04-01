@@ -33,7 +33,6 @@ const resolveApiUrl = (): string => {
 };
 
 const API_URL = resolveApiUrl();
-console.log('[API_CLIENT_DEBUG] API_URL:', API_URL);
 
 export const apiClient = axios.create({
   baseURL: API_URL,
@@ -57,32 +56,6 @@ apiClient.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: any) => {
     const originalRequest = error.config;
-
-    try {
-      const method = String(originalRequest?.method ?? '').toUpperCase();
-      const url = originalRequest?.baseURL
-        ? `${originalRequest.baseURL}${originalRequest.url ?? ''}`
-        : originalRequest?.url;
-      const status = error?.response?.status;
-      const data = error?.response?.data;
-      console.error('[API_CLIENT_ERROR]', {
-        method,
-        url,
-        status,
-        data,
-      });
-
-      if (data !== undefined) {
-        console.error('[API_CLIENT_ERROR_DATA]', data);
-        try {
-          console.error('[API_CLIENT_ERROR_DATA_JSON]', JSON.stringify(data));
-        } catch {
-          // ignore
-        }
-      }
-    } catch {
-      console.error('[API_CLIENT_ERROR]', error);
-    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;

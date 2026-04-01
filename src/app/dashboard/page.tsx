@@ -16,9 +16,11 @@ import { motion } from 'framer-motion';
 import { useProjects, useMyProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
 import { useInvestments } from '@/hooks/useInvestments';
+import { useRoiAccess } from '@/hooks/useRoiAccess';
 import { Search, LineChart, ArrowUpRight, Shield, PlusCircle, LayoutDashboard, Wallet, Briefcase, Activity, Image as ImageIcon, ShieldCheck, Bell, Mail, AlertTriangle, Heart, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { filterVisibleProjects, isCharityProject } from '@/lib/roi-access';
 
 interface Project {
     id: string;
@@ -51,19 +53,15 @@ export default function DashboardPage() {
     const { data: projectsData, isLoading } = useProjects();
     const { data: investmentsData, isLoading: isLoadingInvestments } = useInvestments();
     const { user, isAuthenticated } = useAuth();
+    const { hasRoiAccess } = useRoiAccess();
     const router = useRouter();
-
-    useEffect(() => {
-        console.log('[DASHBOARD_DEBUG] User:', user);
-        console.log('[DASHBOARD_DEBUG] Authenticated:', isAuthenticated);
-    }, [user, isAuthenticated]);
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isKYCModalOpen, setIsKYCModalOpen] = useState(false);
     const [isInvestModalOpen, setIsInvestModalOpen] = useState(false);
     const [selectedProject, setSelectedProject] = useState<any>(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeTab, setActiveTab] = useState<'investments' | 'donations' | 'campaigns' | 'nfts' | 'kyc'>('investments');
+    const [activeTab, setActiveTab] = useState<'investments' | 'donations' | 'campaigns' | 'nfts' | 'kyc'>('donations');
 
     const handleTriggerCreate = () => {
         router.push('/dashboard/create-project');
@@ -76,27 +74,28 @@ export default function DashboardPage() {
                 setIsCreateModalOpen(true);
                 window.history.replaceState({}, '', '/dashboard');
             }
-            if (urlParams.get('tab') === 'kyc') {
+            if (hasRoiAccess && urlParams.get('tab') === 'kyc') {
                 setActiveTab('kyc');
                 window.history.replaceState({}, '', '/dashboard');
             }
         }
-    }, []);
+    }, [hasRoiAccess]);
+
+    useEffect(() => {
+        if (!hasRoiAccess && ['investments', 'nfts', 'kyc'].includes(activeTab)) {
+            setActiveTab('donations');
+        }
+    }, [activeTab, hasRoiAccess]);
 
     const allFetchedProjects = projectsData?.items || [];
 
     // My campaigns: use the dedicated /projects/me endpoint that includes DRAFTs
     const { data: myProjectsData, isLoading: isLoadingMyProjects } = useMyProjects();
 
-    useEffect(() => {
-        console.log('[DASHBOARD_DEBUG] myProjectsData:', myProjectsData);
-        console.log('[DASHBOARD_DEBUG] investmentsData:', investmentsData);
-        console.log('[DASHBOARD_DEBUG] allFetchedProjects (Public):', allFetchedProjects);
-    }, [myProjectsData, investmentsData, allFetchedProjects]);
-
     const myCampaigns = useMemo(() => {
-        return Array.isArray(myProjectsData) ? myProjectsData : [];
-    }, [myProjectsData]);
+        const campaigns = Array.isArray(myProjectsData) ? myProjectsData : [];
+        return filterVisibleProjects(campaigns, hasRoiAccess);
+    }, [hasRoiAccess, myProjectsData]);
 
     // Get projects user has interacted with
     const myInvestmentProjects = useMemo(() => {
@@ -138,15 +137,20 @@ export default function DashboardPage() {
         });
     }, [allFetchedProjects, investmentsData]);
 
-    const myDonations = useMemo(() => myInvestmentProjects.filter((p: any) => {
+    const visibleInvestmentProjects = useMemo(
+        () => filterVisibleProjects(myInvestmentProjects, hasRoiAccess),
+        [hasRoiAccess, myInvestmentProjects],
+    );
+
+    const myDonations = useMemo(() => visibleInvestmentProjects.filter((p: any) => {
         const type = (p?.projectType || p?.type || '').toUpperCase();
         return type === 'CHARITY';
-    }), [myInvestmentProjects]);
+    }), [visibleInvestmentProjects]);
 
-    const myInvestments = useMemo(() => myInvestmentProjects.filter((p: any) => {
+    const myInvestments = useMemo(() => visibleInvestmentProjects.filter((p: any) => {
         const type = (p?.projectType || p?.type || '').toUpperCase();
         return type !== 'CHARITY';
-    }), [myInvestmentProjects]);
+    }), [visibleInvestmentProjects]);
 
     const filteredCampaigns = useMemo(() => {
         if (!searchQuery.trim()) return myCampaigns;
@@ -172,7 +176,7 @@ export default function DashboardPage() {
             ).toUpperCase();
             const amount = Number(inv?.amount ?? 0);
             if (!Number.isFinite(amount)) return acc;
-            if (type === 'CHARITY') {
+            if (!hasRoiAccess || type === 'CHARITY') {
                 acc.donated += amount;
                 acc.don += 1;
             } else {
@@ -181,7 +185,7 @@ export default function DashboardPage() {
             }
             return acc;
         }, { invested: 0, donated: 0, pos: 0, don: 0 });
-    }, [investmentsData]);
+    }, [hasRoiAccess, investmentsData]);
 
     const campaignsCreated = myCampaigns?.length || 0;
     const totalRaised = myCampaigns?.reduce((sum: number, p: any) => sum + (p.raisedAmount || 0), 0) || 0;
@@ -215,7 +219,7 @@ export default function DashboardPage() {
 
                     <div className="flex-1 space-y-6">
                         {/* KYC Banner */}
-                        {isAuthenticated && user && user.kycStatus !== 'VERIFIED' && user.kycStatus !== 'PENDING' && (
+                        {hasRoiAccess && isAuthenticated && user && user.kycStatus !== 'VERIFIED' && user.kycStatus !== 'PENDING' && (
                             <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                                 <div className="flex items-start gap-3">
                                     <ShieldCheck size={18} className="text-blue-400 flex-shrink-0 mt-0.5" />
@@ -233,22 +237,26 @@ export default function DashboardPage() {
                             </div>
                         )}
 
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                            <KPICard
-                                label="Total Invested (UGX)"
-                                value={`${(stats.invested || 0).toLocaleString()}`}
-                                icon={<LayoutDashboard size={16} className="text-blue-500" />}
-                            />
+                        <div className={`grid grid-cols-2 ${hasRoiAccess ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4`}>
+                            {hasRoiAccess && (
+                                <KPICard
+                                    label="Total Invested (UGX)"
+                                    value={`${(stats.invested || 0).toLocaleString()}`}
+                                    icon={<LayoutDashboard size={16} className="text-blue-500" />}
+                                />
+                            )}
                             <KPICard
                                 label="Total Donated (UGX)"
                                 value={`${(stats.donated || 0).toLocaleString()}`}
                                 icon={<Activity size={16} className="text-emerald-500" />}
                             />
-                            <KPICard
-                                label="Active Investments"
-                                value={stats.pos.toString()}
-                                icon={<LayoutDashboard size={16} className="text-blue-500" />}
-                            />
+                            {hasRoiAccess && (
+                                <KPICard
+                                    label="Active Investments"
+                                    value={stats.pos.toString()}
+                                    icon={<LayoutDashboard size={16} className="text-blue-500" />}
+                                />
+                            )}
                             <KPICard
                                 label="Charity Donations Made"
                                 value={stats.don.toString()}
@@ -275,11 +283,15 @@ export default function DashboardPage() {
                                 <div className="flex items-center justify-between">
                                     <nav className="flex gap-6 sm:gap-10 overflow-x-auto scrollbar-hide">
                                         {[
-                                            { key: 'investments', label: 'Investments', icon: <Activity size={14} /> },
+                                            ...(hasRoiAccess ? [{ key: 'investments', label: 'Investments', icon: <Activity size={14} /> }] : []),
                                             { key: 'donations', label: 'Donations', icon: <Heart size={14} /> },
                                             { key: 'campaigns', label: 'My Projects', icon: <Briefcase size={14} /> },
-                                            { key: 'nfts', label: 'My NFTs', icon: <ImageIcon size={14} /> },
-                                            { key: 'kyc', label: 'Identity', icon: <ShieldCheck size={14} /> }
+                                            ...(hasRoiAccess
+                                                ? [
+                                                    { key: 'nfts', label: 'My NFTs', icon: <ImageIcon size={14} /> },
+                                                    { key: 'kyc', label: 'Identity', icon: <ShieldCheck size={14} /> }
+                                                ]
+                                                : [])
                                         ].map(tab => (
                                             <button
                                                 key={tab.key}
@@ -318,7 +330,7 @@ export default function DashboardPage() {
                                                 {activeTab === 'investments' ? 'Your Investment Portfolio' : 'Your Charity Contributions'}
                                             </h3>
                                             <Link href="/explore" className="flex items-center gap-2 text-[var(--primary)] font-bold text-sm hover:underline">
-                                                <PlusCircle size={16} /> Discover Projects
+                                                <PlusCircle size={16} /> Discover {activeTab === 'investments' ? 'Projects' : 'Causes'}
                                             </Link>
                                         </div>
 
@@ -396,7 +408,7 @@ export default function DashboardPage() {
                                                     const pct = Math.min((raised / target) * 100, 100);
                                                     const pId = project.id || project._id;
                                                     const pName = encodeURIComponent((project as any).name || 'Project');
-                                                    const isCharity = (project as any).projectType === 'CHARITY' || (project as any).type === 'CHARITY';
+                                                    const isCharity = isCharityProject(project);
                                                     return (
                                                         <div key={pId} className="bg-[var(--background)] border border-[var(--border)] rounded-2xl p-5 hover:border-[var(--primary)]/30 transition-all">
                                                             <div className="flex items-start gap-4">
@@ -474,7 +486,7 @@ export default function DashboardPage() {
             </main>
 
             <CreateProjectWizard isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
-            <KYCModal isOpen={isKYCModalOpen} onClose={() => setIsKYCModalOpen(false)} />
+            {hasRoiAccess && <KYCModal isOpen={isKYCModalOpen} onClose={() => setIsKYCModalOpen(false)} />}
             {selectedProject && (
                 <InvestModal
                     isOpen={isInvestModalOpen}

@@ -70,12 +70,9 @@ export function KYCView() {
     const loadProfile = async () => {
         try {
             setLoadingProfile(true);
-            console.log('[KYC] Loading profile...');
             const res = await apiClient.get('/kyc/profile');
-            console.log('[KYC] Profile loaded:', res.data);
             setProfile(res.data);
         } catch (err) {
-            console.log('[KYC] No profile yet (will be created on submit)');
         } finally {
             setLoadingProfile(false);
         }
@@ -84,9 +81,7 @@ export function KYCView() {
     /** Explicitly poll Didit for latest status and update local DB */
     const refreshFromProvider = async () => {
         try {
-            console.log('[KYC] Refreshing from provider...');
             const res = await apiClient.post('/kyc/refresh');
-            console.log('[KYC] Refresh result:', res.data);
             setProfile(res.data);
             await refetchUser();
             const newStatus = res.data?.userKycStatus || res.data?.status;
@@ -98,7 +93,6 @@ export function KYCView() {
                 setStep('overview');
             }
         } catch (err: any) {
-            console.warn('[KYC] Refresh failed:', err?.message);
             // Fallback to regular profile load
             await loadProfile();
         }
@@ -115,7 +109,6 @@ export function KYCView() {
 
         try {
             // Step 1: Update profile fields
-            console.log('[KYC] Updating profile fields...');
             await apiClient.patch('/kyc/profile', {
                 firstName: form.firstName,
                 lastName: form.lastName,
@@ -123,32 +116,26 @@ export function KYCView() {
                 idType: form.idType,
                 dateOfBirth: form.dateOfBirth || undefined,
             });
-            console.log('[KYC] Profile fields updated');
 
             // Step 2: Submit to Didit provider
-            console.log('[KYC] Submitting to provider...');
             const res = await apiClient.post('/kyc/submit', {
                 userType: 'INVESTOR',
                 level: 'BASIC',
             });
 
             const data = res.data;
-            console.log('[KYC] Submit response:', data);
             setProfile(data);
             await refetchUser();
 
             if (data.verificationUrl) {
-                console.log('[KYC] Got verification URL:', data.verificationUrl);
                 setVerificationUrl(data.verificationUrl);
                 setStep('redirect');
             } else {
-                console.log('[KYC] No verification URL — going to pending');
                 setStep('pending');
                 toast.success('KYC submitted for review!');
             }
         } catch (err: any) {
             const msg = err?.response?.data?.message || 'Submission failed. Please try again.';
-            console.error('[KYC] Submit error:', err?.response?.data || err.message);
             toast.error(msg);
             setStep('form');
         } finally {

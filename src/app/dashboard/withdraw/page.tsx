@@ -9,9 +9,11 @@ import {
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
+import { useRoiAccess } from '@/hooks/useRoiAccess';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 
 // Withdrawal methods supported in Uganda
 const MOMO_PROVIDERS = [
@@ -38,6 +40,7 @@ function WithdrawPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const { user, isAuthenticated } = useAuth();
+    const { hasRoiAccess } = useRoiAccess();
     const projectId = searchParams.get('projectId');
     const projectName = searchParams.get('projectName') || 'Your Project';
     const balanceType = (searchParams.get('type') as 'CHARITY' | 'ROI') || 'CHARITY';
@@ -53,6 +56,13 @@ function WithdrawPageContent() {
     const [error, setError] = useState('');
     const [transactionId, setTransactionId] = useState('');
     const [withdrawResult, setWithdrawResult] = useState<{ platformFee?: number; youReceive?: number } | null>(null);
+    const [withdrawMeta, setWithdrawMeta] = useState<{
+        status?: string;
+        message?: string;
+        providerReference?: string;
+        providerTransferId?: string;
+        providerStatus?: string;
+    } | null>(null);
 
     // Wallet balance (Keibo wallet balance = what creator can withdraw)
     const [walletBalance, setWalletBalance] = useState<number | null>(null);
@@ -62,7 +72,14 @@ function WithdrawPageContent() {
         if (!isAuthenticated) {
             router.push('/login?next=/dashboard/withdraw');
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, router]);
+
+    useEffect(() => {
+        if (!hasRoiAccess && balanceType === 'ROI') {
+            toast.error('ROI withdrawals are available to internal users only.');
+            router.replace('/dashboard');
+        }
+    }, [balanceType, hasRoiAccess, router]);
 
     // Load creator's Keibo wallet balance (this is the withdrawable amount)
     useEffect(() => {
@@ -142,6 +159,13 @@ function WithdrawPageContent() {
                 platformFee: withdrawRes.data?.platformFee,
                 youReceive: withdrawRes.data?.youReceive,
             });
+            setWithdrawMeta({
+                status: withdrawRes.data?.status,
+                message: withdrawRes.data?.message,
+                providerReference: withdrawRes.data?.providerReference,
+                providerTransferId: withdrawRes.data?.providerTransferId,
+                providerStatus: withdrawRes.data?.providerStatus,
+            });
             setStep('done');
         } catch (err: any) {
             setError(err?.response?.data?.message || 'Withdrawal failed. Please try again.');
@@ -153,6 +177,9 @@ function WithdrawPageContent() {
     const amountNum = Number(amount);
     const platformFee = Math.ceil(amountNum * PLATFORM_FEE_RATE); // 2% Keibo fee
     const youReceive = amountNum - platformFee;
+    const isRoiRequest = balanceType === 'ROI';
+    const requestIsAwaitingApproval = withdrawMeta?.status === 'pending';
+    const requestIsSubmittedToProvider = withdrawMeta?.status === 'processing';
 
     const validateAndNext = () => {
         if (!amount || Number(amount) < minAmount) { setError(`Minimum withdrawal is UGX ${minAmount.toLocaleString()}`); return; }
@@ -267,12 +294,12 @@ function WithdrawPageContent() {
                                 </button>
 
                                 {/* Fee info */}
-                                <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-2xl flex gap-3">
-                                    <Info size={16} className="text-blue-400 flex-shrink-0 mt-0.5" />
+                                <div className="p-4 bg-[var(--primary)]/5 border border-[var(--primary)]/15 rounded-2xl flex gap-3">
+                                    <Info size={16} className="text-[var(--primary)] flex-shrink-0 mt-0.5" />
                                     <div className="text-sm text-[var(--text-muted)] space-y-1">
-                                        <p>Withdrawals are processed within 24 hours on business days.</p>
-                                        <p>A <strong className="text-white">2% Keibo platform fee</strong> is charged per withdrawal.</p>
-                                        <p>Minimum withdrawal: <strong className="text-white">UGX {balanceType === 'CHARITY' ? '500' : '10,000'}</strong></p>
+                                        <p>Use the account details exactly as registered with your mobile money line or bank account.</p>
+                                        <p>A <strong className="text-[var(--text-main)]">2% Keibo platform fee</strong> is charged per withdrawal.</p>
+                                        <p>Minimum withdrawal: <strong className="text-[var(--text-main)]">UGX {balanceType === 'CHARITY' ? '500' : '10,000'}</strong></p>
                                     </div>
                                 </div>
                             </motion.div>
@@ -282,7 +309,7 @@ function WithdrawPageContent() {
                         {step === 'details' && (
                             <motion.div key="details" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
                                 <h2 className="text-xl font-black mb-2">
-                                    {method === 'mobile_money' ? '📱 Mobile Money Details' : '🏦 Bank Transfer Details'}
+                                    {method === 'mobile_money' ? 'Mobile Money Details' : 'Bank Transfer Details'}
                                 </h2>
 
                                 {/* Provider */}
@@ -296,8 +323,8 @@ function WithdrawPageContent() {
                                                 key={p.value}
                                                 onClick={() => setProvider(p.value)}
                                                 className={`p-3 rounded-xl border text-sm font-bold text-left transition-all ${provider === p.value
-                                                    ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-white'
-                                                    : 'border-[var(--border)] text-[var(--text-muted)] hover:border-white/30'
+                                                    ? 'border-[var(--primary)] bg-[var(--primary)]/8 text-[var(--text-main)] shadow-sm'
+                                                    : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--primary)]/30 hover:text-[var(--text-main)]'
                                                     }`}
                                             >
                                                 {'emoji' in p ? `${p.emoji} ` : ''}{p.label}
@@ -435,24 +462,26 @@ function WithdrawPageContent() {
                                     ))}
                                 </div>
 
-                                <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-1">
-                                    <p className="text-xs text-[var(--text-muted)]">
-                                        ⚠️ Please double-check your account details. Withdrawals cannot be reversed once submitted.
-                                        Processing time: {method === 'mobile_money' ? '1 hour' : '1-3 business days'}.
+                                <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-2">
+                                    <p className="text-sm text-[var(--text-main)] font-semibold">
+                                        Review carefully before submitting.
                                     </p>
-                                    <p className="text-xs text-amber-400/70 mt-1">
-                                        The 2% Keibo platform fee helps maintain and improve the Keibo platform.
+                                    <p className="text-xs text-[var(--text-muted)]">
+                                        Your request will be submitted using the account details above. Delivery timing depends on provider confirmation and cannot be guaranteed instantly.
+                                    </p>
+                                    <p className="text-xs text-amber-500">
+                                        If the payout provider rejects the transfer, the platform should mark the withdrawal as failed and refund the wallet balance.
                                     </p>
                                 </div>
 
                                 {balanceType === 'ROI' && (
-                                    <div className="p-4 bg-[var(--primary)]/10 border border-[var(--primary)]/30 rounded-2xl space-y-1">
+                                    <div className="p-4 bg-[var(--primary)]/8 border border-[var(--primary)]/20 rounded-2xl space-y-1">
                                         <div className="flex items-center gap-2 text-[var(--primary)] mb-1">
                                             <Info size={16} />
                                             <span className="font-bold text-sm">ROI Investment Rules</span>
                                         </div>
                                         <p className="text-xs text-[var(--text-muted)]">
-                                            ROI payout requests require administrative approval before the 98% net amount is disbursed. The minimum withdrawal allowed must be equal to or greater than the 100% completion target of your project.
+                                            ROI payout requests are first reviewed internally, then sent to the payout provider only after approval.
                                         </p>
                                     </div>
                                 )}
@@ -480,7 +509,7 @@ function WithdrawPageContent() {
                                         {isSubmitting ? (
                                             <><Loader2 size={14} className="animate-spin" /> Submitting...</>
                                         ) : (
-                                            <><Send size={14} /> Confirm Withdrawal</>
+                                            <><Send size={14} /> Submit Withdrawal</>
                                         )}
                                     </button>
                                 </div>
@@ -490,13 +519,17 @@ function WithdrawPageContent() {
                         {/* STEP 4 — Done */}
                         {step === 'done' && (
                             <motion.div key="done" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center space-y-6 py-10">
-                                <div className="w-24 h-24 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto">
-                                    <CheckCircle2 size={48} className="text-emerald-400" />
+                                <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto ${requestIsAwaitingApproval ? 'bg-amber-500/15' : 'bg-emerald-500/15'}`}>
+                                    <CheckCircle2 size={48} className={requestIsAwaitingApproval ? 'text-amber-500' : 'text-emerald-500'} />
                                 </div>
                                 <div>
-                                    <h2 className="text-3xl font-black mb-2">Withdrawal Submitted! 🎉</h2>
+                                    <h2 className="text-3xl font-black mb-2">
+                                        {requestIsAwaitingApproval ? 'Withdrawal Request Received' : 'Withdrawal Submitted'}
+                                    </h2>
                                     <p className="text-[var(--text-muted)] font-medium">
-                                        UGX {(withdrawResult?.youReceive ?? youReceive).toLocaleString()} will be sent to your {method === 'mobile_money' ? 'mobile wallet' : 'bank account'} within {method === 'mobile_money' ? '1 hour' : '1-3 business days'}.
+                                        {withdrawMeta?.message || (requestIsAwaitingApproval
+                                            ? 'Your request is now waiting for internal approval before it is sent for payout.'
+                                            : 'Your request has been sent for payout processing. Final delivery depends on provider confirmation.')}
                                     </p>
                                     {transactionId && (
                                         <p className="text-xs text-[var(--text-muted)] mt-2 font-mono">Ref: {transactionId}</p>
@@ -504,7 +537,13 @@ function WithdrawPageContent() {
                                 </div>
 
                                 {/* Summary card */}
-                                <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 text-left max-w-xs mx-auto space-y-3">
+                                <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 text-left max-w-sm mx-auto space-y-3">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-[var(--text-muted)]">Request Status</span>
+                                        <span className={`font-bold ${requestIsAwaitingApproval ? 'text-amber-500' : requestIsSubmittedToProvider ? 'text-[var(--primary)]' : 'text-emerald-500'}`}>
+                                            {requestIsAwaitingApproval ? 'Awaiting approval' : requestIsSubmittedToProvider ? 'Sent to provider' : (withdrawMeta?.status || 'submitted')}
+                                        </span>
+                                    </div>
                                     <div className="flex justify-between text-sm">
                                         <span className="text-[var(--text-muted)]">Requested</span>
                                         <span className="font-bold">UGX {Number(amount).toLocaleString()}</span>
@@ -517,6 +556,29 @@ function WithdrawPageContent() {
                                         <span className="font-black">You Receive</span>
                                         <span className="font-black text-emerald-400">UGX {(withdrawResult?.youReceive ?? youReceive).toLocaleString()}</span>
                                     </div>
+                                    {withdrawMeta?.providerReference && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-[var(--text-muted)]">Provider Ref</span>
+                                            <span className="font-mono text-xs text-[var(--text-main)]">{withdrawMeta.providerReference}</span>
+                                        </div>
+                                    )}
+                                    {withdrawMeta?.providerTransferId && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-[var(--text-muted)]">Transfer ID</span>
+                                            <span className="font-mono text-xs text-[var(--text-main)]">{withdrawMeta.providerTransferId}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className={`max-w-sm mx-auto rounded-2xl border p-4 text-left ${requestIsAwaitingApproval ? 'bg-amber-500/5 border-amber-500/20' : 'bg-[var(--primary)]/5 border-[var(--primary)]/15'}`}>
+                                    <p className="text-sm font-semibold text-[var(--text-main)] mb-1">
+                                        What happens next
+                                    </p>
+                                    <p className="text-xs text-[var(--text-muted)]">
+                                        {requestIsAwaitingApproval
+                                            ? 'An administrator needs to approve this ROI withdrawal before any payout is sent.'
+                                            : `Flutterwave has accepted the transfer request for processing. That does not always mean the money has already reached your ${method === 'mobile_money' ? 'phone' : 'bank account'}.`}
+                                    </p>
                                 </div>
 
                                 <div className="flex flex-col gap-3 max-w-xs mx-auto">

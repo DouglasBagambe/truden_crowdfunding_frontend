@@ -31,6 +31,7 @@ import {
 import { projectService, ProjectType, type CreateProjectParams } from '@/lib/project-service';
 import { useAuth } from '@/hooks/useAuth';
 import { useQueryClient } from '@tanstack/react-query';
+import { useRoiAccess } from '@/hooks/useRoiAccess';
 
 const CHARITY_CATEGORIES = [
     { label: 'School', value: 'school' },
@@ -80,10 +81,12 @@ export default function CreateProjectPage() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
+    const { hasRoiAccess } = useRoiAccess();
     const [step, setStep] = useState(1);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [coverPreviewUrl, setCoverPreviewUrl] = useState('');
 
     useEffect(() => {
         if (isAuthLoading) return;
@@ -116,6 +119,12 @@ export default function CreateProjectPage() {
         milestones: [],
         useOfFunds: []
     });
+
+    useEffect(() => {
+        if (!hasRoiAccess && formData.type === ProjectType.ROI) {
+            setFormData((prev) => ({ ...prev, type: ProjectType.CHARITY }));
+        }
+    }, [formData.type, hasRoiAccess]);
 
     const nextStep = () => {
         // Step 1: Just choosing type, handled by the Confirmation Modal
@@ -153,7 +162,7 @@ export default function CreateProjectPage() {
             }
         }
         if (step === 4) {
-            if (formData.type === ProjectType.ROI && (!formData.milestones || formData.milestones.length === 0)) {
+            if (hasRoiAccess && formData.type === ProjectType.ROI && (!formData.milestones || formData.milestones.length === 0)) {
                 setError('At least one milestone is required for ROI projects.');
                 return;
             }
@@ -176,6 +185,9 @@ export default function CreateProjectPage() {
         try {
             // Cleanup data before sending
             const payload: any = { ...formData };
+            if (!hasRoiAccess) {
+                payload.type = ProjectType.CHARITY;
+            }
             if (payload.type === ProjectType.CHARITY) {
                 delete payload.industry;
                 delete payload.milestones;
@@ -200,10 +212,6 @@ export default function CreateProjectPage() {
             }
             if (payload.videoUrls && payload.videoUrls.length === 0) delete payload.videoUrls;
 
-            console.log('[CREATE_PROJECT_DEBUG] payload.imageUrl:', payload.imageUrl);
-            console.log('[CREATE_PROJECT_DEBUG] payload.galleryImages:', payload.galleryImages);
-            console.log('[CREATE_PROJECT_DEBUG] full payload:', payload);
-
             const result = await projectService.createProject(payload);
             const projectId = result.project?._id || result.project?.id || result._id || result.id;
             if (!projectId) {
@@ -216,7 +224,6 @@ export default function CreateProjectPage() {
 
             router.push(`/projects/${projectId}`);
         } catch (err: any) {
-            console.error('Create error:', err);
             const msg = Array.isArray(err.response?.data?.message)
                 ? err.response.data.message.join(', ')
                 : err.response?.data?.message || 'Failed to create project. Please check all fields.';
@@ -249,6 +256,10 @@ export default function CreateProjectPage() {
         const files = e.target.files;
         if (!files || files.length === 0) return;
 
+        if (type === 'cover') {
+            setCoverPreviewUrl(URL.createObjectURL(files[0]));
+        }
+
         setLoading(true);
         setError('');
         try {
@@ -256,16 +267,12 @@ export default function CreateProjectPage() {
             for (let i = 0; i < files.length; i++) {
                 try {
                     const res = await projectService.uploadMedia(files[i]);
-                    console.log('[CREATE_PROJECT_DEBUG] uploadMedia response:', res);
                     // Assuming API base handle by client, res.url should be valid
                     const candidateUrl = res?.url;
                     if (isProbablyUrl(candidateUrl)) {
                         urls.push(candidateUrl);
-                    } else {
-                        console.warn('[CREATE_PROJECT_DEBUG] uploadMedia returned invalid url:', candidateUrl);
                     }
                 } catch (err: any) {
-                    console.error('File upload failed:', err);
                     const msg = err.response?.data?.message || err.message || files[i].name;
                     setError(`Failed to upload: ${msg}`);
                 }
@@ -273,11 +280,14 @@ export default function CreateProjectPage() {
 
             // Ensure we never store invalid URLs (backend validates IsUrl)
             const safeUrls = urls.filter((u) => isProbablyUrl(u));
-            console.log('[CREATE_PROJECT_DEBUG] safeUrls:', safeUrls);
 
             if (type === 'cover') {
                 if (safeUrls.length > 0) {
                     setFormData(prev => ({ ...prev, imageUrl: safeUrls[0] }));
+                    setCoverPreviewUrl('');
+                } else {
+                    setCoverPreviewUrl('');
+                    setError('Cover image upload failed. Please try another image.');
                 }
             } else if (type === 'gallery') {
                 setFormData(prev => ({
@@ -293,8 +303,12 @@ export default function CreateProjectPage() {
                 }));
             }
         } catch (err) {
+            if (type === 'cover') {
+                setCoverPreviewUrl('');
+            }
             setError('Failed to process upload');
         } finally {
+            e.target.value = '';
             setLoading(false);
         }
     };
@@ -353,7 +367,7 @@ export default function CreateProjectPage() {
                                 </p>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                            <div className={`grid grid-cols-1 ${hasRoiAccess ? 'md:grid-cols-2' : ''} gap-10`}>
                                 <button
                                     onClick={() => setFormData({ ...formData, type: ProjectType.CHARITY })}
                                     className={`relative p-8 md:p-10 rounded-[2.5rem] text-left transition-all duration-500 overflow-hidden group border-4 ${formData.type === ProjectType.CHARITY
@@ -390,41 +404,43 @@ export default function CreateProjectPage() {
                                     )}
                                 </button>
 
-                                <button
-                                    onClick={() => setFormData({ ...formData, type: ProjectType.ROI })}
-                                    className={`relative p-8 md:p-10 rounded-[2.5rem] text-left transition-all duration-500 overflow-hidden group border-4 ${formData.type === ProjectType.ROI
-                                        ? 'border-blue-600 bg-blue-50/30'
-                                        : 'border-slate-50 bg-slate-50/30 hover:bg-blue-50/10 hover:border-blue-200'
-                                        }`}
-                                >
-                                    <div className={`w-16 h-16 md:w-20 md:h-20 rounded-3xl flex items-center justify-center mb-8 transition-all duration-500 ${formData.type === ProjectType.ROI ? 'bg-blue-600 text-white shadow-2xl shadow-blue-500/40 -rotate-6' : 'bg-white text-slate-400 border-2 border-slate-100'}`}>
-                                        <TrendingUp size={36} />
-                                    </div>
-                                    <h3 className="text-2xl md:text-3xl font-black text-slate-900 mb-4 tracking-tight">Investment / ROI</h3>
-                                    <p className="text-sm md:text-base text-slate-500 font-medium leading-relaxed mb-6">
-                                        For businesses and innovations seeking growth capital in exchange for returns or stake.
-                                    </p>
-                                    <ul className="space-y-4">
-                                        {[
-                                            'Equity-based model',
-                                            'Backer financial returns',
-                                            'Scalability and profit focused',
-                                            'Strategic investor network'
-                                        ].map((item, idx) => (
-                                            <li key={idx} className="flex items-center gap-3 text-sm font-bold text-slate-600">
-                                                <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                                                    <CheckCircle2 size={12} />
-                                                </div>
-                                                {item}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                    {formData.type === ProjectType.ROI && (
-                                        <div className="absolute top-6 right-6 text-blue-600 hidden md:block">
-                                            <CheckCircle2 size={32} />
+                                {hasRoiAccess && (
+                                    <button
+                                        onClick={() => setFormData({ ...formData, type: ProjectType.ROI })}
+                                        className={`relative p-8 md:p-10 rounded-[2.5rem] text-left transition-all duration-500 overflow-hidden group border-4 ${formData.type === ProjectType.ROI
+                                            ? 'border-blue-600 bg-blue-50/30'
+                                            : 'border-slate-50 bg-slate-50/30 hover:bg-blue-50/10 hover:border-blue-200'
+                                            }`}
+                                    >
+                                        <div className={`w-16 h-16 md:w-20 md:h-20 rounded-3xl flex items-center justify-center mb-8 transition-all duration-500 ${formData.type === ProjectType.ROI ? 'bg-blue-600 text-white shadow-2xl shadow-blue-500/40 -rotate-6' : 'bg-white text-slate-400 border-2 border-slate-100'}`}>
+                                            <TrendingUp size={36} />
                                         </div>
-                                    )}
-                                </button>
+                                        <h3 className="text-2xl md:text-3xl font-black text-slate-900 mb-4 tracking-tight">Investment / ROI</h3>
+                                        <p className="text-sm md:text-base text-slate-500 font-medium leading-relaxed mb-6">
+                                            For businesses and innovations seeking growth capital in exchange for returns or stake.
+                                        </p>
+                                        <ul className="space-y-4">
+                                            {[
+                                                'Equity-based model',
+                                                'Backer financial returns',
+                                                'Scalability and profit focused',
+                                                'Strategic investor network'
+                                            ].map((item, idx) => (
+                                                <li key={idx} className="flex items-center gap-3 text-sm font-bold text-slate-600">
+                                                    <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                                                        <CheckCircle2 size={12} />
+                                                    </div>
+                                                    {item}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        {formData.type === ProjectType.ROI && (
+                                            <div className="absolute top-6 right-6 text-blue-600 hidden md:block">
+                                                <CheckCircle2 size={32} />
+                                            </div>
+                                        )}
+                                    </button>
+                                )}
                             </div>
                         </motion.div>
                     )}
@@ -719,11 +735,11 @@ export default function CreateProjectPage() {
                                             className="absolute inset-0 opacity-0 cursor-pointer z-10"
                                             disabled={loading}
                                         />
-                                        <div className={`flex flex-col items-center justify-center border-4 border-dashed p-8 rounded-[2.5rem] transition-all h-full ${formData.imageUrl ? 'bg-blue-50 border-blue-400' : 'bg-gray-50/50 border-gray-100 hover:bg-blue-50 hover:border-blue-200'
+                                        <div className={`flex flex-col items-center justify-center border-4 border-dashed p-8 rounded-[2.5rem] transition-all h-full ${coverPreviewUrl || formData.imageUrl ? 'bg-blue-50 border-blue-400' : 'bg-gray-50/50 border-gray-100 hover:bg-blue-50 hover:border-blue-200'
                                             }`}>
-                                            {formData.imageUrl ? (
+                                            {coverPreviewUrl || formData.imageUrl ? (
                                                 <div className="relative w-full h-full min-h-[140px]">
-                                                    <img src={formData.imageUrl} className="w-full h-full object-cover rounded-2xl shadow-lg" />
+                                                    <img src={coverPreviewUrl || formData.imageUrl} className="w-full h-full object-cover rounded-2xl shadow-lg" />
                                                     <div className="absolute inset-0 bg-black/20 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                                         <span className="text-white text-[10px] font-black uppercase tracking-widest">Change Cover</span>
                                                     </div>
