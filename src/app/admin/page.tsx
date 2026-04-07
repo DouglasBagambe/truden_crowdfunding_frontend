@@ -137,6 +137,40 @@ export default function AdminPage() {
   const [actingOn, setActingOn] = useState<string | null>(null);
   const [reasons, setReasons] = useState<Record<string, string>>({});
 
+  const extractArray = useCallback(
+    (payload: unknown, candidates: string[]): Record<string, unknown>[] => {
+      if (Array.isArray(payload)) {
+        return payload as Record<string, unknown>[];
+      }
+
+      if (!payload || typeof payload !== 'object') {
+        return [];
+      }
+
+      const obj = payload as Record<string, unknown>;
+      for (const key of candidates) {
+        const value = obj[key];
+        if (Array.isArray(value)) {
+          return value as Record<string, unknown>[];
+        }
+      }
+
+      const nested = obj.data;
+      if (nested && typeof nested === 'object') {
+        const nestedObj = nested as Record<string, unknown>;
+        for (const key of candidates) {
+          const value = nestedObj[key];
+          if (Array.isArray(value)) {
+            return value as Record<string, unknown>[];
+          }
+        }
+      }
+
+      return [];
+    },
+    [],
+  );
+
   const isAdmin = useMemo(() => {
     if (!user) return false;
     const uid = (user.id as string) || (user._id as string) || '';
@@ -159,26 +193,58 @@ export default function AdminPage() {
     setLoadingProjects(true);
     try {
       const data = await projectService.adminListAll();
-      const list = Array.isArray(data) ? data : ((data as Record<string, unknown>)?.projects as Record<string, unknown>[] || (data as Record<string, unknown>)?.items as Record<string, unknown>[] || []);
+      const list = extractArray(data, ['projects', 'items']);
       setAllProjects(list);
+      if (list.length === 0) {
+        const fallbackPublic = await projectService.getProjects({ pageSize: 100, page: 1 });
+        const fallbackMine = await projectService.getMyProjects();
+        const publicList = extractArray(fallbackPublic, ['projects', 'items']);
+        const myList = Array.isArray(fallbackMine) ? (fallbackMine as Record<string, unknown>[]) : [];
+        const merged = [...publicList, ...myList].filter(
+          (project, idx, arr) =>
+            arr.findIndex((it) => String(it._id ?? it.id ?? '') === String(project._id ?? project.id ?? '')) === idx,
+        );
+        setAllProjects(merged);
+      }
     } catch {
       try {
         const data = await projectService.adminListPending();
-        setAllProjects(Array.isArray(data) ? data : []);
-      } catch { setAllProjects([]); }
+        const list = extractArray(data, ['projects', 'items']);
+        setAllProjects(list);
+      } catch {
+        setAllProjects([]);
+        toast.error('Unable to fetch campaigns. Check admin permissions for this account.');
+      }
     } finally { setLoadingProjects(false); }
-  }, []);
+  }, [extractArray]);
 
   const loadUsers = useCallback(async () => {
     setLoadingUsers(true);
     try {
-      const res = await apiClient.get('/admin/users', { params: { limit: 200 } });
-      const data = res.data as Record<string, unknown>;
-      const list = Array.isArray(data) ? data : (data?.users as Record<string, unknown>[] || data?.items as Record<string, unknown>[] || []);
+      const res = await apiClient.get('/admin/users', { params: { limit: 100, skip: 0 } });
+      const list = extractArray(res.data, ['users', 'items']);
       setUsers(list);
-    } catch { setUsers([]); }
+      if (list.length > 0) {
+        return;
+      }
+
+      const meRes = await apiClient.get('/users/me');
+      const mePayload = meRes.data as Record<string, unknown> | null;
+      const me = (mePayload?.user as Record<string, unknown> | undefined) ?? mePayload ?? undefined;
+      setUsers(me ? [me] : []);
+    } catch {
+      try {
+        const meRes = await apiClient.get('/users/me');
+        const mePayload = meRes.data as Record<string, unknown> | null;
+        const me = (mePayload?.user as Record<string, unknown> | undefined) ?? mePayload ?? undefined;
+        setUsers(me ? [me] : []);
+      } catch {
+        setUsers([]);
+        toast.error('Unable to fetch users. Check admin permissions for this account.');
+      }
+    }
     finally { setLoadingUsers(false); }
-  }, []);
+  }, [extractArray]);
 
   const loadKycProfiles = useCallback(async (status?: string) => {
     setLoadingKyc(true);
