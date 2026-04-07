@@ -136,7 +136,7 @@ function WithdrawPageContent() {
             setIsSubmitting(true);
 
             // Step 1: Add withdrawal method and get its index
-            await apiClient.post('/wallet/withdrawal-method', {
+            const withdrawalMethodRes = await apiClient.post('/wallet/withdrawal-method', {
                 type: method === 'mobile_money' ? 'mobile_money' : 'bank_account',
                 provider,
                 accountNumber: accountNumber.trim(),
@@ -144,11 +144,16 @@ function WithdrawPageContent() {
                 isDefault: true,
             });
 
+            const withdrawalMethodIndex = Number(withdrawalMethodRes.data?.index);
+            if (!Number.isFinite(withdrawalMethodIndex) || withdrawalMethodIndex < 0) {
+                throw new Error('Could not resolve the withdrawal method that was just saved.');
+            }
+
             // Step 2: Request withdrawal (backend applies 2% fee automatically)
             const withdrawRes = await apiClient.post('/wallet/withdraw', {
                 amount: amountNum,
                 currency: 'UGX',
-                withdrawalMethodIndex: 0,
+                withdrawalMethodIndex,
                 balanceType: balanceType,
                 projectId: projectId,
                 note: note.trim() || `Withdrawal from ${projectName}`,

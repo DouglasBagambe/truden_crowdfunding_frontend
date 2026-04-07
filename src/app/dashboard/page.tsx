@@ -9,7 +9,6 @@ import CreateProjectWizard from '@/components/dashboard/CreateProjectWizard';
 import { NotificationsView } from '@/components/dashboard/NotificationsView';
 import { KYCView } from '@/components/dashboard/KYCView';
 import { WalletView } from '@/components/dashboard/WalletView';
-import KYCModal from '@/components/dashboard/KYCModal';
 import { NFTPortfolio } from '@/components/dashboard/NFTPortfolio';
 import { motion } from 'framer-motion';
 import { useProjects, useMyProjects } from '@/hooks/useProjects';
@@ -56,7 +55,6 @@ export default function DashboardPage() {
     const router = useRouter();
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [isKYCModalOpen, setIsKYCModalOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState<'investments' | 'donations' | 'campaigns' | 'nfts' | 'kyc'>('donations');
 
@@ -476,7 +474,6 @@ export default function DashboardPage() {
             </main>
 
             <CreateProjectWizard isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
-            {hasRoiAccess && <KYCModal isOpen={isKYCModalOpen} onClose={() => setIsKYCModalOpen(false)} />}
             <Footer />
         </div>
     );

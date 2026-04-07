@@ -42,8 +42,8 @@ export interface Investment {
 
 export const investmentService = {
     async createInvestment(data: CreateInvestmentDto): Promise<Investment> {
-        const response = await apiClient.post('/investments/invest', data);
-        return response.data;
+        void data;
+        throw new Error('Direct investment creation is disabled. Use the DPO checkout flow.');
     },
 
     async getMyInvestments(): Promise<Investment[]> {

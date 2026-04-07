@@ -142,6 +142,8 @@ function CreateListingModal({ investment, walletAddress, onClose, onSuccess }: C
 
 export function NFTPortfolio() {
   const { address, isConnected } = useAccount();
+  const marketplaceEnabled =
+    String(process.env.NEXT_PUBLIC_ENABLE_NFT_MARKETPLACE || '').toLowerCase() === 'true';
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedInvestment, setSelectedInvestment] = useState<Investment | null>(null);
@@ -262,13 +264,19 @@ export function NFTPortfolio() {
             </div>
 
             {/* Actions */}
-            {isConnected && !inv.listed && inv.nftMinted && (
+            {isConnected && marketplaceEnabled && !inv.listed && inv.nftMinted && (
               <button
                 onClick={() => setSelectedInvestment(inv)}
                 className="mt-3 w-full py-2 rounded-xl border border-purple-500/40 text-purple-300 text-sm font-medium hover:bg-purple-500/10 transition"
               >
                 List for Sale
               </button>
+            )}
+
+            {isConnected && !marketplaceEnabled && inv.nftMinted && (
+              <p className="mt-3 text-xs text-[var(--text-muted)]">
+                Marketplace trading is temporarily disabled while settlement verification is being hardened.
+              </p>
             )}
           </div>
         ))}

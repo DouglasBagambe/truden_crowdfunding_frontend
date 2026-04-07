@@ -76,6 +76,15 @@ export const projectService = {
    * Get project details (works for all statuses including DRAFT)
    */
   async getProject(id: string) {
+    try {
+      const ownerResponse = await apiClient.get(`/projects/${id}/owner`);
+      return ownerResponse.data;
+    } catch (error: any) {
+      if (error?.response?.status && error.response.status !== 401 && error.response.status !== 403) {
+        throw error;
+      }
+    }
+
     const response = await apiClient.get(`/projects/${id}`);
     return response.data;
   },
@@ -196,7 +205,7 @@ export const projectService = {
    * Simple invest (deprecated in favor of flutterwave/wallet flow)
    */
   async invest(data: { projectId: string; amount: number; txHash?: string }) {
-    const response = await apiClient.post('/investments/invest', data);
-    return response.data;
+    void data;
+    throw new Error('Direct investment creation is disabled. Use the DPO checkout flow.');
   }
 };

@@ -305,6 +305,8 @@ function SkeletonCard() {
 export default function MarketplacePage() {
     const { hasRoiAccess, isLoading: roiLoading } = useRoiAccess();
     const router = useRouter();
+    const marketplaceEnabled =
+        String(process.env.NEXT_PUBLIC_ENABLE_NFT_MARKETPLACE || '').toLowerCase() === 'true';
 
     useEffect(() => {
         if (!roiLoading && !hasRoiAccess) {
@@ -319,8 +321,17 @@ export default function MarketplacePage() {
     const [loading, setLoading] = useState(true);
     const [selectedBuy, setSelectedBuy] = useState<MarketplaceListing | null>(null);
     const [filter, setFilter] = useState<'all' | 'mine'>('all');
+    const [isMaintenanceMode, setIsMaintenanceMode] = useState(!marketplaceEnabled);
 
     const load = useCallback(async () => {
+        if (!marketplaceEnabled) {
+            setIsMaintenanceMode(true);
+            setListings([]);
+            setTotal(0);
+            setLoading(false);
+            return;
+        }
+
         setLoading(true);
         try {
             if (filter === 'mine' && isConnected) {
@@ -332,12 +343,16 @@ export default function MarketplacePage() {
                 setListings(data.items);
                 setTotal(data.total);
             }
-        } catch {
+            setIsMaintenanceMode(false);
+        } catch (error: any) {
+            if (error?.response?.status === 503) {
+                setIsMaintenanceMode(true);
+            }
             setListings([]);
         } finally {
             setLoading(false);
         }
-    }, [filter, isConnected]);
+    }, [filter, isConnected, marketplaceEnabled]);
 
     useEffect(() => { load(); }, [load]);
 
@@ -456,7 +471,19 @@ export default function MarketplacePage() {
                     )}
 
                     {/* Grid */}
-                    {loading ? (
+                    {isMaintenanceMode ? (
+                        <div className="text-center py-20 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--card)]">
+                            <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-gray-800 border border-[var(--border)] flex items-center justify-center mx-auto mb-4">
+                                <ShoppingCart size={22} className="text-[var(--text-muted)]" />
+                            </div>
+                            <h3 className="text-base font-bold text-[var(--text-main)] mb-1">
+                                Marketplace temporarily unavailable
+                            </h3>
+                            <p className="text-sm text-[var(--text-muted)] max-w-md mx-auto">
+                                Trading is disabled until chain settlement verification is hardened end to end.
+                            </p>
+                        </div>
+                    ) : loading ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             {[1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} />)}
                         </div>
