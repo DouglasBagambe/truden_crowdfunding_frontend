@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard, FolderOpen, Users, ShieldCheck, CheckCircle,
-  XCircle, Clock, RefreshCw, ChevronRight, Eye, Loader2,
+  XCircle, RefreshCw, ChevronRight, Eye, Loader2,
   Search, Bell, ArrowLeft, Ban, UserCheck, RotateCcw,
+  TrendingUp, AlertCircle,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { projectService } from '@/lib/project-service';
@@ -38,29 +39,75 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function StatCard({
-  label,
-  value,
-  icon,
-  tone,
-}: {
+// ── KPI Card ─────────────────────────────────────────────────────────────────
+// Deliberate design: left accent bar signals category, large number takes
+// visual priority, label stays secondary. No icon boxes, no rainbow tiles.
+interface KpiCardProps {
   label: string;
   value: number;
-  icon: React.ReactNode;
-  tone: { dot: string; iconBox: string };
-}) {
+  accentClass: string;       // Tailwind bg class for the left bar
+  note?: string;             // optional sub-line
+  alertLevel?: 'none' | 'warn' | 'crit';
+}
+
+function KpiCard({ label, value, accentClass, note, alertLevel = 'none' }: KpiCardProps) {
+  const alertDot =
+    alertLevel === 'crit'
+      ? 'bg-rose-500'
+      : alertLevel === 'warn'
+      ? 'bg-amber-400'
+      : 'bg-transparent';
+
   return (
-    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-5 shadow-sm transition-all hover:border-slate-300 dark:hover:border-slate-700">
-      <div className="flex items-start justify-between gap-4">
-        <div className={`w-11 h-11 rounded-xl border flex items-center justify-center ${tone.iconBox}`}>
-          {icon}
+    <div className="relative bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden flex flex-col">
+      {/* accent bar — the only "color" element; intentional, not decorative */}
+      <div className={`h-0.5 w-full ${accentClass}`} />
+      <div className="px-5 py-5 flex-1 flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">
+            {label}
+          </p>
+          {alertLevel !== 'none' && (
+            <span className={`h-2 w-2 rounded-full ${alertDot}`} />
+          )}
         </div>
-        <span className={`mt-1 h-2.5 w-2.5 rounded-full ${tone.dot}`} />
+        <p className="text-4xl font-black tracking-tight text-[var(--text-main)] leading-none tabular-nums">
+          {value}
+        </p>
+        {note && (
+          <p className="text-xs text-[var(--text-muted)] font-medium leading-snug mt-auto">
+            {note}
+          </p>
+        )}
       </div>
-      <div className="mt-6 space-y-1.5">
-        <p className="text-[11px] text-[var(--text-muted)] font-black uppercase tracking-[0.18em]">{label}</p>
-        <p className="text-3xl font-black text-[var(--text-main)] tracking-tight">{value}</p>
+    </div>
+  );
+}
+
+// ── Status row for the breakdown section ─────────────────────────────────────
+interface StatusRowProps {
+  label: string;
+  count: number;
+  total: number;
+  barClass: string;
+}
+
+function StatusRow({ label, count, total, barClass }: StatusRowProps) {
+  const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+  return (
+    <div className="flex items-center gap-4">
+      <p className="w-28 text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider shrink-0">
+        {label}
+      </p>
+      <div className="flex-1 h-1.5 bg-[var(--secondary)] rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${barClass}`}
+          style={{ width: `${pct}%` }}
+        />
       </div>
+      <p className="w-10 text-right text-sm font-black text-[var(--text-main)] tabular-nums">
+        {count}
+      </p>
     </div>
   );
 }
@@ -71,11 +118,10 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
 
   // Data
-  const [allProjects, setAllProjects] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+  const [allProjects, setAllProjects] = useState<Record<string, unknown>[]>([]);
+  const [users, setUsers] = useState<Record<string, unknown>[]>([]);
   const [kycProfiles, setKycProfiles] = useState<KycAdminListItem[]>([]);
-  const [payouts, setPayouts] = useState<any[]>([]);
-  const [kycTotal, setKycTotal] = useState(0);
+  const [payouts, setPayouts] = useState<Record<string, unknown>[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [loadingKyc, setLoadingKyc] = useState(false);
@@ -91,17 +137,15 @@ export default function AdminPage() {
   const [actingOn, setActingOn] = useState<string | null>(null);
   const [reasons, setReasons] = useState<Record<string, string>>({});
 
-  // Admin check
   const isAdmin = useMemo(() => {
     if (!user) return false;
-    const uid = user.id || user._id || '';
-    const hasAdminRole = (user.roles || []).some((r: string) =>
-      ['ADMIN', 'admin', 'SUPER_ADMIN'].includes(r)
+    const uid = (user.id as string) || (user._id as string) || '';
+    const hasAdminRole = ((user.roles as string[]) || []).some((r) =>
+      ['ADMIN', 'admin', 'SUPERADMIN', 'SUPER_ADMIN'].includes(r),
     );
     return (ADMIN_USER_ID && uid === ADMIN_USER_ID) || hasAdminRole;
   }, [user]);
 
-  // Auth guard
   useEffect(() => {
     if (authLoading) return;
     if (!isAuthenticated) { router.push('/login?next=/admin'); return; }
@@ -111,69 +155,70 @@ export default function AdminPage() {
     }
   }, [authLoading, isAuthenticated, isAdmin, router]);
 
-  useEffect(() => {
-    if (isAdmin) { loadProjects(); loadUsers(); loadKycProfiles(); loadPayouts(); }
-  }, [isAdmin]);
-
-  const loadProjects = async () => {
+  const loadProjects = useCallback(async () => {
     setLoadingProjects(true);
     try {
       const data = await projectService.adminListAll();
-      const list = Array.isArray(data) ? data : (data?.projects || data?.items || []);
+      const list = Array.isArray(data) ? data : ((data as Record<string, unknown>)?.projects as Record<string, unknown>[] || (data as Record<string, unknown>)?.items as Record<string, unknown>[] || []);
       setAllProjects(list);
     } catch {
       try {
         const data = await projectService.adminListPending();
         setAllProjects(Array.isArray(data) ? data : []);
       } catch { setAllProjects([]); }
-    } finally {
-      setLoadingProjects(false);
-    }
-  };
+    } finally { setLoadingProjects(false); }
+  }, []);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setLoadingUsers(true);
     try {
-      // Use the new /admin/users endpoint which has no role restriction
       const res = await apiClient.get('/admin/users', { params: { limit: 200 } });
-      const data = res.data;
-      const list = Array.isArray(data) ? data : (data?.users || data?.items || []);
+      const data = res.data as Record<string, unknown>;
+      const list = Array.isArray(data) ? data : (data?.users as Record<string, unknown>[] || data?.items as Record<string, unknown>[] || []);
       setUsers(list);
     } catch { setUsers([]); }
     finally { setLoadingUsers(false); }
-  };
+  }, []);
 
-  const loadKycProfiles = async (status?: string) => {
+  const loadKycProfiles = useCallback(async (status?: string) => {
     setLoadingKyc(true);
     try {
-      const res = await kycAdminService.listProfiles({ status: status || kycStatusFilter || undefined, pageSize: 50 });
+      const normalizedStatus = typeof status === 'string' && status.trim() ? status : undefined;
+      const res = await kycAdminService.listProfiles({ status: normalizedStatus, pageSize: 50 });
       setKycProfiles(res.items);
-      setKycTotal(res.total);
     } catch { setKycProfiles([]); }
     finally { setLoadingKyc(false); }
-  };
+  }, []);
 
-  const loadPayouts = async () => {
+  const loadPayouts = useCallback(async () => {
     setLoadingPayouts(true);
     try {
       const res = await apiClient.get('/wallet/admin/withdrawals/pending');
-      setPayouts(res.data);
+      setPayouts(res.data as Record<string, unknown>[]);
     } catch { setPayouts([]); }
     finally { setLoadingPayouts(false); }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    void loadProjects();
+    void loadUsers();
+    void loadKycProfiles();
+    void loadPayouts();
+  }, [isAdmin, loadKycProfiles, loadPayouts, loadProjects, loadUsers]);
 
   const overrideKycStatus = async (profileId: string, status: string, reason?: string) => {
     const tid = toast.loading(status === 'APPROVED' ? 'Approving KYC...' : 'Rejecting KYC...');
     try {
       await kycAdminService.overrideStatus(profileId, { status, rejectionReason: reason });
       toast.success(`KYC ${status.toLowerCase()}`, { id: tid });
-      await loadKycProfiles();
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message || 'Action failed', { id: tid });
+      await loadKycProfiles(kycStatusFilter || undefined);
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || 'Action failed', { id: tid });
     }
   };
 
-  // Project decision (approve / reject / changes-requested / revoke / re-approve)
   const decide = async (id: string, finalStatus: string) => {
     if (finalStatus === 'REJECTED' && !reasons[id]?.trim()) {
       toast.error('Please provide a reason for rejection.');
@@ -185,12 +230,12 @@ export default function AdminPage() {
       await projectService.adminDecision(id, { finalStatus, reason: reasons[id] });
       toast.success(`Project ${finalStatus.replace(/_/g, ' ').toLowerCase()}`, { id: tid });
       await loadProjects();
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message || 'Action failed', { id: tid });
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || 'Action failed', { id: tid });
     } finally { setActingOn(null); }
   };
 
-  // Block / unblock user
   const toggleBlock = async (userId: string, isBlocked: boolean) => {
     setActingOn(userId);
     const tid = toast.loading(isBlocked ? 'Unblocking user...' : 'Blocking user...');
@@ -198,12 +243,12 @@ export default function AdminPage() {
       await apiClient.patch(`/admin/users/${userId}/block`, { isBlocked: !isBlocked });
       toast.success(isBlocked ? 'User unblocked' : 'User blocked', { id: tid });
       await loadUsers();
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message || 'Action failed', { id: tid });
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || 'Action failed', { id: tid });
     } finally { setActingOn(null); }
   };
 
-  // Change user role
   const changeRole = async (userId: string, role: string) => {
     setActingOn(userId);
     const tid = toast.loading('Updating role...');
@@ -211,32 +256,60 @@ export default function AdminPage() {
       await apiClient.patch(`/admin/users/${userId}/role`, { role });
       toast.success(`Role updated to ${role}`, { id: tid });
       await loadUsers();
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message || 'Action failed', { id: tid });
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || 'Action failed', { id: tid });
     } finally { setActingOn(null); }
   };
 
-  // Derived
   const filteredProjects = useMemo(() => {
     let list = allProjects;
-    if (statusFilter) list = list.filter(p => p.status === statusFilter);
-    if (projectSearch) list = list.filter(p =>
-      (p.name || '').toLowerCase().includes(projectSearch.toLowerCase()) ||
-      (p.summary || '').toLowerCase().includes(projectSearch.toLowerCase())
-    );
+    if (statusFilter) list = list.filter((p) => p.status === statusFilter);
+    if (projectSearch) {
+      const q = projectSearch.toLowerCase();
+      list = list.filter(
+        (p) =>
+          ((p.name as string) || '').toLowerCase().includes(q) ||
+          ((p.summary as string) || '').toLowerCase().includes(q),
+      );
+    }
     return list;
   }, [allProjects, statusFilter, projectSearch]);
 
-  const filteredUsers = useMemo(() =>
-    users.filter(u =>
-      (u.email || '').toLowerCase().includes(userSearch.toLowerCase()) ||
-      `${u.firstName || u.profile?.firstName || ''} ${u.lastName || u.profile?.lastName || ''}`.toLowerCase().includes(userSearch.toLowerCase())
-    ), [users, userSearch]);
+  const filteredUsers = useMemo(
+    () =>
+      users.filter((u) => {
+        const q = userSearch.toLowerCase();
+        const profile = u.profile as Record<string, string> | undefined;
+        const name = `${(u.firstName as string) || profile?.firstName || ''} ${(u.lastName as string) || profile?.lastName || ''}`.toLowerCase();
+        return (
+          ((u.email as string) || '').toLowerCase().includes(q) || name.includes(q)
+        );
+      }),
+    [users, userSearch],
+  );
 
-  const pendingCount = allProjects.filter(p => p.status === 'PENDING_REVIEW').length;
-  const pendingKycCount = kycProfiles.filter(p => p.status === 'PENDING' || p.status === 'UNDER_REVIEW').length;
-  const approvedCount = allProjects.filter(p => ['APPROVED', 'FUNDING', 'FUNDED'].includes(p.status)).length;
-  const rejectedCount = allProjects.filter(p => p.status === 'REJECTED').length;
+  const pendingCount = allProjects.filter((p) => p.status === 'PENDING_REVIEW').length;
+  const pendingKycCount = kycProfiles.filter((p) => p.status === 'PENDING' || p.status === 'UNDER_REVIEW').length;
+  const approvedCount = allProjects.filter((p) => ['APPROVED', 'FUNDING', 'FUNDED'].includes(p.status as string)).length;
+  const rejectedCount = allProjects.filter((p) => p.status === 'REJECTED').length;
+  const draftCount = allProjects.filter((p) => p.status === 'DRAFT').length;
+
+  const getCreatorName = (p: Record<string, unknown>): string => {
+    const creator = (p.creator || p.creatorId) as Record<string, unknown> | undefined;
+    if (creator && typeof creator === 'object') {
+      const profile = creator.profile as Record<string, string> | undefined;
+      return (
+        [
+          profile?.firstName || (creator.firstName as string),
+          profile?.lastName || (creator.lastName as string),
+        ]
+          .filter(Boolean)
+          .join(' ') || (creator.email as string) || 'Unknown'
+      );
+    }
+    return 'Unknown';
+  };
 
   if (authLoading) {
     return (
@@ -246,17 +319,19 @@ export default function AdminPage() {
     );
   }
 
-  if (!isAuthenticated || !isAdmin) return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
-      <div className="text-center space-y-4">
-        <ShieldCheck className="w-16 h-16 text-[var(--text-muted)] mx-auto opacity-30" />
-        <p className="text-[var(--text-muted)] font-medium">Access restricted</p>
-        <Link href="/" className="text-sm font-bold text-[var(--primary)] hover:underline">← Back home</Link>
+  if (!isAuthenticated || !isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+        <div className="text-center space-y-4">
+          <ShieldCheck className="w-16 h-16 text-[var(--text-muted)] mx-auto opacity-30" />
+          <p className="text-[var(--text-muted)] font-medium">Access restricted</p>
+          <Link href="/" className="text-sm font-bold text-[var(--primary)] hover:underline">← Back home</Link>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
-  const tabs: { key: AdminTab; label: string; icon: React.ReactNode; badge?: number }[] = [
+  const tabs: { key: AdminTab; label: string; icon: ReactNode; badge?: number }[] = [
     { key: 'overview', label: 'Overview', icon: <LayoutDashboard size={16} /> },
     { key: 'projects', label: 'Campaigns', icon: <FolderOpen size={16} />, badge: pendingCount || undefined },
     { key: 'kyc', label: 'KYC Review', icon: <ShieldCheck size={16} />, badge: pendingKycCount || undefined },
@@ -275,14 +350,15 @@ export default function AdminPage() {
             <h1 className="text-xl font-black">Admin Panel</h1>
           </div>
 
-          {tabs.map(tab => (
+          {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center justify-between px-3 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === tab.key
-                ? 'bg-[var(--primary)] text-white'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--secondary)]'
-                }`}
+              className={`flex items-center justify-between px-3 py-3 rounded-xl text-sm font-bold transition-all ${
+                activeTab === tab.key
+                  ? 'bg-[var(--primary)] text-white'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--secondary)]'
+              }`}
             >
               <span className="flex items-center gap-3">{tab.icon}{tab.label}</span>
               {tab.badge !== undefined && (
@@ -309,158 +385,230 @@ export default function AdminPage() {
             transition={{ duration: 0.18 }}
           >
 
-            {/* ── OVERVIEW ── */}
+            {/* ══════════════════════════════════════════════════════════════
+                OVERVIEW — redesigned
+            ══════════════════════════════════════════════════════════════ */}
             {activeTab === 'overview' && (
-              <div className="space-y-8">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--text-muted)]">Operations</p>
+              <div className="space-y-10 max-w-6xl">
+
+                {/* Page header */}
+                <div className="flex items-start justify-between gap-6">
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--text-muted)] mb-1">
+                      Operations
+                    </p>
                     <h2 className="text-2xl font-black tracking-tight">Platform Overview</h2>
-                    <p className="text-sm text-[var(--text-muted)]">Monitor campaign moderation, user verification, and payout workload from one place.</p>
+                    <p className="mt-1 text-sm text-[var(--text-muted)] max-w-md">
+                      Campaign moderation, identity verification, and payout workload at a glance.
+                    </p>
                   </div>
                   <button
                     onClick={() => { loadProjects(); loadUsers(); loadKycProfiles(); loadPayouts(); }}
-                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2.5 text-sm font-semibold text-[var(--text-main)] hover:border-slate-300 dark:hover:border-slate-700 transition-all"
+                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2.5 text-sm font-semibold text-[var(--text-main)] hover:bg-[var(--secondary)] transition-all shrink-0"
                   >
-                    <RefreshCw size={15} className="text-[var(--text-muted)]" />
-                    Refresh data
+                    <RefreshCw size={14} className="text-[var(--text-muted)]" />
+                    Refresh
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                  <StatCard
-                    label="Total Campaigns"
+                {/* ── KPI grid ──
+                    Five cards. Each has a single color accent bar at top
+                    (thin, categorical) + big number + quiet label.
+                    No icon boxes, no gradient tiles, no dot decorations.
+                    Color only appears as the 2px stripe — rest is surface.
+                */}
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+                  <KpiCard
+                    label="All Campaigns"
                     value={allProjects.length}
-                    icon={<FolderOpen size={18} />}
-                    tone={{
-                      dot: 'bg-blue-600',
-                      iconBox: 'bg-slate-50 border-slate-200 text-blue-700 dark:bg-slate-900/30 dark:border-slate-800 dark:text-blue-300',
-                    }}
+                    accentClass="bg-[var(--primary)]"
+                    note="across all statuses"
                   />
-                  <StatCard
+                  <KpiCard
                     label="Pending Review"
                     value={pendingCount}
-                    icon={<Clock size={18} />}
-                    tone={{
-                      dot: 'bg-amber-500',
-                      iconBox: 'bg-slate-50 border-slate-200 text-amber-700 dark:bg-slate-900/30 dark:border-slate-800 dark:text-amber-300',
-                    }}
+                    accentClass="bg-amber-400"
+                    note={pendingCount > 0 ? 'needs moderation' : 'queue is clear'}
+                    alertLevel={pendingCount > 5 ? 'crit' : pendingCount > 0 ? 'warn' : 'none'}
                   />
-                  <StatCard
+                  <KpiCard
                     label="Approved / Live"
                     value={approvedCount}
-                    icon={<CheckCircle size={18} />}
-                    tone={{
-                      dot: 'bg-emerald-600',
-                      iconBox: 'bg-slate-50 border-slate-200 text-emerald-700 dark:bg-slate-900/30 dark:border-slate-800 dark:text-emerald-300',
-                    }}
+                    accentClass="bg-emerald-500"
+                    note="visible to investors"
                   />
-                  <StatCard
+                  <KpiCard
                     label="Total Users"
                     value={users.length}
-                    icon={<Users size={18} />}
-                    tone={{
-                      dot: 'bg-violet-600',
-                      iconBox: 'bg-slate-50 border-slate-200 text-violet-700 dark:bg-slate-900/30 dark:border-slate-800 dark:text-violet-300',
-                    }}
+                    accentClass="bg-slate-400"
+                    note="registered accounts"
                   />
-                  <StatCard
+                  <KpiCard
                     label="Pending Payouts"
                     value={payouts.length}
-                    icon={<RotateCcw size={18} />}
-                    tone={{
-                      dot: 'bg-rose-600',
-                      iconBox: 'bg-slate-50 border-slate-200 text-rose-700 dark:bg-slate-900/30 dark:border-slate-800 dark:text-rose-300',
-                    }}
+                    accentClass="bg-rose-500"
+                    note={payouts.length > 0 ? 'awaiting disbursement' : 'none pending'}
+                    alertLevel={payouts.length > 0 ? 'warn' : 'none'}
                   />
                 </div>
 
-                {/* Pending campaigns quick list */}
-                <div className="bg-[var(--card)] rounded-3xl border border-[var(--border)] overflow-hidden shadow-sm">
-                  <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/30 flex items-center justify-center">
-                        <Bell size={16} className="text-amber-700 dark:text-amber-300" />
+                {/* ── Two-column lower section ── */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                  {/* Pending queue — takes 2/3 width */}
+                  <div className="lg:col-span-2 bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden">
+                    <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {pendingCount > 0
+                          ? <AlertCircle size={16} className="text-amber-500 shrink-0" />
+                          : <CheckCircle size={16} className="text-emerald-500 shrink-0" />
+                        }
+                        <div>
+                          <p className="text-sm font-black">Awaiting Review</p>
+                          <p className="text-xs text-[var(--text-muted)] font-medium">
+                            {pendingCount > 0
+                              ? `${pendingCount} campaign${pendingCount === 1 ? '' : 's'} need moderation`
+                              : 'The queue is clear'}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-black">Awaiting Review</h3>
-                        <p className="text-xs text-[var(--text-muted)] font-medium">{pendingCount} campaign{pendingCount === 1 ? '' : 's'} currently need moderation.</p>
+                      <button
+                        onClick={() => setActiveTab('projects')}
+                        className="text-xs font-black text-[var(--primary)] hover:underline flex items-center gap-1 shrink-0"
+                      >
+                        Manage <ChevronRight size={12} />
+                      </button>
+                    </div>
+
+                    <div className="divide-y divide-[var(--border)]">
+                      {allProjects
+                        .filter((p) => p.status === 'PENDING_REVIEW')
+                        .slice(0, 6)
+                        .map((p) => {
+                          const id = String((p._id as string) || (p.id as string));
+                          const creatorName = getCreatorName(p);
+                          return (
+                            <div key={id} className="px-6 py-3.5 flex items-center gap-4 hover:bg-[var(--secondary)] transition-colors">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-sm truncate">{(p.name as string) || '(Untitled)'}</p>
+                                <p className="text-xs text-[var(--text-muted)] truncate">
+                                  {creatorName}
+                                  {p.category ? ` · ${p.category as string}` : ''}
+                                </p>
+                              </div>
+                              <Link
+                                href={`/projects/${id}`}
+                                target="_blank"
+                                className="text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors shrink-0"
+                              >
+                                <Eye size={14} />
+                              </Link>
+                            </div>
+                          );
+                        })}
+
+                      {pendingCount === 0 && (
+                        <div className="px-6 py-10 text-center">
+                          <p className="text-sm font-semibold text-[var(--text-main)]">No campaigns awaiting action</p>
+                          <p className="mt-1 text-xs text-[var(--text-muted)]">The moderation queue is clear.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Status breakdown — takes 1/3 width */}
+                  <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden">
+                    <div className="px-6 py-4 border-b border-[var(--border)]">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp size={15} className="text-[var(--text-muted)]" />
+                        <p className="text-sm font-black">Campaign Breakdown</p>
                       </div>
                     </div>
-                    <button onClick={() => setActiveTab('projects')} className="text-xs font-black text-[var(--primary)] hover:underline flex items-center gap-1">
-                      Manage All <ChevronRight size={12} />
-                    </button>
-                  </div>
-                  <div className="divide-y divide-[var(--border)]">
-                    {allProjects.filter(p => p.status === 'PENDING_REVIEW').slice(0, 6).map(p => {
-                      const creator = p.creator || p.creatorId;
-                      const creatorName = creator && typeof creator === 'object'
-                        ? [creator.profile?.firstName || creator.firstName, creator.profile?.lastName || creator.lastName].filter(Boolean).join(' ') || creator.email
-                        : 'Unknown';
-                      return (
-                        <div key={p._id || p.id} className="p-4 flex items-center gap-4 hover:bg-[var(--secondary)] transition-colors">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-sm truncate">{p.name}</p>
-                            <p className="text-xs text-[var(--text-muted)] truncate">by {creatorName} · {p.category || p.projectType}</p>
-                          </div>
-                          <StatusBadge status={p.status} />
-                          <Link href={`/projects/${p._id || p.id}`} target="_blank" className="text-[var(--primary)] hover:opacity-70 flex-shrink-0">
-                            <Eye size={15} />
-                          </Link>
+                    <div className="px-6 py-5 space-y-4">
+                      <StatusRow
+                        label="Draft"
+                        count={draftCount}
+                        total={allProjects.length}
+                        barClass="bg-slate-400"
+                      />
+                      <StatusRow
+                        label="Pending"
+                        count={pendingCount}
+                        total={allProjects.length}
+                        barClass="bg-amber-400"
+                      />
+                      <StatusRow
+                        label="Approved"
+                        count={approvedCount}
+                        total={allProjects.length}
+                        barClass="bg-emerald-500"
+                      />
+                      <StatusRow
+                        label="Rejected"
+                        count={rejectedCount}
+                        total={allProjects.length}
+                        barClass="bg-rose-500"
+                      />
+
+                      <div className="pt-3 border-t border-[var(--border)]">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-[var(--text-muted)] font-medium">Total</p>
+                          <p className="text-lg font-black tabular-nums">{allProjects.length}</p>
                         </div>
-                      );
-                    })}
-                    {pendingCount === 0 && (
-                      <div className="p-12 text-center">
-                        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/30">
-                          <CheckCircle size={18} className="text-emerald-700 dark:text-emerald-300" />
-                        </div>
-                        <p className="text-sm font-semibold text-[var(--text-main)]">No campaigns awaiting action</p>
-                        <p className="mt-1 text-sm text-[var(--text-muted)]">The moderation queue is clear right now.</p>
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Status breakdown */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                  {[
-                    {
-                      label: 'Draft',
-                      count: allProjects.filter(p => p.status === 'DRAFT').length,
-                      dot: 'bg-slate-400',
-                    },
-                    {
-                      label: 'Pending',
-                      count: pendingCount,
-                      dot: 'bg-amber-500',
-                    },
-                    {
-                      label: 'Approved',
-                      count: approvedCount,
-                      dot: 'bg-emerald-500',
-                    },
-                    {
-                      label: 'Rejected',
-                      count: rejectedCount,
-                      dot: 'bg-rose-500',
-                    },
-                  ].map(s => (
-                    <div key={s.label} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <span className={`h-3 w-3 rounded-full ${s.dot}`} />
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">{s.label}</p>
-                          <p className="mt-1 text-2xl font-black text-[var(--text-main)]">{s.count}</p>
-                        </div>
-                      </div>
+                {/* ── KYC + Users quick stats ── */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 flex items-center gap-5">
+                    <div className="shrink-0">
+                      <ShieldCheck size={20} className="text-[var(--text-muted)]" />
                     </div>
-                  ))}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">KYC Review</p>
+                      <p className="mt-1 text-2xl font-black tabular-nums">
+                        {pendingKycCount}
+                        <span className="text-sm font-semibold text-[var(--text-muted)] ml-2">pending</span>
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab('kyc')}
+                      className="shrink-0 text-xs font-black text-[var(--primary)] hover:underline flex items-center gap-1"
+                    >
+                      Review <ChevronRight size={12} />
+                    </button>
+                  </div>
+
+                  <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 flex items-center gap-5">
+                    <div className="shrink-0">
+                      <Bell size={20} className="text-[var(--text-muted)]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">Pending Payouts</p>
+                      <p className="mt-1 text-2xl font-black tabular-nums">
+                        {payouts.length}
+                        <span className="text-sm font-semibold text-[var(--text-muted)] ml-2">
+                          {payouts.length === 1 ? 'withdrawal' : 'withdrawals'}
+                        </span>
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab('payouts')}
+                      className="shrink-0 text-xs font-black text-[var(--primary)] hover:underline flex items-center gap-1"
+                    >
+                      Process <ChevronRight size={12} />
+                    </button>
+                  </div>
                 </div>
+
               </div>
             )}
 
-            {/* ── CAMPAIGNS / PROJECTS ── */}
+            {/* ══════════════════════════════════════════════════════════════
+                CAMPAIGNS / PROJECTS — unchanged
+            ══════════════════════════════════════════════════════════════ */}
             {activeTab === 'projects' && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between flex-wrap gap-4">
@@ -475,13 +623,13 @@ export default function AdminPage() {
                         type="text"
                         placeholder="Search..."
                         value={projectSearch}
-                        onChange={e => setProjectSearch(e.target.value)}
+                        onChange={(e) => setProjectSearch(e.target.value)}
                         className="pl-9 pr-4 py-2 rounded-xl bg-[var(--secondary)] border border-[var(--border)] text-sm font-medium outline-none focus:border-[var(--primary)] w-48"
                       />
                     </div>
                     <select
                       value={statusFilter}
-                      onChange={e => setStatusFilter(e.target.value)}
+                      onChange={(e) => setStatusFilter(e.target.value)}
                       className="px-3 py-2 rounded-xl bg-[var(--secondary)] border border-[var(--border)] text-sm font-bold outline-none"
                     >
                       <option value="">All Statuses</option>
@@ -511,60 +659,49 @@ export default function AdminPage() {
                     <div className="py-20 text-center bg-[var(--card)] rounded-3xl border border-[var(--border)] text-[var(--text-muted)] font-medium">
                       No campaigns found.
                     </div>
-                  ) : filteredProjects.map(p => {
-                    const id = String(p._id || p.id);
-                    const creator = p.creator || p.creatorId;
-                    const creatorName = creator && typeof creator === 'object'
-                      ? [creator.profile?.firstName || creator.firstName, creator.profile?.lastName || creator.lastName].filter(Boolean).join(' ') || creator.email
-                      : 'Unknown Creator';
-                    const raised = p.raisedAmount || p.progress?.raisedAmount || 0;
-                    const target = p.targetAmount || p.goalAmount || 0;
+                  ) : filteredProjects.map((p) => {
+                    const id = String((p._id as string) || (p.id as string));
+                    const creatorName = getCreatorName(p);
+                    const raised = (p.raisedAmount as number) || ((p.progress as Record<string, number>)?.raisedAmount) || 0;
+                    const target = (p.targetAmount as number) || (p.goalAmount as number) || 0;
                     const pct = target > 0 ? Math.min(100, (raised / target) * 100) : 0;
                     const isActing = actingOn === id;
                     const status = p.status as string;
+                    const projectCategory = typeof p.category === 'string' && p.category.trim() ? p.category : null;
+                    const decisionReason =
+                      typeof p.decisionReason === 'string' && p.decisionReason.trim()
+                        ? p.decisionReason
+                        : null;
 
-                    // Determine which action buttons to show based on current status
                     const canApprove = ['PENDING_REVIEW', 'CHANGES_REQUESTED', 'DRAFT', 'REJECTED'].includes(status);
                     const canRequestChanges = ['PENDING_REVIEW', 'APPROVED', 'DRAFT'].includes(status);
-                    const canReject = !['REJECTED'].includes(status);
                     const canRevoke = status === 'APPROVED' || status === 'FUNDING';
+                    const canReject = !['REJECTED'].includes(status);
 
                     return (
                       <div key={id} className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden hover:border-[var(--primary)]/30 transition-all">
-                        {/* Top bar */}
                         <div className="p-5 border-b border-[var(--border)] flex items-center gap-3 flex-wrap">
-                          <StatusBadge status={p.status} />
-                          <span
-                            className={`chip-base chip-compact ${(p.projectType || p.type) === 'ROI' ? 'chip-info' : 'chip-success'}`}
-                          >
-                            {p.projectType || p.type || 'CHARITY'}
+                          <StatusBadge status={status} />
+                          <span className={`chip-base chip-compact ${(p.projectType as string || p.type as string) === 'ROI' ? 'chip-info' : 'chip-success'}`}>
+                            {(p.projectType as string) || (p.type as string) || 'CHARITY'}
                           </span>
-                          {p.category && (
-                            <span className="chip-base chip-compact chip-neutral">
-                              {p.category}
-                            </span>
+                          {projectCategory && (
+                            <span className="chip-base chip-compact chip-neutral">{projectCategory}</span>
                           )}
                           <div className="ml-auto flex items-center gap-2">
-                            <Link
-                              href={`/projects/${id}`}
-                              target="_blank"
-                              className="flex items-center gap-1.5 text-xs font-bold text-[var(--primary)] hover:underline"
-                            >
+                            <Link href={`/projects/${id}`} target="_blank" className="flex items-center gap-1.5 text-xs font-bold text-[var(--primary)] hover:underline">
                               <Eye size={12} /> Preview
                             </Link>
                           </div>
                         </div>
 
                         <div className="p-5 grid grid-cols-1 lg:grid-cols-12 gap-6">
-                          {/* Project info */}
                           <div className="lg:col-span-4 space-y-2">
-                            <h3 className="font-black text-base leading-tight">{p.name || '(Untitled)'}</h3>
-                            <p className="text-xs text-[var(--text-muted)] line-clamp-2 leading-relaxed">{p.summary}</p>
+                            <h3 className="font-black text-base leading-tight">{(p.name as string) || '(Untitled)'}</h3>
+                            <p className="text-xs text-[var(--text-muted)] line-clamp-2 leading-relaxed">{p.summary as string}</p>
                             <div className="flex items-center gap-2 pt-1">
                               <div className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
-                                <span className="text-white text-[10px] font-black">
-                                  {(creatorName[0] || '?').toUpperCase()}
-                                </span>
+                                <span className="text-white text-[10px] font-black">{(creatorName[0] || '?').toUpperCase()}</span>
                               </div>
                               <p className="text-xs font-bold text-[var(--text-muted)]">{creatorName}</p>
                             </div>
@@ -574,18 +711,17 @@ export default function AdminPage() {
                                   <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${pct}%` }} />
                                 </div>
                                 <p className="text-[10px] text-[var(--text-muted)] font-medium">
-                                  {p.currency || 'UGX'} {raised.toLocaleString()} raised of {target.toLocaleString()} ({pct.toFixed(0)}%)
+                                  {(p.currency as string) || 'UGX'} {raised.toLocaleString()} raised of {target.toLocaleString()} ({pct.toFixed(0)}%)
                                 </p>
                               </div>
                             )}
-                            {p.decisionReason && (
+                            {decisionReason && (
                               <p className="text-xs text-amber-800 dark:text-amber-200 font-medium bg-amber-50 dark:bg-amber-950/20 rounded-lg px-2 py-1 border border-amber-200 dark:border-amber-900/30">
-                                Previous note: {p.decisionReason}
+                                Previous note: {decisionReason}
                               </p>
                             )}
                           </div>
 
-                          {/* Reason textarea */}
                           <div className="lg:col-span-5 space-y-2 flex flex-col">
                             <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
                               Admin Note / Feedback <span className="text-rose-400">(required for rejection)</span>
@@ -594,12 +730,11 @@ export default function AdminPage() {
                               rows={4}
                               className="input_field text-sm resize-none flex-1"
                               value={reasons[id] || ''}
-                              onChange={e => setReasons(r => ({ ...r, [id]: e.target.value }))}
-                              placeholder="Provide feedback to the campaign creator (shown in email notification)..."
+                              onChange={(e) => setReasons((r) => ({ ...r, [id]: e.target.value }))}
+                              placeholder="Provide feedback to the campaign creator..."
                             />
                           </div>
 
-                          {/* Action buttons */}
                           <div className="lg:col-span-3 flex flex-col gap-2 justify-start">
                             {canApprove && (
                               <button
@@ -649,7 +784,9 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* ── KYC REVIEW ── */}
+            {/* ══════════════════════════════════════════════════════════════
+                KYC REVIEW — unchanged
+            ══════════════════════════════════════════════════════════════ */}
             {activeTab === 'kyc' && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between flex-wrap gap-4">
@@ -662,7 +799,7 @@ export default function AdminPage() {
                   <div className="flex items-center gap-3">
                     <select
                       value={kycStatusFilter}
-                      onChange={e => { setKycStatusFilter(e.target.value); loadKycProfiles(e.target.value); }}
+                      onChange={(e) => { setKycStatusFilter(e.target.value); loadKycProfiles(e.target.value); }}
                       className="px-3 py-2 rounded-xl bg-[var(--secondary)] border border-[var(--border)] text-sm font-bold outline-none"
                     >
                       <option value="">All Statuses</option>
@@ -689,7 +826,7 @@ export default function AdminPage() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {kycProfiles.map(kyc => {
+                    {kycProfiles.map((kyc) => {
                       const statusColors: Record<string, string> = {
                         APPROVED: 'chip-success',
                         PENDING: 'chip-warning',
@@ -710,9 +847,7 @@ export default function AdminPage() {
                               {kyc.userEmail ? `${kyc.userEmail} · ` : ''}{kyc.documentCount} document(s) · Submitted {kyc.submittedAt ? new Date(kyc.submittedAt).toLocaleDateString() : '—'}
                             </p>
                           </div>
-                          <span className={`chip-base chip-compact ${sc}`}>
-                            {kyc.status}
-                          </span>
+                          <span className={`chip-base chip-compact ${sc}`}>{kyc.status}</span>
                           {isPending && (
                             <div className="flex gap-2">
                               <button
@@ -740,7 +875,9 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* ── USERS ── */}
+            {/* ══════════════════════════════════════════════════════════════
+                USERS — unchanged
+            ══════════════════════════════════════════════════════════════ */}
             {activeTab === 'users' && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between flex-wrap gap-4">
@@ -755,7 +892,7 @@ export default function AdminPage() {
                         type="text"
                         placeholder="Search users..."
                         value={userSearch}
-                        onChange={e => setUserSearch(e.target.value)}
+                        onChange={(e) => setUserSearch(e.target.value)}
                         className="pl-9 pr-4 py-2 rounded-xl bg-[var(--secondary)] border border-[var(--border)] text-sm outline-none focus:border-[var(--primary)] w-52"
                       />
                     </div>
@@ -767,7 +904,7 @@ export default function AdminPage() {
 
                 <div className="bg-[var(--card)] rounded-3xl border border-[var(--border)] overflow-hidden">
                   <div className="hidden lg:grid grid-cols-12 px-6 py-3 border-b border-[var(--border)] bg-[var(--secondary)]">
-                    {[['User', 'col-span-3'], ['Email', 'col-span-3'], ['KYC', 'col-span-2'], ['Role', 'col-span-2'], ['Actions', 'col-span-2']].map(([h, cls]) => (
+                    {([['User', 'col-span-3'], ['Email', 'col-span-3'], ['KYC', 'col-span-2'], ['Role', 'col-span-2'], ['Actions', 'col-span-2']] as [string, string][]).map(([h, cls]) => (
                       <div key={h} className={`text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ${cls}`}>{h}</div>
                     ))}
                   </div>
@@ -778,31 +915,30 @@ export default function AdminPage() {
                       </div>
                     ) : filteredUsers.length === 0 ? (
                       <div className="p-12 text-center text-[var(--text-muted)] font-medium">No users found.</div>
-                    ) : filteredUsers.map((u: any) => {
-                      const uid = u.id || u._id;
-                      const firstName = u.firstName || u.profile?.firstName || '';
-                      const lastName = u.lastName || u.profile?.lastName || '';
+                    ) : filteredUsers.map((u) => {
+                      const uid = (u.id as string) || (u._id as string);
+                      const profile = u.profile as Record<string, string> | undefined;
+                      const firstName = (u.firstName as string) || profile?.firstName || '';
+                      const lastName = (u.lastName as string) || profile?.lastName || '';
                       const displayName = [firstName, lastName].filter(Boolean).join(' ') || 'Unknown';
-                      const role = (u.roles || [u.role || 'INVESTOR'])[0];
-                      const isBlocked = u.isBlocked;
+                      const role = ((u.roles as string[]) || [(u.role as string) || 'INVESTOR'])[0];
+                      const isBlocked = u.isBlocked as boolean;
                       const isActingUser = actingOn === uid;
-                      const isCurrentAdmin = uid === (user?.id || user?._id);
+                      const isCurrentAdmin = uid === ((user?.id as string) || (user?._id as string));
 
                       return (
                         <div key={uid} className={`px-6 py-4 hover:bg-[var(--secondary)] transition-colors ${isBlocked ? 'opacity-60' : ''}`}>
-                          {/* Mobile layout */}
+                          {/* Mobile */}
                           <div className="lg:hidden space-y-2">
                             <div className="flex items-center gap-3">
                               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-black text-sm flex-shrink-0">
-                                {(firstName || u.email || '?')[0].toUpperCase()}
+                                {(firstName || (u.email as string) || '?')[0].toUpperCase()}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="font-bold text-sm">{displayName}</p>
-                                <p className="text-xs text-[var(--text-muted)]">{u.email}</p>
+                                <p className="text-xs text-[var(--text-muted)]">{u.email as string}</p>
                               </div>
-                              <span className={`chip-base chip-compact ${isBlocked ? 'chip-danger' : 'chip-info'}`}>
-                                {role}
-                              </span>
+                              <span className={`chip-base chip-compact ${isBlocked ? 'chip-danger' : 'chip-info'}`}>{role}</span>
                             </div>
                             {!isCurrentAdmin && (
                               <div className="flex gap-2 pt-1">
@@ -817,7 +953,7 @@ export default function AdminPage() {
                                   {isBlocked ? 'Unblock' : 'Block'}
                                 </button>
                                 <select
-                                  onChange={e => changeRole(uid, e.target.value)}
+                                  onChange={(e) => changeRole(uid, e.target.value)}
                                   defaultValue={role}
                                   disabled={isActingUser}
                                   className="flex-1 py-2 px-2 rounded-lg bg-[var(--secondary)] border border-[var(--border)] text-xs font-bold outline-none"
@@ -830,39 +966,31 @@ export default function AdminPage() {
                             )}
                           </div>
 
-                          {/* Desktop layout */}
+                          {/* Desktop */}
                           <div className="hidden lg:grid grid-cols-12 items-center gap-2">
                             <div className="col-span-3 flex items-center gap-3 min-w-0">
                               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-black text-sm flex-shrink-0">
-                                {(firstName || u.email || '?')[0].toUpperCase()}
+                                {(firstName || (u.email as string) || '?')[0].toUpperCase()}
                               </div>
                               <div className="min-w-0">
                                 <p className="font-bold text-sm truncate">{displayName}</p>
                                 <p className="text-[10px] text-[var(--text-muted)] font-medium">
-                                  {u.emailVerifiedAt ? '✓ Verified' : 'Unverified'}
-                                  {isBlocked && ' · Blocked'}
+                                  {u.emailVerifiedAt ? '✓ Verified' : 'Unverified'}{isBlocked && ' · Blocked'}
                                 </p>
                               </div>
                             </div>
-                            <div className="col-span-3 text-sm text-[var(--text-muted)] font-medium truncate pr-4">{u.email}</div>
+                            <div className="col-span-3 text-sm text-[var(--text-muted)] font-medium truncate pr-4">{u.email as string}</div>
                             <div className="col-span-2">
-                              <span className={`chip-base chip-compact ${u.kycStatus === 'VERIFIED'
-                                ? 'chip-success'
-                                : u.kycStatus === 'PENDING'
-                                  ? 'chip-warning'
-                                  : 'chip-neutral'
-                                }`}>
-                                {u.kycStatus || 'NOT VERIFIED'}
+                              <span className={`chip-base chip-compact ${u.kycStatus === 'VERIFIED' ? 'chip-success' : u.kycStatus === 'PENDING' ? 'chip-warning' : 'chip-neutral'}`}>
+                                {(u.kycStatus as string) || 'NOT VERIFIED'}
                               </span>
                             </div>
                             <div className="col-span-2">
                               {isCurrentAdmin ? (
-                                <span className="chip-base chip-compact chip-violet">
-                                  {role} (you)
-                                </span>
+                                <span className="chip-base chip-compact chip-violet">{role} (you)</span>
                               ) : (
                                 <select
-                                  onChange={e => changeRole(uid, e.target.value)}
+                                  onChange={(e) => changeRole(uid, e.target.value)}
                                   defaultValue={role}
                                   disabled={isActingUser}
                                   className="py-1.5 px-2 rounded-lg bg-[var(--secondary)] border border-[var(--border)] text-xs font-bold outline-none cursor-pointer"
@@ -880,8 +1008,7 @@ export default function AdminPage() {
                                   disabled={isActingUser}
                                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${isBlocked
                                     ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300'
-                                    : 'bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-950/30 dark:text-rose-300'
-                                    }`}
+                                    : 'bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-950/30 dark:text-rose-300'}`}
                                 >
                                   {isActingUser ? <Loader2 size={10} className="animate-spin" /> : isBlocked ? <UserCheck size={10} /> : <Ban size={10} />}
                                   {isBlocked ? 'Unblock' : 'Block'}
@@ -897,12 +1024,15 @@ export default function AdminPage() {
               </div>
             )}
 
+            {/* ══════════════════════════════════════════════════════════════
+                PAYOUTS — unchanged
+            ══════════════════════════════════════════════════════════════ */}
             {activeTab === 'payouts' && (
               <div className="space-y-8">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-black tracking-tight">Pending ROI Payouts</h3>
                   <button onClick={loadPayouts} className="p-2 bg-[var(--card)] border border-[var(--border)] rounded-xl hover:bg-white/5 transition-all">
-                    <RefreshCw size={18} className={loadingPayouts ? "animate-spin" : ""} />
+                    <RefreshCw size={18} className={loadingPayouts ? 'animate-spin' : ''} />
                   </button>
                 </div>
 
@@ -915,81 +1045,92 @@ export default function AdminPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {payouts.map(payout => (
-                      <div key={payout._id} className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6">
-                        <div className="flex flex-col md:flex-row justify-between gap-6">
-                          <div className="space-y-3 flex-1">
-                            <div className="flex items-center gap-3">
-                              <span className="chip-base chip-compact chip-warning">ROI Withdrawal</span>
-                              <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-bold">Ref: {payout._id}</span>
+                    {payouts.map((payout) => {
+                      const pid = payout._id as string;
+                      const project = payout.projectId as Record<string, unknown> | undefined;
+                      const payoutUser = payout.userId as Record<string, unknown> | undefined;
+                      const metadata = payout.metadata as Record<string, unknown> | undefined;
+                      const method = metadata?.method as Record<string, unknown> | undefined;
+                      return (
+                        <div key={pid} className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6">
+                          <div className="flex flex-col md:flex-row justify-between gap-6">
+                            <div className="space-y-3 flex-1">
+                              <div className="flex items-center gap-3">
+                                <span className="chip-base chip-compact chip-warning">ROI Withdrawal</span>
+                                <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-bold">Ref: {pid}</span>
+                              </div>
+                              <div>
+                                <p className="font-black text-lg">{(project?.name as string) || 'Unknown Project'}</p>
+                                <p className="text-sm text-[var(--text-muted)]">
+                                  Requested by: {payoutUser?.firstName as string} {payoutUser?.lastName as string} ({payoutUser?.email as string})
+                                </p>
+                              </div>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+                                <div>
+                                  <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-wider mb-1">Amount Requested</p>
+                                  <p className="font-bold text-sm">UGX {Math.abs(payout.amount as number).toLocaleString()}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-wider mb-1">Fee (2%)</p>
+                                  <p className="font-bold text-sm text-amber-700 dark:text-amber-300">UGX {((metadata?.platformFee as number) || 0).toLocaleString()}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-wider mb-1">Net Payout</p>
+                                  <p className="font-black text-lg text-emerald-700 dark:text-emerald-300">UGX {((metadata?.payoutAmount as number) || 0).toLocaleString()}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-wider mb-1">Destination</p>
+                                  <p className="text-xs font-bold">{method?.provider as string} • {method?.accountNumber as string}</p>
+                                </div>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-black text-lg">{payout.projectId?.name || 'Unknown Project'}</p>
-                              <p className="text-sm text-[var(--text-muted)]">Requested by: {payout.userId?.firstName} {payout.userId?.lastName} ({payout.userId?.email})</p>
-                            </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
-                              <div>
-                                <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-wider mb-1">Amount Requested</p>
-                                <p className="font-bold text-sm text-[var(--foreground)]">UGX {Math.abs(payout.amount).toLocaleString()}</p>
-                              </div>
-                              <div>
-                                <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-wider mb-1">Fee (2%)</p>
-                                <p className="font-bold text-sm text-amber-700 dark:text-amber-300">UGX {(payout.metadata?.platformFee || 0).toLocaleString()}</p>
-                              </div>
-                              <div>
-                                <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-wider mb-1">Net Payout</p>
-                                <p className="font-black text-lg text-emerald-700 dark:text-emerald-300">UGX {(payout.metadata?.payoutAmount || 0).toLocaleString()}</p>
-                              </div>
-                              <div>
-                                <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-wider mb-1">Destination</p>
-                                <p className="text-xs text-[var(--foreground)] font-bold">{payout.metadata?.method?.provider} • {payout.metadata?.method?.accountNumber}</p>
-                              </div>
-                            </div>
-                          </div>
 
-                          <div className="flex flex-col gap-2 min-w-[200px] justify-center">
-                            <button
-                              onClick={async () => {
-                                const tid = toast.loading('Approving payment...');
-                                try {
-                                  setActingOn(payout._id);
-                                  await apiClient.post(`/wallet/admin/withdrawals/${payout._id}/approve`);
-                                  toast.success('Payment approved & processed successfully!', { id: tid });
-                                  loadPayouts();
-                                } catch (e: any) {
-                                  toast.error(e?.response?.data?.message || 'Approval failed', { id: tid });
-                                } finally { setActingOn(null); }
-                              }}
-                              disabled={actingOn === payout._id}
-                              className="bg-emerald-500 text-white font-black text-xs uppercase tracking-widest py-3 px-4 rounded-xl hover:bg-emerald-600 transition-all flex items-center justify-center gap-2"
-                            >
-                              {actingOn === payout._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                              Approve & Disburse
-                            </button>
+                            <div className="flex flex-col gap-2 min-w-[200px] justify-center">
+                              <button
+                                onClick={async () => {
+                                  const tid = toast.loading('Approving payment...');
+                                  try {
+                                    setActingOn(pid);
+                                    await apiClient.post(`/wallet/admin/withdrawals/${pid}/approve`);
+                                    toast.success('Payment approved & processed successfully!', { id: tid });
+                                    loadPayouts();
+                                  } catch (e: unknown) {
+                                    const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                                    toast.error(msg || 'Approval failed', { id: tid });
+                                  } finally { setActingOn(null); }
+                                }}
+                                disabled={actingOn === pid}
+                                className="bg-emerald-500 text-white font-black text-xs uppercase tracking-widest py-3 px-4 rounded-xl hover:bg-emerald-600 transition-all flex items-center justify-center gap-2"
+                              >
+                                {actingOn === pid ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                                Approve & Disburse
+                              </button>
 
-                            <button
-                              onClick={async () => {
-                                if (!confirm('Are you sure you want to REJECT and refund this payout to the user?')) return;
-                                const tid = toast.loading('Rejecting payment...');
-                                try {
-                                  setActingOn(`reject_${payout._id}`);
-                                  await apiClient.post(`/wallet/admin/withdrawals/${payout._id}/reject`);
-                                  toast.success('Payment rejected & refunded', { id: tid });
-                                  loadPayouts();
-                                } catch (e: any) {
-                                  toast.error(e?.response?.data?.message || 'Rejection failed', { id: tid });
-                                } finally { setActingOn(null); }
-                              }}
-                              disabled={actingOn === `reject_${payout._id}`}
-                              className="bg-transparent border border-rose-300 text-rose-700 dark:border-rose-900/40 dark:text-rose-300 font-bold text-xs uppercase tracking-widest py-3 px-4 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all flex items-center justify-center gap-2"
-                            >
-                              {actingOn === `reject_${payout._id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-                              Reject & Refund
-                            </button>
+                              <button
+                                onClick={async () => {
+                                  if (!confirm('Are you sure you want to REJECT and refund this payout to the user?')) return;
+                                  const tid = toast.loading('Rejecting payment...');
+                                  try {
+                                    setActingOn(`reject_${pid}`);
+                                    await apiClient.post(`/wallet/admin/withdrawals/${pid}/reject`);
+                                    toast.success('Payment rejected & refunded', { id: tid });
+                                    loadPayouts();
+                                  } catch (e: unknown) {
+                                    const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                                    toast.error(msg || 'Rejection failed', { id: tid });
+                                  } finally { setActingOn(null); }
+                                }}
+                                disabled={actingOn === `reject_${pid}`}
+                                className="bg-transparent border border-rose-300 text-rose-700 dark:border-rose-900/40 dark:text-rose-300 font-bold text-xs uppercase tracking-widest py-3 px-4 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all flex items-center justify-center gap-2"
+                              >
+                                {actingOn === `reject_${pid}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                                Reject & Refund
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
