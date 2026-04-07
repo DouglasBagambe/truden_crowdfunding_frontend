@@ -18,12 +18,36 @@ import {
   ArrowRight,
   ShieldCheck,
   Store,
+  Wallet,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAccount } from 'wagmi';
+import { openWeb3Modal } from '@/providers/Web3Provider';
+
+function getNavbarWalletAddress(user: unknown, connectedAddress?: string): string {
+  const currentUser = user as {
+    primaryWallet?: string;
+    linkedWallets?: string[];
+  } | null;
+
+  return connectedAddress
+    || currentUser?.primaryWallet
+    || currentUser?.linkedWallets?.[0]
+    || '';
+}
+
+function formatWalletAddress(address: string): string {
+  if (address.length <= 12) {
+    return address;
+  }
+
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const { address, isConnected } = useAccount();
 
   const ADMIN_USER_ID = process.env.NEXT_PUBLIC_ADMIN_USER_ID || '';
 
@@ -37,6 +61,10 @@ const Navbar = () => {
   }, [user, ADMIN_USER_ID]);
 
   const hasRoiAccess = React.useMemo(() => canAccessROI(user), [user]);
+  const walletAddress = React.useMemo(
+    () => getNavbarWalletAddress(user, isConnected ? address : undefined),
+    [address, isConnected, user]
+  );
 
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -179,12 +207,30 @@ const Navbar = () => {
           <div className="hidden md:flex items-center gap-4">
             {user ? (
               <div className="flex items-center gap-3">
-                <Link
-                  href="/dashboard/create-project"
-                  className="hidden lg:flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-xs font-semibold transition-all hover:opacity-90"
-                >
-                  + Start Campaign
-                </Link>
+                {hasRoiAccess ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (walletAddress) {
+                        openWeb3Modal();
+                        return;
+                      }
+
+                      openWeb3Modal();
+                    }}
+                    className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-xs font-semibold transition-all hover:opacity-90"
+                  >
+                    <Wallet size={14} />
+                    {walletAddress ? formatWalletAddress(walletAddress) : 'Connect Wallet'}
+                  </button>
+                ) : (
+                  <Link
+                    href="/dashboard/create-project"
+                    className="hidden lg:flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-xs font-semibold transition-all hover:opacity-90"
+                  >
+                    + Start Campaign
+                  </Link>
+                )}
                 <div className="relative group">
                   <button className="w-10 h-10 rounded-xl bg-[var(--secondary)] text-[var(--primary)] flex items-center justify-center border border-[var(--primary)]/10 hover:border-[var(--primary)] transition-all">
                     <User size={20} />
