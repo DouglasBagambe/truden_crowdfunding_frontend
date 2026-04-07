@@ -629,7 +629,9 @@ const FundingStep = ({ formData, updateFormData }: any) => {
               type="number"
               value={formData.goalAmount}
               onChange={(e) => updateFormData('goalAmount', e.target.value)}
-              className="w-full pl-16 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              inputMode="numeric"
+              min="0"
+              className="w-full pl-16 pr-4 py-3 border border-gray-300 rounded-lg [appearance:textfield] focus:border-transparent focus:ring-2 focus:ring-blue-500 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               placeholder="100000"
             />
           </div>

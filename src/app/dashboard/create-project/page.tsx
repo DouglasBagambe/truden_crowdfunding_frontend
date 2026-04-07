@@ -623,14 +623,16 @@ export default function CreateProjectPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="bg-gray-50 rounded-3xl p-8 border border-gray-100 flex flex-col justify-center">
                                     <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-4">Total Target Amount</label>
-                                    <div className="flex items-center gap-4">
-                                        <span className="text-3xl font-black text-gray-400">UGX</span>
+                                    <div className="flex min-w-0 items-end gap-3 md:gap-4">
+                                        <span className="shrink-0 text-2xl font-black text-gray-400 md:text-3xl">UGX</span>
                                         <input
                                             type="number"
                                             value={formData.targetAmount || ''}
                                             onChange={(e) => setFormData({ ...formData, targetAmount: Number(e.target.value) })}
                                             placeholder="1,000,000"
-                                            className="bg-transparent border-none text-5xl font-black text-blue-600 w-full focus:outline-none placeholder:text-gray-200"
+                                            inputMode="numeric"
+                                            min="0"
+                                            className="min-w-0 flex-1 bg-transparent border-none text-3xl font-black leading-none text-blue-600 outline-none placeholder:text-gray-300 [appearance:textfield] md:text-4xl xl:text-5xl [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                         />
                                     </div>
                                 </div>

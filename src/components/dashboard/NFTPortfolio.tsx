@@ -73,32 +73,32 @@ function CreateListingModal({ investment, walletAddress, onClose, onSuccess }: C
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-[#1a1a2e] border border-purple-500/30 rounded-2xl p-6 w-full max-w-md shadow-xl">
-        <h3 className="text-xl font-bold text-white mb-1">List NFT for Sale</h3>
-        <p className="text-gray-400 text-sm mb-5">
-          Project: <span className="text-purple-300">{investment.project?.title || `#${investment.nftProjectId}`}</span>
+      <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-xl">
+        <h3 className="mb-1 text-xl font-bold text-[var(--text-main)]">List NFT for Sale</h3>
+        <p className="mb-5 text-sm text-[var(--text-muted)]">
+          Project: <span className="text-blue-700 dark:text-blue-300">{investment.project?.title || `#${investment.nftProjectId}`}</span>
           &nbsp;·&nbsp;{investment.nftTokenAmount?.toLocaleString()} tokens
         </p>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-gray-300 text-sm mb-1">Price per token (ETH)</label>
+            <label className="mb-1 block text-sm text-[var(--text-main)]">Price per token (ETH)</label>
             <input
               type="number"
               step="0.0001"
               min="0"
               value={priceEth}
               onChange={e => setPriceEth(e.target.value)}
-              className="w-full bg-[#0d1117] border border-purple-500/30 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-blue-500"
               placeholder="0.001"
             />
           </div>
           <div>
-            <label className="block text-gray-300 text-sm mb-1">Expires in (days)</label>
+            <label className="mb-1 block text-sm text-[var(--text-main)]">Expires in (days)</label>
             <select
               value={days}
               onChange={e => setDays(e.target.value)}
-              className="w-full bg-[#0d1117] border border-purple-500/30 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-purple-500"
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-[var(--text-main)] focus:outline-none focus:border-blue-500"
             >
               {['7', '14', '30', '60', '90'].map(d => (
                 <option key={d} value={d}>{d} days</option>
@@ -106,31 +106,31 @@ function CreateListingModal({ investment, walletAddress, onClose, onSuccess }: C
             </select>
           </div>
           {priceEth && investment.nftTokenAmount && (
-            <div className="bg-purple-500/10 rounded-lg p-3 text-sm">
-              <div className="flex justify-between text-gray-400">
+            <div className="rounded-lg border border-blue-200/60 bg-blue-50 p-3 text-sm dark:border-blue-900/30 dark:bg-blue-950/20">
+              <div className="flex justify-between text-[var(--text-muted)]">
                 <span>Total value</span>
-                <span className="text-white font-medium">{(Number(priceEth) * investment.nftTokenAmount).toFixed(6)} ETH</span>
+                <span className="font-medium text-[var(--text-main)]">{(Number(priceEth) * investment.nftTokenAmount).toFixed(6)} ETH</span>
               </div>
-              <div className="flex justify-between text-gray-400 mt-1">
+              <div className="mt-1 flex justify-between text-[var(--text-muted)]">
                 <span>Marketplace fee (2.5%)</span>
-                <span className="text-yellow-400">-{(Number(priceEth) * investment.nftTokenAmount * 0.025).toFixed(6)} ETH</span>
+                <span className="text-amber-600 dark:text-amber-400">-{(Number(priceEth) * investment.nftTokenAmount * 0.025).toFixed(6)} ETH</span>
               </div>
             </div>
           )}
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {error && <p className="text-sm text-rose-500">{error}</p>}
         </div>
 
         <div className="flex gap-3 mt-6">
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl border border-gray-600 text-gray-300 hover:bg-gray-700 transition"
+            className="flex-1 rounded-xl border border-[var(--border)] py-2.5 text-[var(--text-muted)] transition hover:bg-[var(--background)]"
           >
             Cancel
           </button>
           <button
             onClick={handleList}
             disabled={loading}
-            className="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold transition disabled:opacity-50"
+            className="flex-1 rounded-xl bg-blue-600 py-2.5 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
           >
             {loading ? 'Listing...' : 'List for Sale'}
           </button>
@@ -178,10 +178,10 @@ export function NFTPortfolio() {
 
   if (investments.length === 0) {
     return (
-      <div className="text-center py-12 bg-gradient-to-b from-purple-900/10 to-transparent rounded-2xl border border-purple-500/20">
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] py-12 text-center">
         <div className="text-5xl mb-3">🎫</div>
-        <p className="text-gray-400 font-medium">No Investment NFTs yet</p>
-        <p className="text-gray-500 text-sm mt-1">
+        <p className="font-medium text-[var(--text-main)]">No Investment NFTs yet</p>
+        <p className="mt-1 text-sm text-[var(--text-muted)]">
           Invest in an ROI project to receive your first NFT
         </p>
       </div>
@@ -192,16 +192,16 @@ export function NFTPortfolio() {
     <>
       {/* Wallet connection banner */}
       {!isConnected && (
-        <div className="mb-4 p-4 rounded-xl bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/30 flex items-center justify-between">
+        <div className="mb-4 flex items-center justify-between rounded-xl border border-blue-200/60 bg-blue-50 px-4 py-4 dark:border-blue-900/30 dark:bg-blue-950/20">
           <div>
-            <p className="text-white font-medium text-sm">Connect wallet to trade NFTs</p>
-            <p className="text-gray-400 text-xs mt-0.5">
+            <p className="text-sm font-medium text-blue-900 dark:text-blue-100">Connect wallet to trade NFTs</p>
+            <p className="mt-0.5 text-xs text-blue-700 dark:text-blue-300">
               MetaMask or WalletConnect required to list or buy
             </p>
           </div>
           <button
             onClick={() => openWeb3Modal()}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg transition"
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
           >
             Connect
           </button>
@@ -212,16 +212,16 @@ export function NFTPortfolio() {
         {investments.map(inv => (
           <div
             key={inv.id}
-            className="relative overflow-hidden rounded-2xl border border-purple-500/20 bg-gradient-to-br from-[#1a1a2e] to-[#16213e] p-4 hover:border-purple-500/40 transition-all"
+            className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 transition-all hover:border-blue-400/60 hover:shadow-lg"
           >
             {/* Status badge */}
             <div className="absolute top-3 right-3">
               {inv.listed ? (
-                <span className="text-xs px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+                <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-700 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
                   Listed
                 </span>
               ) : (
-                <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs text-emerald-700 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300">
                   Holding
                 </span>
               )}
@@ -229,28 +229,28 @@ export function NFTPortfolio() {
 
             <div className="flex items-start gap-3">
               {/* NFT icon */}
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-2xl flex-shrink-0">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-blue-50 text-2xl dark:bg-blue-950/20">
                 🎫
               </div>
 
               <div className="flex-1 min-w-0 pr-16">
-                <p className="text-white font-semibold truncate">
+                <p className="truncate font-semibold text-[var(--text-main)]">
                   {inv.project?.title || `Project #${inv.nftProjectId}`}
                 </p>
-                <p className="text-gray-400 text-sm mt-0.5">
+                <p className="mt-0.5 text-sm text-[var(--text-muted)]">
                   {inv.nftTokenAmount?.toLocaleString() ?? '?'} tokens
                   &nbsp;·&nbsp;
-                  <span className="text-purple-300">
+                  <span className="text-blue-700 dark:text-blue-300">
                     {inv.currency ?? 'UGX'} {inv.amount.toLocaleString()} invested
                   </span>
                 </p>
-                <p className="text-gray-500 text-xs mt-1">
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
                   {inv.nftTxHash ? (
                     <a
                       href={`https://sepolia.basescan.org/tx/${inv.nftTxHash}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-purple-400 transition"
+                      className="transition hover:text-blue-600 dark:hover:text-blue-300"
                     >
                       Tx: {inv.nftTxHash.slice(0, 10)}…
                     </a>

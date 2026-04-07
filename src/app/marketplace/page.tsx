@@ -126,7 +126,7 @@ function BuyModal({
                         </div>
                     </div>
 
-                    <div className="flex gap-2.5 p-3 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 text-sm text-blue-700 dark:text-blue-300">
+                    <div className="flex gap-2.5 rounded-xl border border-blue-200/70 bg-blue-50 px-3 py-3 text-sm text-blue-800 dark:border-blue-900/30 dark:bg-blue-950/20 dark:text-blue-200">
                         <AlertCircle size={16} className="shrink-0 mt-0.5" />
                         <p>You will receive the investment stake and rights to future ROI from this project.</p>
                     </div>
@@ -386,10 +386,10 @@ export default function MarketplacePage() {
 
                             {/* Stats */}
                             <div className="flex gap-3 shrink-0">
-                                <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl px-5 py-3 text-center min-w-[90px]">
-                                    <p className="text-2xl font-black text-blue-600 dark:text-blue-400">{total}</p>
-                                    <p className="text-xs text-[var(--text-muted)] mt-0.5">Active listings</p>
-                                </div>
+                        <div className="min-w-[90px] rounded-2xl border border-[var(--border)] bg-[var(--card)] px-5 py-3 text-center shadow-sm">
+                            <p className="text-2xl font-black text-blue-600 dark:text-blue-400">{total}</p>
+                            <p className="text-xs text-[var(--text-muted)] mt-0.5">Active listings</p>
+                        </div>
                             </div>
                         </div>
                     </div>
@@ -399,13 +399,13 @@ export default function MarketplacePage() {
                     {/* Controls row */}
                     <div className="flex flex-col sm:flex-row gap-4 mb-6 items-start sm:items-center justify-between">
                         {/* Filter tabs */}
-                        <div className="inline-flex gap-1.5 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl border border-[var(--border)]">
+                        <div className="inline-flex gap-1.5 rounded-xl border border-[var(--border)] bg-gray-100 p-1 dark:bg-gray-800">
                             {(['all', 'mine'] as const).map(f => (
                                 <button
                                     key={f}
                                     onClick={() => setFilter(f)}
                                     className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${filter === f
-                                        ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm'
+                                        ? 'bg-blue-600 text-white shadow-sm dark:bg-blue-500'
                                         : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                                         }`}
                                 >
@@ -443,11 +443,11 @@ export default function MarketplacePage() {
 
                     {/* Wallet connect banner */}
                     {!isConnected && (
-                        <div className="mb-6 p-4 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 flex items-start gap-3">
-                            <Wallet size={16} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                        <div className="mb-6 flex items-start gap-3 rounded-xl border border-blue-200/70 bg-blue-50 px-4 py-4 dark:border-blue-900/30 dark:bg-blue-950/20">
+                            <Wallet size={16} className="mt-0.5 shrink-0 text-blue-700 dark:text-blue-300" />
                             <div>
-                                <p className="text-sm font-semibold text-blue-800 dark:text-blue-200">Connect your wallet to buy or sell</p>
-                                <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+                                <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">Connect your wallet to buy or sell</p>
+                                <p className="mt-0.5 text-xs text-blue-700 dark:text-blue-300">
                                     MetaMask, Coinbase Wallet, and WalletConnect are supported.
                                     Make sure you're on <strong>Base Sepolia</strong> network.
                                 </p>
@@ -475,7 +475,7 @@ export default function MarketplacePage() {
                             </p>
                             <Link
                                 href="/explore"
-                                className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+                                className="inline-flex items-center gap-1.5 rounded-xl bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100 dark:bg-blue-950/20 dark:text-blue-300 dark:hover:bg-blue-950/30"
                             >
                                 Browse projects <ChevronRight size={14} />
                             </Link>
