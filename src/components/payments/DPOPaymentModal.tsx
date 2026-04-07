@@ -2,11 +2,13 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertCircle, ArrowRight, Heart, Loader2, Wallet, X } from 'lucide-react';
+import { AlertCircle, Loader2, Wallet, X } from 'lucide-react';
+import { useAccount } from 'wagmi';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoiAccess } from '@/hooks/useRoiAccess';
 import { isCharityProject, isROIProject } from '@/lib/roi-access';
 import { paymentService } from '@/lib/payment-service';
+import { openWeb3Modal } from '@/providers/Web3Provider';
 
 interface PaymentProject {
     id?: string;
@@ -47,9 +49,22 @@ function getDisplayName(user: unknown): string {
         || '';
 }
 
+function getPreferredWalletAddress(user: unknown, connectedAddress?: string): string {
+    const currentUser = user as {
+        primaryWallet?: string;
+        linkedWallets?: string[];
+    } | null;
+
+    return connectedAddress
+        || currentUser?.primaryWallet
+        || currentUser?.linkedWallets?.[0]
+        || '';
+}
+
 export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPaymentModalProps) {
     const { user, isAuthenticated } = useAuth();
     const { hasRoiAccess } = useRoiAccess();
+    const { address, isConnected } = useAccount();
 
     const projectId = String(project.id || project._id || '');
     const projectName = project.name || project.title || 'Untitled Project';
@@ -58,6 +73,10 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
     const isROI = isROIProject(project);
     const donorQuickAmounts = useMemo(() => [5000, 10000, 50000, 100000], []);
     const investmentQuickAmounts = useMemo(() => [50000, 100000, 500000, 1000000], []);
+    const preferredWalletAddress = useMemo(
+        () => getPreferredWalletAddress(user, isConnected ? address : undefined),
+        [address, isConnected, user]
+    );
 
     const [amount, setAmount] = useState('');
     const [donorName, setDonorName] = useState('');
@@ -80,11 +99,28 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
         }
     }, [isCharity, isOpen, user]);
 
+    useEffect(() => {
+        if (!isOpen || !isROI || !preferredWalletAddress) {
+            return;
+        }
+
+        setWalletAddress(preferredWalletAddress);
+    }, [isOpen, isROI, preferredWalletAddress]);
+
     const handleClose = () => {
         if (isSubmitting) {
             return;
         }
         onClose();
+    };
+
+    const handleWalletAction = () => {
+        if (isConnected && address) {
+            setWalletAddress(address);
+            return;
+        }
+
+        openWeb3Modal();
     };
 
     const handleSubmit = async () => {
@@ -177,26 +213,6 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
                             </div>
 
                             <div className="space-y-5 px-6 py-6">
-                                <div className={`rounded-2xl border px-4 py-3 ${isCharity ? 'border-emerald-500/20 bg-emerald-500/10' : 'border-blue-500/20 bg-blue-500/10'}`}>
-                                    <div className="flex items-start gap-3">
-                                        {isCharity ? (
-                                            <Heart className="mt-0.5 h-5 w-5 text-emerald-400" />
-                                        ) : (
-                                            <Wallet className="mt-0.5 h-5 w-5 text-blue-400" />
-                                        )}
-                                        <div className="space-y-1">
-                                            <p className="text-sm font-bold text-[var(--text-main)]">
-                                                {isCharity ? 'You will continue on DPO Pay.' : 'You will continue on DPO Pay.'}
-                                            </p>
-                                            <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-                                                {isCharity
-                                                    ? 'DPO handles the payment page and method selection after this step.'
-                                                    : 'ROI investments require a wallet address so the NFT can be minted to the correct owner after payment confirmation.'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
                                 {isCharity && (
                                     <div className="space-y-2">
                                         <div className="flex items-center justify-between">
@@ -219,19 +235,31 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
 
                                 {isROI && (
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
-                                            Investor Wallet Address
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={walletAddress}
-                                            onChange={(event) => setWalletAddress(event.target.value)}
-                                            placeholder="0x..."
-                                            className="input_field"
-                                            autoCapitalize="off"
-                                            autoCorrect="off"
-                                            spellCheck={false}
-                                        />
+                                        <div className="flex items-center justify-between gap-3">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                                                Investor Wallet Address
+                                            </label>
+                                            <button
+                                                type="button"
+                                                onClick={handleWalletAction}
+                                                className="inline-flex items-center gap-1 rounded-xl border border-[var(--border)] px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] transition hover:border-[var(--primary)]/40 hover:text-[var(--text-main)]"
+                                            >
+                                                <Wallet className="h-3.5 w-3.5" />
+                                                {isConnected && address ? 'Use Connected' : 'Connect Wallet'}
+                                            </button>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="text"
+                                                value={walletAddress}
+                                                onChange={(event) => setWalletAddress(event.target.value)}
+                                                placeholder="0x..."
+                                                className="input_field min-w-0 flex-1"
+                                                autoCapitalize="off"
+                                                autoCorrect="off"
+                                                spellCheck={false}
+                                            />
+                                        </div>
                                         <p className="text-xs text-[var(--text-muted)]">
                                             This address is used for NFT minting after the payment is confirmed.
                                         </p>
@@ -304,8 +332,7 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
                                             </>
                                         ) : (
                                             <>
-                                                Continue to DPO
-                                                <ArrowRight className="h-4 w-4" />
+                                                {isCharity ? 'Donate' : 'Invest'}
                                             </>
                                         )}
                                     </button>

@@ -623,17 +623,19 @@ export default function CreateProjectPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="bg-gray-50 rounded-3xl p-8 border border-gray-100 flex flex-col justify-center">
                                     <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-4">Total Target Amount</label>
-                                    <div className="flex min-w-0 items-end gap-3 md:gap-4">
-                                        <span className="shrink-0 text-2xl font-black text-gray-400 md:text-3xl">UGX</span>
-                                        <input
-                                            type="number"
-                                            value={formData.targetAmount || ''}
-                                            onChange={(e) => setFormData({ ...formData, targetAmount: Number(e.target.value) })}
-                                            placeholder="1,000,000"
-                                            inputMode="numeric"
-                                            min="0"
-                                            className="min-w-0 flex-1 bg-transparent border-none text-3xl font-black leading-none text-blue-600 outline-none placeholder:text-gray-300 [appearance:textfield] md:text-4xl xl:text-5xl [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                                        />
+                                    <div className="flex min-w-0 items-center gap-3 md:gap-4">
+                                        <span className="shrink-0 text-xl font-black text-gray-400 md:text-2xl">UGX</span>
+                                        <div className="min-w-0 flex-1 max-w-[10rem] overflow-hidden md:max-w-[12rem]">
+                                            <input
+                                                type="number"
+                                                value={formData.targetAmount || ''}
+                                                onChange={(e) => setFormData({ ...formData, targetAmount: Number(e.target.value) })}
+                                                placeholder="1000000"
+                                                inputMode="numeric"
+                                                min="0"
+                                                className="w-full min-w-0 bg-transparent border-none text-right text-2xl font-black leading-none tracking-tight text-blue-600 outline-none placeholder:text-gray-300 [appearance:textfield] md:text-3xl xl:text-4xl [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="bg-gray-50 rounded-3xl p-8 border border-gray-100">
