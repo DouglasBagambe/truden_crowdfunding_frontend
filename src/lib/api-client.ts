@@ -1,35 +1,41 @@
 import axios, { InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 
-// Smart API URL resolution:
-// 1. Use NEXT_PUBLIC_API_URL if explicitly set (Netlify env var or .env.production)
-// 2. If running in a browser on a non-localhost domain, auto-point to Render
-// 3. Fall back to localhost for local dev
-const resolveApiUrl = (): string => {
-  // 1. Explicit env var (if fully baked in via build)
-  const envUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (envUrl && envUrl.startsWith('http')) {
-    return envUrl;
-  }
+const TEST_FRONTEND_HOSTS = new Set(['akeibo.netlify.app']);
+const LIVE_FRONTEND_HOSTS = new Set(['keibo.io', 'www.keibo.io']);
+const TEST_API_URL = 'https://keibo.onrender.com/api';
+const LIVE_API_URL = 'https://api.keibo.io/api';
+const LOCAL_API_URL = 'http://localhost:3000/api';
 
-  // 2. Browser runtime: if we're clearly running locally, use localhost
+const normalizeApiUrl = (value: string): string =>
+  value.replace(/\/+$/, '');
+
+const resolveApiUrl = (): string => {
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
-    // Local dev
+
     if (host === 'localhost' || host === '127.0.0.1') {
-      return 'http://localhost:3000/api';
+      return LOCAL_API_URL;
     }
-    // Any live domain (Netlify, Vercel, Custom) -> use Render
-    return 'https://keibo-roi.onrender.com/api';
+
+    if (TEST_FRONTEND_HOSTS.has(host)) {
+      return TEST_API_URL;
+    }
+
+    if (LIVE_FRONTEND_HOSTS.has(host)) {
+      return LIVE_API_URL;
+    }
   }
 
-  // 3. Server-Side Rendering (SSR) fallback
-  // In Next.js, process.env.NODE_ENV is 'development' during local `npm run dev`
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (envUrl && envUrl.startsWith('http')) {
+    return normalizeApiUrl(envUrl);
+  }
+
   if (process.env.NODE_ENV === 'development') {
-    return 'http://localhost:3000/api';
+    return LOCAL_API_URL;
   }
 
-  // Default to production API if unsure (best for live deployments)
-  return 'https://keibo-roi.onrender.com/api';
+  return LIVE_API_URL;
 };
 
 const API_URL = resolveApiUrl();
