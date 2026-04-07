@@ -9,14 +9,16 @@ import CreateProjectWizard from '@/components/dashboard/CreateProjectWizard';
 import { NotificationsView } from '@/components/dashboard/NotificationsView';
 import { KYCView } from '@/components/dashboard/KYCView';
 import { WalletView } from '@/components/dashboard/WalletView';
-import KYCModal from '@/components/dashboard/KYCModal';
+import { NFTPortfolio } from '@/components/dashboard/NFTPortfolio';
 import { motion } from 'framer-motion';
 import { useProjects, useMyProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
 import { useInvestments } from '@/hooks/useInvestments';
+import { useRoiAccess } from '@/hooks/useRoiAccess';
 import { Search, LineChart, ArrowUpRight, Shield, PlusCircle, LayoutDashboard, Wallet, Briefcase, Activity, Image as ImageIcon, ShieldCheck, Bell, Mail, AlertTriangle, Heart, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { filterVisibleProjects, isCharityProject } from '@/lib/roi-access';
 
 interface Project {
     id: string;
@@ -49,17 +51,12 @@ export default function DashboardPage() {
     const { data: projectsData, isLoading } = useProjects();
     const { data: investmentsData, isLoading: isLoadingInvestments } = useInvestments();
     const { user, isAuthenticated } = useAuth();
+    const { hasRoiAccess } = useRoiAccess();
     const router = useRouter();
 
-    useEffect(() => {
-        console.log('[DASHBOARD_DEBUG] User:', user);
-        console.log('[DASHBOARD_DEBUG] Authenticated:', isAuthenticated);
-    }, [user, isAuthenticated]);
-
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [isKYCModalOpen, setIsKYCModalOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeTab, setActiveTab] = useState<'donations' | 'campaigns'>('donations');
+    const [activeTab, setActiveTab] = useState<'investments' | 'donations' | 'campaigns' | 'nfts' | 'kyc'>('donations');
 
     const handleTriggerCreate = () => {
         router.push('/dashboard/create-project');
@@ -70,26 +67,30 @@ export default function DashboardPage() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('create') === 'true') {
                 setIsCreateModalOpen(true);
-                // Clean up the URL
+                window.history.replaceState({}, '', '/dashboard');
+            }
+            if (hasRoiAccess && urlParams.get('tab') === 'kyc') {
+                setActiveTab('kyc');
                 window.history.replaceState({}, '', '/dashboard');
             }
         }
-    }, []);
+    }, [hasRoiAccess]);
+
+    useEffect(() => {
+        if (!hasRoiAccess && ['investments', 'nfts', 'kyc'].includes(activeTab)) {
+            setActiveTab('donations');
+        }
+    }, [activeTab, hasRoiAccess]);
 
     const allFetchedProjects = projectsData?.items || [];
 
     // My campaigns: use the dedicated /projects/me endpoint that includes DRAFTs
     const { data: myProjectsData, isLoading: isLoadingMyProjects } = useMyProjects();
 
-    useEffect(() => {
-        console.log('[DASHBOARD_DEBUG] myProjectsData:', myProjectsData);
-        console.log('[DASHBOARD_DEBUG] investmentsData:', investmentsData);
-        console.log('[DASHBOARD_DEBUG] allFetchedProjects (Public):', allFetchedProjects);
-    }, [myProjectsData, investmentsData, allFetchedProjects]);
-
     const myCampaigns = useMemo(() => {
-        return Array.isArray(myProjectsData) ? myProjectsData : [];
-    }, [myProjectsData]);
+        const campaigns = Array.isArray(myProjectsData) ? myProjectsData : [];
+        return filterVisibleProjects(campaigns, hasRoiAccess);
+    }, [hasRoiAccess, myProjectsData]);
 
     // Get projects user has interacted with
     const myInvestmentProjects = useMemo(() => {
@@ -131,10 +132,20 @@ export default function DashboardPage() {
         });
     }, [allFetchedProjects, investmentsData]);
 
-    const myDonations = useMemo(() => myInvestmentProjects.filter((p: any) => {
+    const visibleInvestmentProjects = useMemo(
+        () => filterVisibleProjects(myInvestmentProjects, hasRoiAccess),
+        [hasRoiAccess, myInvestmentProjects],
+    );
+
+    const myDonations = useMemo(() => visibleInvestmentProjects.filter((p: any) => {
         const type = (p?.projectType || p?.type || '').toUpperCase();
         return type === 'CHARITY';
-    }), [myInvestmentProjects]);
+    }), [visibleInvestmentProjects]);
+
+    const myInvestments = useMemo(() => visibleInvestmentProjects.filter((p: any) => {
+        const type = (p?.projectType || p?.type || '').toUpperCase();
+        return type !== 'CHARITY';
+    }), [visibleInvestmentProjects]);
 
     const filteredCampaigns = useMemo(() => {
         if (!searchQuery.trim()) return myCampaigns;
@@ -145,9 +156,10 @@ export default function DashboardPage() {
     }, [myCampaigns, searchQuery]);
 
     const displayedProjects = useMemo(() => {
+        if (activeTab === 'investments') return myInvestments;
         if (activeTab === 'donations') return myDonations;
         return filteredCampaigns;
-    }, [activeTab, myDonations, filteredCampaigns]);
+    }, [activeTab, myInvestments, myDonations, filteredCampaigns]);
     const isDataLoading = isLoading || isLoadingInvestments;
 
     // Calculate portfolio and donation stats
@@ -159,7 +171,7 @@ export default function DashboardPage() {
             ).toUpperCase();
             const amount = Number(inv?.amount ?? 0);
             if (!Number.isFinite(amount)) return acc;
-            if (type === 'CHARITY') {
+            if (!hasRoiAccess || type === 'CHARITY') {
                 acc.donated += amount;
                 acc.don += 1;
             } else {
@@ -168,7 +180,7 @@ export default function DashboardPage() {
             }
             return acc;
         }, { invested: 0, donated: 0, pos: 0, don: 0 });
-    }, [investmentsData]);
+    }, [hasRoiAccess, investmentsData]);
 
     const campaignsCreated = myCampaigns?.length || 0;
     const totalRaised = myCampaigns?.reduce((sum: number, p: any) => sum + (p.raisedAmount || 0), 0) || 0;
@@ -179,11 +191,11 @@ export default function DashboardPage() {
 
             {/* Email Verification Banner */}
             {isAuthenticated && user && !user.emailVerifiedAt && (
-                <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-3">
+                <div className="bg-amber-50 border-b border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/30 px-4 py-3">
                     <div className="container mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                         <div className="flex items-start gap-3">
-                            <AlertTriangle size={16} className="text-amber-400 flex-shrink-0 mt-0.5" />
-                            <span className="text-sm text-amber-200 font-medium">
+                            <AlertTriangle size={16} className="text-amber-700 dark:text-amber-300 flex-shrink-0 mt-0.5" />
+                            <span className="text-sm text-amber-900 dark:text-amber-100 font-medium">
                                 Please verify your email address to unlock all features.
                             </span>
                         </div>
@@ -202,23 +214,48 @@ export default function DashboardPage() {
 
                     <div className="flex-1 space-y-6">
                         {/* KYC Banner */}
-                        {/* KYC Removed */}
+                        {hasRoiAccess && isAuthenticated && user && user.kycStatus !== 'VERIFIED' && user.kycStatus !== 'PENDING' && (
+                            <div className="bg-blue-50 border border-blue-200 dark:bg-blue-950/20 dark:border-blue-900/30 rounded-2xl px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                <div className="flex items-start gap-3">
+                                    <ShieldCheck size={18} className="text-blue-700 dark:text-blue-300 flex-shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="text-sm font-bold text-blue-900 dark:text-blue-100">Identity Verification Required</p>
+                                        <p className="text-xs text-[var(--text-muted)] mt-0.5">Complete KYC to invest in ROI projects and access all platform features.</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setActiveTab('kyc')}
+                                    className="flex-shrink-0 flex items-center gap-1.5 bg-blue-500 hover:bg-blue-400 text-white text-xs font-black px-5 py-2.5 rounded-xl transition-all uppercase tracking-wider"
+                                >
+                                    <ShieldCheck size={13} /> Verify Now
+                                </button>
+                            </div>
+                        )}
 
-                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className={`grid grid-cols-2 ${hasRoiAccess ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4`}>
+                            {hasRoiAccess && (
+                                <KPICard
+                                    label="Total Invested (UGX)"
+                                    value={`${(stats.invested || 0).toLocaleString()}`}
+                                    icon={<LayoutDashboard size={16} className="text-blue-500" />}
+                                />
+                            )}
                             <KPICard
                                 label="Total Donated (UGX)"
                                 value={`${(stats.donated || 0).toLocaleString()}`}
                                 icon={<Activity size={16} className="text-emerald-500" />}
                             />
+                            {hasRoiAccess && (
+                                <KPICard
+                                    label="Active Investments"
+                                    value={stats.pos.toString()}
+                                    icon={<LayoutDashboard size={16} className="text-blue-500" />}
+                                />
+                            )}
                             <KPICard
                                 label="Charity Donations Made"
                                 value={stats.don.toString()}
                                 icon={<Heart size={16} className="text-emerald-500" />}
-                            />
-                            <KPICard
-                                label="Campaigns Created"
-                                value={campaignsCreated.toString()}
-                                icon={<Briefcase size={16} className="text-indigo-500" />}
                             />
                         </div>
 
@@ -229,8 +266,8 @@ export default function DashboardPage() {
                                     <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-1">Total Raised from My Campaigns</p>
                                     <h4 className="text-2xl font-black text-[var(--text-main)]">UGX {totalRaised.toLocaleString()}</h4>
                                 </div>
-                                <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center">
-                                    <Activity className="text-blue-500" size={20} />
+                                <div className="w-12 h-12 bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300 rounded-xl flex items-center justify-center">
+                                    <Activity size={20} />
                                 </div>
                             </div>
                         </div>
@@ -241,8 +278,15 @@ export default function DashboardPage() {
                                 <div className="flex items-center justify-between">
                                     <nav className="flex gap-6 sm:gap-10 overflow-x-auto scrollbar-hide">
                                         {[
+                                            ...(hasRoiAccess ? [{ key: 'investments', label: 'Investments', icon: <Activity size={14} /> }] : []),
                                             { key: 'donations', label: 'Donations', icon: <Heart size={14} /> },
-                                            { key: 'campaigns', label: 'My Projects', icon: <Briefcase size={14} /> }
+                                            { key: 'campaigns', label: 'My Projects', icon: <Briefcase size={14} /> },
+                                            ...(hasRoiAccess
+                                                ? [
+                                                    { key: 'nfts', label: 'My NFTs', icon: <ImageIcon size={14} /> },
+                                                    { key: 'kyc', label: 'Identity', icon: <ShieldCheck size={14} /> }
+                                                ]
+                                                : [])
                                         ].map(tab => (
                                             <button
                                                 key={tab.key}
@@ -272,14 +316,16 @@ export default function DashboardPage() {
                             </div>
 
                             <div className="p-4 sm:p-8">
-                                {activeTab === 'donations' ? (
+                                {activeTab === 'kyc' ? (
+                                    <KYCView />
+                                ) : activeTab === 'investments' || activeTab === 'donations' ? (
                                     <div className="space-y-6">
                                         <div className="flex items-center justify-between">
                                             <h3 className="text-lg font-bold tracking-tight">
-                                                Your Charity Contributions
+                                                {activeTab === 'investments' ? 'Your Investment Portfolio' : 'Your Charity Contributions'}
                                             </h3>
                                             <Link href="/explore" className="flex items-center gap-2 text-[var(--primary)] font-bold text-sm hover:underline">
-                                                <PlusCircle size={16} /> Discover Projects
+                                                <PlusCircle size={16} /> Discover {activeTab === 'investments' ? 'Projects' : 'Causes'}
                                             </Link>
                                         </div>
 
@@ -293,23 +339,38 @@ export default function DashboardPage() {
                                                     <ProjectCard
                                                         key={project.id || project._id}
                                                         project={project}
+                                                        onClick={() => router.push(`/projects/${project.id || project._id}`)}
                                                     />
                                                 ))}
                                             </div>
                                         ) : (
                                             <div className="py-24 text-center space-y-4">
                                                 <div className="w-16 h-16 bg-[var(--background)] rounded-2xl flex items-center justify-center mx-auto border border-[var(--border)] opacity-50">
-                                                    <Heart className="text-[var(--text-muted)]" size={24} />
+                                                    {activeTab === 'investments' ? <Activity className="text-[var(--text-muted)]" size={24} /> : <Heart className="text-[var(--text-muted)]" size={24} />}
                                                 </div>
-                                                <h4 className="text-lg font-bold">No donations yet</h4>
+                                                <h4 className="text-lg font-bold">No {activeTab} yet</h4>
                                                 <p className="text-sm text-[var(--text-muted)] font-medium max-w-xs mx-auto">
-                                                    Support causes that matter and make a difference.
+                                                    {activeTab === 'investments' ? 'Start backing innovative projects and grow your portfolio.' : 'Support causes that matter and make a difference.'}
                                                 </p>
                                                 <Link href="/explore" className="button_primary inline-flex items-center gap-2 mt-4">
-                                                    <PlusCircle size={16} /> Explore Causes
+                                                    <PlusCircle size={16} /> Explore {activeTab === 'investments' ? 'Projects' : 'Causes'}
                                                 </Link>
                                             </div>
                                         )}
+                                    </div>
+                                ) : activeTab === 'nfts' ? (
+                                    <div className="space-y-6">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-lg font-bold tracking-tight">Your NFT Portfolio</h3>
+                                            <Link
+                                                href="/marketplace"
+                                                className="flex items-center gap-1.5 text-purple-500 font-bold text-sm hover:text-purple-400 transition"
+                                            >
+                                                <ImageIcon size={14} />
+                                                Browse Marketplace →
+                                            </Link>
+                                        </div>
+                                        <NFTPortfolio />
                                     </div>
                                 ) : (
                                     <div className="space-y-6">
@@ -335,12 +396,12 @@ export default function DashboardPage() {
                                                     const pct = Math.min((raised / target) * 100, 100);
                                                     const pId = project.id || project._id;
                                                     const pName = encodeURIComponent((project as any).name || 'Project');
-                                                    const isCharity = (project as any).projectType === 'CHARITY' || (project as any).type === 'CHARITY';
+                                                    const isCharity = isCharityProject(project);
                                                     return (
                                                         <div key={pId} className="bg-[var(--background)] border border-[var(--border)] rounded-2xl p-5 hover:border-[var(--primary)]/30 transition-all">
                                                             <div className="flex items-start gap-4">
                                                                 {/* Icon */}
-                                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${isCharity ? 'bg-emerald-500/10 text-emerald-500' : 'bg-blue-500/10 text-blue-500'
+                                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${isCharity ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300'
                                                                     }`}>
                                                                     {isCharity ? <Heart size={20} /> : <TrendingUp size={20} />}
                                                                 </div>
@@ -348,9 +409,9 @@ export default function DashboardPage() {
                                                                 <div className="flex-1 min-w-0">
                                                                     <div className="flex items-center gap-2 flex-wrap mb-1">
                                                                         <p className="font-black text-sm truncate">{(project as any).name}</p>
-                                                                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${(project as any).status === 'FUNDING' || (project as any).status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400'
-                                                                            : (project as any).status === 'DRAFT' ? 'bg-gray-500/10 text-gray-400'
-                                                                                : 'bg-blue-500/10 text-blue-400'
+                                                                        <span className={`chip-base chip-compact ${(project as any).status === 'FUNDING' || (project as any).status === 'ACTIVE' ? 'chip-success'
+                                                                            : (project as any).status === 'DRAFT' ? 'chip-neutral'
+                                                                                : 'chip-info'
                                                                             }`}>{(project as any).status}</span>
                                                                     </div>
                                                                     {/* Progress */}
@@ -366,18 +427,18 @@ export default function DashboardPage() {
                                                                     <div className="flex gap-2 flex-wrap">
                                                                         <Link
                                                                             href={`/projects/${pId}`}
-                                                                            className="px-3 py-1.5 rounded-lg bg-[var(--secondary)] text-xs font-black text-[var(--text-muted)] hover:text-white border border-[var(--border)] hover:border-white/20 transition-all"
+                                                                            className="px-3 py-1.5 rounded-lg bg-[var(--secondary)] text-xs font-black text-[var(--text-main)] border border-[var(--border)] hover:border-[var(--primary)]/40 hover:text-[var(--primary)] transition-all"
                                                                         >
                                                                             View →
                                                                         </Link>
-                                                                        {raised > 0 && (
+                                                                        {(isCharity && raised > 0) || (!isCharity && raised > 0 && raised >= target) ? (
                                                                             <Link
-                                                                                href={`/dashboard/withdraw?projectId=${pId}&projectName=${pName}`}
-                                                                                className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs font-black text-emerald-400 hover:bg-emerald-500/20 transition-all flex items-center gap-1"
+                                                                                href={`/dashboard/withdraw?projectId=${pId}&projectName=${pName}&type=${isCharity ? 'CHARITY' : 'ROI'}&amount=${raised}`}
+                                                                                className="chip-base chip-success rounded-lg text-xs font-black hover:brightness-95 transition-all flex items-center gap-1"
                                                                             >
                                                                                 <Wallet size={14} /> Withdraw Funds
                                                                             </Link>
-                                                                        )}
+                                                                        ) : null}
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -413,7 +474,6 @@ export default function DashboardPage() {
             </main>
 
             <CreateProjectWizard isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
-            <KYCModal isOpen={isKYCModalOpen} onClose={() => setIsKYCModalOpen(false)} />
             <Footer />
         </div>
     );
@@ -429,7 +489,7 @@ const KPICard = ({ label, value, trend, icon }: KPICardProps) => (
         </div>
         <div className="flex items-baseline justify-between">
             <p className="text-3xl font-black tracking-tight text-[var(--text-main)]">{value}</p>
-            {trend && <span className="text-[9px] font-black text-emerald-600 bg-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 px-2 py-1 rounded-md tracking-widest">{trend}</span>}
+            {trend && <span className="chip-base chip-success px-2 py-1 rounded-md text-[9px] font-black tracking-widest">{trend}</span>}
         </div>
     </div>
 );
@@ -444,9 +504,9 @@ const VoteCard = ({ title, description, status, progress }: any) => {
                     <h4 className="text-sm font-bold text-[var(--text-main)]">{title}</h4>
                     <p className="text-xs text-[var(--text-muted)] font-medium">{description}</p>
                 </div>
-                <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg shrink-0 ${isPassing
-                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                <span className={`chip-base chip-compact rounded-lg shrink-0 ${isPassing
+                    ? 'chip-success'
+                    : 'chip-danger'
                     }`}>
                     {status}
                 </span>

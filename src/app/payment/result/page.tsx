@@ -1,61 +1,121 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useEffect, useState, useRef, Suspense } from 'react';
+import type { ReactNode } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { CheckCircle2, XCircle, Loader2, ArrowRight, Home } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, ArrowRight, Home, Clock } from 'lucide-react';
 import { paymentService } from '@/lib/payment-service';
 import Link from 'next/link';
 
 function PaymentResultContent() {
     const searchParams = useSearchParams();
-    const router = useRouter();
 
-    const status = searchParams.get('status');       // 'success' | 'cancelled'
-    const token = searchParams.get('ID');             // DPO sends ?ID=token on success
-    const projectId = searchParams.get('projectId');
+    // DPO card payment success: ?ID=<token>&projectId=...
+    // DPO mobile money redirect:  ?status=pending&ID=<token>&projectId=...
+    // DPO cancel:                 ?status=cancelled&projectId=...
+    const statusParam = searchParams.get('status');
+    const token = searchParams.get('ID') || searchParams.get('TransactionToken') || searchParams.get('token');
+    const projectId = searchParams.get('projectId') || '';
 
-    const [verifyState, setVerifyState] = useState<'verifying' | 'paid' | 'failed' | 'cancelled'>(
-        status === 'cancelled' ? 'cancelled' : 'verifying'
-    );
+    type VerifyState = 'verifying' | 'paid' | 'failed' | 'cancelled' | 'pending';
+
+    const [verifyState, setVerifyState] = useState<VerifyState>(() => {
+        if (statusParam === 'success') return 'paid';
+        if (statusParam === 'pending') return 'pending';
+        if (statusParam === 'cancelled') return 'cancelled';
+        if (!token) return 'cancelled';   // No token at all — nothing to verify
+        return 'verifying';
+    });
     const [message, setMessage] = useState('');
+    const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const pollCount = useRef(0);
+    const MAX_POLLS = 20; // ~2 minutes at 6 second intervals
+
+    const stopPolling = () => {
+        if (pollRef.current) {
+            clearInterval(pollRef.current);
+            pollRef.current = null;
+        }
+    };
+
+    const verify = async (t: string) => {
+        try {
+            const res = await paymentService.verifyDPOPayment(t);
+            if (res.status === 'successful' || res.verify?.status === '000') {
+                stopPolling();
+                setVerifyState('paid');
+                setMessage('Your payment was confirmed successfully.');
+            } else if (
+                res.status === 'pending' ||
+                res.verify?.status === '801' ||
+                res.verify?.status === '804' ||
+                res.verify?.status === '900' ||
+                res.verify?.status === '001'
+            ) {
+                // Still pending — keep polling
+                setVerifyState('pending');
+                setMessage('Your mobile money payment is being processed. This usually takes 1–2 minutes.');
+            } else {
+                stopPolling();
+                setVerifyState('failed');
+                setMessage(res.verify?.message || 'Payment could not be verified.');
+            }
+        } catch {
+            // Network error during verify — keep polling
+            setVerifyState('pending');
+        }
+    };
 
     useEffect(() => {
-        if (status === 'cancelled' || !token) {
-            setVerifyState('cancelled');
+        if (statusParam === 'success') {
+            setVerifyState('paid');
+            setMessage('Your payment was confirmed successfully.');
             return;
         }
 
-        // Verify the payment with the backend
-        paymentService.verifyDPOPayment(token)
-            .then((res) => {
-                if (res.status === 'successful' || res.verify?.status === '000') {
-                    setVerifyState('paid');
-                    setMessage('Your payment was confirmed successfully.');
-                } else if (res.status === 'pending') {
-                    // Still processing — show as success and let webhook finalize
-                    setVerifyState('paid');
-                    setMessage('Payment received. Finalizing your contribution...');
-                } else {
-                    setVerifyState('failed');
-                    setMessage(res.verify?.message || 'Payment could not be verified.');
-                }
-            })
-            .catch(() => {
-                // Verification error — treat as paid since DPO redirected with success
-                // The backend webhook will finalize
-                setVerifyState('paid');
-                setMessage('Payment received. Your account will be updated shortly.');
-            });
-    }, [token, status]);
+        if (!token || statusParam === 'cancelled') return;
 
-    const config = {
+        verify(token);
+
+        // Poll every 6 seconds for Mobile Money pending payments
+        pollRef.current = setInterval(() => {
+            pollCount.current += 1;
+            if (pollCount.current >= MAX_POLLS) {
+                stopPolling();
+                setVerifyState((prev) =>
+                    prev === 'paid' ? 'paid' : 'failed'
+                );
+                setMessage('Payment verification timed out. If money was deducted, please contact support with your transaction token: ' + token);
+                return;
+            }
+            verify(token);
+        }, 6000);
+
+        return () => stopPolling();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [token, statusParam]);
+
+    const config: Record<VerifyState, {
+        icon: ReactNode;
+        title: string;
+        subtitle: string;
+        color: string;
+        border: string;
+    }> = {
         verifying: {
             icon: <Loader2 size={64} className="text-blue-400 animate-spin" />,
-            title: 'Verifying Payment...',
+            title: 'Verifying Payment…',
             subtitle: 'Please wait while we confirm your payment with DPO.',
             color: 'from-blue-600/20 to-indigo-600/20',
             border: 'border-blue-500/30',
+        },
+        pending: {
+            icon: <Clock size={64} className="text-amber-400 animate-pulse" />,
+            title: 'Processing Payment…',
+            subtitle: message || 'Your mobile money payment is being processed. Do NOT close this page.',
+            color: 'from-amber-600/20 to-yellow-600/20',
+            border: 'border-amber-500/30',
         },
         paid: {
             icon: <CheckCircle2 size={64} className="text-emerald-400" />,
@@ -97,9 +157,10 @@ function PaymentResultContent() {
             >
                 {/* Icon */}
                 <motion.div
+                    key={verifyState}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+                    transition={{ type: 'spring', stiffness: 200 }}
                     className="flex justify-center mb-6"
                 >
                     {cfg.icon}
@@ -108,6 +169,11 @@ function PaymentResultContent() {
                 {/* Title */}
                 <h1 className="text-3xl font-black text-white mb-3 tracking-tight">{cfg.title}</h1>
                 <p className="text-gray-400 font-medium mb-8 leading-relaxed">{cfg.subtitle}</p>
+
+                {/* Token reference for support */}
+                {token && verifyState !== 'paid' && verifyState !== 'cancelled' && (
+                    <p className="text-xs text-gray-600 mb-6 font-mono break-all">Ref: {token}</p>
+                )}
 
                 {/* DPO badge */}
                 <div className="flex items-center justify-center gap-2 mb-8">
@@ -135,12 +201,14 @@ function PaymentResultContent() {
                             Try Again <ArrowRight size={18} />
                         </Link>
                     )}
-                    <Link
-                        href="/dashboard"
-                        className="flex items-center justify-center gap-2 bg-white/10 text-white font-bold py-3.5 px-6 rounded-xl hover:bg-white/20 transition-all border border-white/10"
-                    >
-                        <Home size={18} /> Go to Dashboard
-                    </Link>
+                    {verifyState !== 'verifying' && verifyState !== 'pending' && (
+                        <Link
+                            href="/dashboard"
+                            className="flex items-center justify-center gap-2 bg-white/10 text-white font-bold py-3.5 px-6 rounded-xl hover:bg-white/20 transition-all border border-white/10"
+                        >
+                            <Home size={18} /> Go to Dashboard
+                        </Link>
+                    )}
                 </div>
             </motion.div>
         </div>

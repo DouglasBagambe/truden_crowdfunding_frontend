@@ -6,48 +6,41 @@ import { motion } from 'framer-motion';
 import {
     ArrowLeft, Calendar, Users, Clock, CheckCircle, AlertCircle,
     Heart, Share2, Bookmark, Globe, TrendingUp, BarChart3,
-    Flag, Loader2, CheckCircle2, ExternalLink, X, Smartphone
+    Flag, Loader2, CheckCircle2, ExternalLink, X, Smartphone, Copy, Link2
 } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import Image from 'next/image';
 import { projectService } from '@/lib/project-service';
 import { useAuth } from '@/hooks/useAuth';
-import { paymentService } from '@/lib/payment-service';
+import { useRoiAccess } from '@/hooks/useRoiAccess';
+import { isCharityProject, isROIProject } from '@/lib/roi-access';
+import toast from 'react-hot-toast';
+import DPOPaymentModal from '@/components/payments/DPOPaymentModal';
 
 export default function ProjectDetailPage() {
     const params = useParams();
     const router = useRouter();
     const projectId = params.id as string;
     const { isAuthenticated, user } = useAuth();
+    const { hasRoiAccess } = useRoiAccess();
 
     const [project, setProject] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [activeTab, setActiveTab] = useState<'story' | 'timeline' | 'updates'>('story');
     const [bookmarked, setBookmarked] = useState(false);
+    const [showShareMenu, setShowShareMenu] = useState(false);
+    const [copySuccess, setCopySuccess] = useState(false);
     const [isSubmittingForReview, setIsSubmittingForReview] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-    const [paymentMode, setPaymentMode] = useState<'donate' | 'invest'>('donate');
-    const [paymentAmount, setPaymentAmount] = useState('');
-    const [isInitiatingPayment, setIsInitiatingPayment] = useState(false);
-    const [paymentError, setPaymentError] = useState('');
 
     // Donors (charity projects)
     const [donors, setDonors] = useState<any[]>([]);
     const [donorsLoading, setDonorsLoading] = useState(false);
 
-    // Donate modal
-    const [isDonateOpen, setIsDonateOpen] = useState(false);
-    const [donationAmount, setDonationAmount] = useState('');
-    const [donorName, setDonorName] = useState('');
-    const [donationError, setDonationError] = useState('');
-    const [isDonating, setIsDonating] = useState(false);
-
-    // Donate/Invest combined modal handled above
-
-    const projectType = project?.projectType || project?.type;
-    const isCharity = projectType === 'CHARITY';
-    const isRoi = projectType === 'ROI';
+    const isCharity = isCharityProject(project);
+    const isRoi = isROIProject(project);
 
     const [mediaIndex, setMediaIndex] = useState(0);
     const mediaItems = project ? [
@@ -57,24 +50,7 @@ export default function ProjectDetailPage() {
     ] : [];
     const currentMedia = mediaItems[mediaIndex];
 
-    const getPrefillDonorName = () => {
-        const u = user as any;
-        const firstName = u?.profile?.firstName || u?.firstName;
-        const lastName = u?.profile?.lastName || u?.lastName;
-        const combined = `${typeof firstName === 'string' ? firstName : ''} ${typeof lastName === 'string' ? lastName : ''}`.trim();
-        const fallback = u?.profile?.displayName || u?.name || u?.fullName;
-        const email = u?.email;
-        const profileName = (combined || fallback || email || '').toString().trim();
-        return profileName;
-    };
-
     const openDonateModal = () => {
-        // Anyone can donate — no login required
-        setPaymentMode('donate');
-        setPaymentAmount('');
-        // Pre-fill name from profile if logged in, empty otherwise (shown as Anonymous)
-        setDonorName(isAuthenticated ? (getPrefillDonorName() || '') : '');
-        setPaymentError('');
         setIsPaymentModalOpen(true);
     };
 
@@ -83,42 +59,7 @@ export default function ProjectDetailPage() {
             window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
             return;
         }
-        setPaymentMode('invest');
-        setPaymentAmount('');
-        setPaymentError('');
         setIsPaymentModalOpen(true);
-    };
-
-    const handleDPOPayment = async () => {
-        const amount = Number(paymentAmount);
-        if (!Number.isFinite(amount) || amount <= 0) {
-            setPaymentError('Please enter a valid amount (minimum 1 UGX)');
-            return;
-        }
-        try {
-            setPaymentError('');
-            setIsInitiatingPayment(true);
-            const resolvedProjectId = (project as any)?.id || (project as any)?._id || projectId;
-            const projectType = 'CHARITY';
-            const description = `Donation to ${project?.name} - Keibo`;
-
-            const result = await paymentService.initializeDPOPayment({
-                projectId: String(resolvedProjectId),
-                amount,
-                currency: currency,
-                paymentMethod: 'card',
-                projectType,
-                description,
-                donorName: donorName?.trim() || 'Anonymous',
-            });
-
-            // Redirect user to DPO hosted payment page
-            window.location.href = result.redirectUrl;
-        } catch (err: any) {
-            setPaymentError(err?.response?.data?.message || 'Failed to initialize payment. Please try again.');
-        } finally {
-            setIsInitiatingPayment(false);
-        }
     };
 
     useEffect(() => {
@@ -137,6 +78,13 @@ export default function ProjectDetailPage() {
     }, [projectId, isCharity]);
 
     useEffect(() => {
+        if (!loading && project && isRoi && !hasRoiAccess) {
+            toast.error('ROI projects are currently available to internal users only.');
+            router.replace('/explore');
+        }
+    }, [hasRoiAccess, isRoi, loading, project, router]);
+
+    useEffect(() => {
         setMediaIndex(0);
     }, [project]);
 
@@ -147,12 +95,10 @@ export default function ProjectDetailPage() {
             // Handle backend response structure { project, milestones }
             if (data && data.project) {
                 setProject({ ...data.project, milestones: data.milestones || data.project.milestones || [] });
-                console.log('[PROJECT_DEBUG] project.creator:', data.project.creator);
             } else {
                 setProject(data);
             }
         } catch (err: any) {
-            console.error('Error loading project:', err);
             setError(err?.response?.data?.message || 'Project not found');
         } finally {
             setLoading(false);
@@ -171,46 +117,12 @@ export default function ProjectDetailPage() {
         }
     };
 
-    const handleDonate = async () => {
-        try {
-            setDonationError('');
-            const amountNumber = Number(donationAmount);
-            if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
-                setDonationError('Enter a valid amount');
-                return;
-            }
-            setIsDonating(true);
-
-            const resolvedProjectId = (project as any)?.id || (project as any)?._id || projectId;
-            const projectType = 'CHARITY';
-            const description = `Donation to ${project?.name || 'Project'} - Keibo`;
-
-            const result = await paymentService.initializeDPOPayment({
-                projectId: String(resolvedProjectId),
-                amount: amountNumber,
-                currency: currency,
-                paymentMethod: 'card', // DPO handles the actual method choice on their page
-                projectType,
-                description,
-                donorName: donorName.trim() ? donorName.trim() : 'Anonymous',
-            });
-
-            // Redirect user to DPO hosted payment page
-            window.location.href = result.redirectUrl;
-        } catch (err: any) {
-            console.error('Donation error:', err);
-            setDonationError(err?.response?.data?.message || 'Failed to initialize payment. Please try again.');
-            setIsDonating(false);
-        }
-    };
-
     const handleSubmitForReview = async () => {
         try {
             setIsSubmittingForReview(true);
             await projectService.submitForReview(projectId);
             await loadProject();
         } catch (err: any) {
-            console.error('Error submitting project for review:', err);
             setError(err?.response?.data?.message || 'Failed to submit project for review');
         } finally {
             setIsSubmittingForReview(false);
@@ -258,24 +170,22 @@ export default function ProjectDetailPage() {
             : 30;
 
     const statusColorMap: Record<string, string> = {
-        DRAFT: 'bg-gray-500/10 text-gray-400',
-        PENDING_REVIEW: 'bg-amber-500/10 text-amber-400',
-        APPROVED: 'bg-blue-500/10 text-blue-400',
-        FUNDING: 'bg-emerald-500/10 text-emerald-400',
-        FUNDED: 'bg-blue-500/10 text-blue-400',
-        ACTIVE: 'bg-emerald-500/10 text-emerald-400',
-        COMPLETED: 'bg-blue-500/10 text-blue-400',
-        REJECTED: 'bg-red-500/10 text-red-400',
+        DRAFT: 'chip-neutral',
+        PENDING_REVIEW: 'chip-warning',
+        APPROVED: 'chip-info',
+        FUNDING: 'chip-success',
+        FUNDED: 'chip-info',
+        ACTIVE: 'chip-success',
+        COMPLETED: 'chip-info',
+        REJECTED: 'chip-danger',
     };
-    const statusColor = statusColorMap[project.status] || 'bg-gray-500/10 text-gray-400';
+    const statusColor = statusColorMap[project.status] || 'chip-neutral';
     const isOwner = isAuthenticated && (user?.id || user?._id) && (project.creatorId === (user?.id || user?._id));
 
-    const isCharityProject = project.projectType === 'CHARITY' || project.type === 'CHARITY';
-    const accentText = isCharityProject ? 'text-emerald-400' : 'text-blue-400';
-    const accentBorderText = isCharityProject ? 'bg-emerald-500/10 text-emerald-400' : 'bg-blue-500/10 text-blue-400';
-    const accentBg = isCharityProject ? 'bg-emerald-600' : 'bg-blue-600';
-    const accentShadow = isCharityProject ? 'shadow-emerald-500/20' : 'shadow-blue-500/20';
-    const accentGlow = isCharityProject ? 'bg-emerald-500/10' : 'bg-blue-500/10';
+    const charityProject = project.projectType === 'CHARITY' || project.type === 'CHARITY';
+    const accentBg = charityProject ? 'bg-emerald-600' : 'bg-blue-600';
+    const accentShadow = charityProject ? 'shadow-emerald-500/20' : 'shadow-blue-500/20';
+    const accentGlow = charityProject ? 'bg-emerald-500/10' : 'bg-blue-500/10';
 
     return (
         <div className="min-h-screen bg-[var(--background)] text-[var(--text-main)]">
@@ -296,19 +206,19 @@ export default function ProjectDetailPage() {
                     {/* Status Notice */}
                     {(project.status === 'DRAFT' || project.status === 'PENDING_REVIEW' || project.status === 'REJECTED' || project.status === 'CHANGES_REQUESTED') && isOwner && (
                         <div className={`mb-8 p-4 rounded-2xl flex items-start gap-3 ${project.status === 'REJECTED'
-                            ? 'bg-rose-500/10 border border-rose-500/20'
+                            ? 'bg-rose-50 border border-rose-200 dark:bg-rose-950/20 dark:border-rose-900/30'
                             : project.status === 'CHANGES_REQUESTED'
-                                ? 'bg-orange-500/10 border border-orange-500/20'
-                                : 'bg-amber-500/10 border border-amber-500/20'
+                                ? 'bg-orange-50 border border-orange-200 dark:bg-orange-950/20 dark:border-orange-900/30'
+                                : 'bg-amber-50 border border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/30'
                             }`}>
-                            <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${project.status === 'REJECTED' ? 'text-rose-400'
-                                : project.status === 'CHANGES_REQUESTED' ? 'text-orange-400'
-                                    : 'text-amber-400'
+                            <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${project.status === 'REJECTED' ? 'text-rose-700 dark:text-rose-300'
+                                : project.status === 'CHANGES_REQUESTED' ? 'text-orange-600 dark:text-orange-300'
+                                    : 'text-amber-700 dark:text-amber-300'
                                 }`} />
                             <div className="flex-1 space-y-1">
-                                <p className={`text-sm font-semibold ${project.status === 'REJECTED' ? 'text-rose-300'
-                                    : project.status === 'CHANGES_REQUESTED' ? 'text-orange-300'
-                                        : 'text-amber-300'
+                                <p className={`text-sm font-semibold ${project.status === 'REJECTED' ? 'text-rose-700 dark:text-rose-300'
+                                    : project.status === 'CHANGES_REQUESTED' ? 'text-orange-700 dark:text-orange-300'
+                                        : 'text-amber-800 dark:text-amber-200'
                                     }`}>
                                     {project.status === 'DRAFT'
                                         ? 'This campaign is in draft mode. Submit it for review to make it public.'
@@ -353,11 +263,10 @@ export default function ProjectDetailPage() {
                             {/* Project Header */}
                             <div>
                                 <div className="flex items-center gap-3 mb-4">
-                                    <span className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest shadow-lg
-                                        bg-emerald-600 text-white`}>
-                                        Charity
+                                    <span className={`chip-base chip-compact px-4 py-2 shadow-lg ${charityProject ? 'chip-success' : 'chip-info'}`}>
+                                        {charityProject ? 'Charity' : 'ROI'}
                                     </span>
-                                    <span className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${statusColor}`}>
+                                    <span className={`chip-base chip-compact px-3 py-1.5 ${statusColor}`}>
                                         {project.status}
                                     </span>
                                     {project.category && (
@@ -379,7 +288,14 @@ export default function ProjectDetailPage() {
                                 {mediaItems.length > 0 ? (
                                     <>
                                         {currentMedia?.type === 'image' && (
-                                            <img src={currentMedia.url} alt={project.name} className="w-full h-full object-cover" />
+                                            <Image
+                                                src={currentMedia.url}
+                                                alt={project.name}
+                                                fill
+                                                className="object-cover"
+                                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                                priority
+                                            />
                                         )}
                                         {currentMedia?.type === 'video' && (
                                             <video src={currentMedia.url} controls className="w-full h-full object-cover" />
@@ -425,18 +341,23 @@ export default function ProjectDetailPage() {
                             {/* Tabs */}
                             <div>
                                 <div className="flex items-center gap-1 border-b border-[var(--border)] mb-6 overflow-x-auto scrollbar-hide">
-                                    {(['story', 'timeline', 'updates'] as const).map((tab) => (
-                                        <button
-                                            key={tab}
-                                            onClick={() => setActiveTab(tab)}
-                                            className={`px-4 sm:px-6 py-3 text-xs sm:text-sm font-black uppercase tracking-widest border-b-2 transition-all -mb-px whitespace-nowrap flex-shrink-0 ${activeTab === tab
-                                                ? 'border-[var(--primary)] text-[var(--primary)]'
-                                                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'
-                                                }`}
-                                        >
-                                            {tab}
-                                        </button>
-                                    ))}
+                                    {(['story', 'timeline', 'updates'] as const).map((tab) => {
+                                        // Hide timeline and updates for Charity projects
+                                        if (isCharity && (tab === 'timeline' || tab === 'updates')) return null;
+
+                                        return (
+                                            <button
+                                                key={tab}
+                                                onClick={() => setActiveTab(tab)}
+                                                className={`px-4 sm:px-6 py-3 text-xs sm:text-sm font-black uppercase tracking-widest border-b-2 transition-all -mb-px whitespace-nowrap flex-shrink-0 ${activeTab === tab
+                                                    ? 'border-[var(--primary)] text-[var(--primary)]'
+                                                    : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                                                    }`}
+                                            >
+                                                {tab}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
 
                                 {/* Story Tab */}
@@ -602,13 +523,23 @@ export default function ProjectDetailPage() {
 
                                         {/* CTA */}
                                         <div className="space-y-3">
-                                            <button
-                                                onClick={openDonateModal}
-                                                className={`w-full py-4 ${accentBg} text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl ${accentShadow} hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2`}
-                                            >
-                                                <Heart size={16} />
-                                                Donate Now
-                                            </button>
+                                            {!isCharity ? (
+                                                <button
+                                                    onClick={openInvestModal}
+                                                    className={`w-full py-4 ${accentBg} text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl ${accentShadow} hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2`}
+                                                >
+                                                    <TrendingUp size={16} />
+                                                    Invest Now
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={openDonateModal}
+                                                    className={`w-full py-4 ${accentBg} text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl ${accentShadow} hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2`}
+                                                >
+                                                    <Heart size={16} />
+                                                    Donate Now
+                                                </button>
+                                            )}
                                             <div className="flex gap-3">
                                                 <button
                                                     onClick={() => setBookmarked(!bookmarked)}
@@ -617,12 +548,86 @@ export default function ProjectDetailPage() {
                                                     <Heart size={14} className={bookmarked ? 'fill-current' : ''} />
                                                     {bookmarked ? 'Saved' : 'Save'}
                                                 </button>
-                                                <button
-                                                    onClick={() => navigator.clipboard?.writeText(window.location.href)}
-                                                    className="flex-1 py-3 border border-[var(--border)] rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-white/5 transition-all flex items-center justify-center gap-2"
-                                                >
-                                                    <Share2 size={14} /> Share
-                                                </button>
+
+                                                {/* Share button + dropdown */}
+                                                <div className="flex-1 relative">
+                                                    <button
+                                                        onClick={() => setShowShareMenu(v => !v)}
+                                                        className="w-full py-3 border border-[var(--border)] rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-white/5 transition-all flex items-center justify-center gap-2"
+                                                    >
+                                                        <Share2 size={14} /> Share
+                                                    </button>
+
+                                                    {showShareMenu && (
+                                                        <>
+                                                            {/* Backdrop */}
+                                                            <div
+                                                                className="fixed inset-0 z-40"
+                                                                onClick={() => setShowShareMenu(false)}
+                                                            />
+                                                            {/* Dropdown */}
+                                                            <div className="absolute bottom-full right-0 mb-2 w-56 bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden z-50">
+                                                                <p className="px-4 pt-3 pb-1 text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)]">Share this project</p>
+
+                                                                {/* X / Twitter */}
+                                                                <button
+                                                                    onClick={() => { window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(project?.name || 'Check out this project!')}&url=${encodeURIComponent(window.location.href)}`, '_blank'); setShowShareMenu(false); }}
+                                                                    className="w-full px-4 py-3 flex items-center gap-3 text-sm font-semibold hover:bg-white/5 transition-colors text-left"
+                                                                >
+                                                                    <span className="w-7 h-7 rounded-lg bg-black flex items-center justify-center text-white text-xs font-black flex-shrink-0">𝕏</span>
+                                                                    Post on X / Twitter
+                                                                </button>
+
+                                                                {/* WhatsApp */}
+                                                                <button
+                                                                    onClick={() => { window.open(`https://wa.me/?text=${encodeURIComponent((project?.name || 'Check this out') + ' ' + window.location.href)}`, '_blank'); setShowShareMenu(false); }}
+                                                                    className="w-full px-4 py-3 flex items-center gap-3 text-sm font-semibold hover:bg-white/5 transition-colors text-left"
+                                                                >
+                                                                    <span className="w-7 h-7 rounded-lg bg-[#25D366] flex items-center justify-center flex-shrink-0">
+                                                                        <svg viewBox="0 0 24 24" fill="white" className="w-4 h-4"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                                                    </span>
+                                                                    Share on WhatsApp
+                                                                </button>
+
+                                                                {/* Facebook */}
+                                                                <button
+                                                                    onClick={() => { window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank'); setShowShareMenu(false); }}
+                                                                    className="w-full px-4 py-3 flex items-center gap-3 text-sm font-semibold hover:bg-white/5 transition-colors text-left"
+                                                                >
+                                                                    <span className="w-7 h-7 rounded-lg bg-[#1877F2] flex items-center justify-center text-white font-black text-sm flex-shrink-0">f</span>
+                                                                    Share on Facebook
+                                                                </button>
+
+                                                                {/* Telegram */}
+                                                                <button
+                                                                    onClick={() => { window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(project?.name || '')}`, '_blank'); setShowShareMenu(false); }}
+                                                                    className="w-full px-4 py-3 flex items-center gap-3 text-sm font-semibold hover:bg-white/5 transition-colors text-left"
+                                                                >
+                                                                    <span className="w-7 h-7 rounded-lg bg-[#229ED9] flex items-center justify-center flex-shrink-0">
+                                                                        <svg viewBox="0 0 24 24" fill="white" className="w-4 h-4"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                                                                    </span>
+                                                                    Share on Telegram
+                                                                </button>
+
+                                                                {/* Divider + Copy Link */}
+                                                                <div className="border-t border-[var(--border)] mx-4" />
+                                                                <button
+                                                                    onClick={() => {
+                                                                        navigator.clipboard?.writeText(window.location.href);
+                                                                        setCopySuccess(true);
+                                                                        setTimeout(() => { setCopySuccess(false); setShowShareMenu(false); }, 2000);
+                                                                    }}
+                                                                    className="w-full px-4 py-3 flex items-center gap-3 text-sm font-semibold hover:bg-white/5 transition-colors text-left"
+                                                                >
+                                                                    {copySuccess
+                                                                        ? <><CheckCircle2 size={16} className="text-emerald-400 flex-shrink-0" /> <span className="text-emerald-400">Copied!</span></>
+                                                                        : <><Link2 size={16} className="flex-shrink-0" /> Copy Link</>
+                                                                    }
+                                                                </button>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
 
@@ -710,116 +715,11 @@ export default function ProjectDetailPage() {
 
             <Footer />
 
-
-            {/* ── DPO Payment Modal ── */}
-            {isPaymentModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-6">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        className="w-full max-w-md bg-[var(--card)] border border-[var(--border)] rounded-3xl overflow-hidden shadow-2xl"
-                    >
-                        {/* Header */}
-                        <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
-                            <div>
-                                <h3 className="text-lg font-black">
-                                    Donate to Project
-                                </h3>
-                            </div>
-                            <button
-                                onClick={() => setIsPaymentModalOpen(false)}
-                                className="p-2 rounded-xl hover:bg-white/5 transition-all"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        {/* Body */}
-                        <div className="p-6 space-y-5">
-                            {/* Donor Name (Only for donation) */}
-                            {paymentMode === 'donate' && (
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
-                                            Your Name
-                                        </label>
-                                        <span className="text-[10px] text-[var(--text-muted)] font-medium">
-                                            Leave blank to donate anonymously
-                                        </span>
-                                    </div>
-                                    <input
-                                        value={donorName}
-                                        onChange={(e) => setDonorName(e.target.value)}
-                                        type="text"
-                                        placeholder="Anonymous"
-                                        className="input_field"
-                                    />
-                                </div>
-                            )}
-
-                            {/* Amount */}
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
-                                    Amount ({currency})
-                                </label>
-                                <input
-                                    value={paymentAmount}
-                                    onChange={(e) => setPaymentAmount(e.target.value)}
-                                    type="number"
-                                    min="1"
-                                    step="500"
-                                    placeholder={paymentMode === 'donate' ? 'e.g. 10000' : 'e.g. 100000'}
-                                    className="input_field"
-                                    autoFocus
-                                />
-                            </div>
-
-                            {/* Quick amounts */}
-                            <div className="flex gap-2 flex-wrap">
-                                {(paymentMode === 'donate' ? [5000, 10000, 50000, 100000] : [50000, 100000, 500000, 1000000]).map(amt => (
-                                    <button
-                                        key={amt}
-                                        onClick={() => setPaymentAmount(String(amt))}
-                                        className={`px-3 py-1.5 rounded-xl text-xs font-black border transition-all ${paymentAmount === String(amt)
-                                            ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
-                                            : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--primary)]/50'
-                                            }`}
-                                    >
-                                        {amt.toLocaleString()}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {paymentError && (
-                                <div className="p-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 text-rose-300 text-sm font-medium">
-                                    {paymentError}
-                                </div>
-                            )}
-
-                            <div className="flex gap-3 pt-1">
-                                <button
-                                    onClick={() => setIsPaymentModalOpen(false)}
-                                    disabled={isInitiatingPayment}
-                                    className="flex-1 py-3 border border-[var(--border)] rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white/5 transition-all disabled:opacity-50"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleDPOPayment}
-                                    disabled={isInitiatingPayment || !paymentAmount}
-                                    className="flex-1 py-3 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500"
-                                >
-                                    {isInitiatingPayment ? (
-                                        <><Loader2 size={14} className="animate-spin" /> Processing...</>
-                                    ) : (
-                                        <>Donate Now →</>
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-                    </motion.div>
-                </div>
-            )}
+            <DPOPaymentModal
+                isOpen={isPaymentModalOpen}
+                onClose={() => setIsPaymentModalOpen(false)}
+                project={project}
+            />
 
         </div>
     );

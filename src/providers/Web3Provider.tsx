@@ -2,68 +2,72 @@
 
 import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react';
 import { WagmiProvider } from 'wagmi';
-import { celoAlfajores } from 'viem/chains';
+import { baseSepolia, base } from 'viem/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactNode, useState } from 'react';
-import { defineChain } from 'viem';
+import { ReactNode, useEffect, useState } from 'react';
 
-// 1. Get projectId at https://cloud.walletconnect.com
+// WalletConnect projectId — from cloud.walletconnect.com
 const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID || '8e562725807968565257eadae53a23a8';
 
-// 2. Create wagmiConfig
 const metadata = {
-  name: 'Keibo',
-  description: 'Decentralized Milestone-Based Crowdfunding',
-  url: typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'production' ? 'https://keibo.netlify.app' : 'http://localhost:3000')),
-  icons: ['https://avatars.githubusercontent.com/u/37784886']
+  name: 'Truden',
+  description: 'Invest. Own. Trade. — Fiat-powered investment NFTs on Base.',
+  url:
+    typeof window !== 'undefined'
+      ? window.location.origin
+      : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001',
+  icons: ['https://avatars.githubusercontent.com/u/37784886'],
 };
 
-const envChainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID || '');
-const envRpc = process.env.NEXT_PUBLIC_RPC_HTTP;
-const envChainName = process.env.NEXT_PUBLIC_CHAIN_NAME || 'Celo Testnet';
-const envCurrencySymbol = process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || 'CELO';
+// Primary chain: Base Sepolia (testnet). Switch to `base` for mainnet.
+const chains = [baseSepolia, base] as const;
+let web3ModalInitialized = false;
+let web3ModalInstance: { open: () => void } | null = null;
 
-const customChain = envChainId && envRpc
-  ? defineChain({
-    id: envChainId,
-    name: envChainName,
-    nativeCurrency: { name: envCurrencySymbol, symbol: envCurrencySymbol, decimals: 18 },
-    rpcUrls: {
-      default: { http: [envRpc] },
-      public: { http: [envRpc] },
-    },
-    blockExplorers: process.env.NEXT_PUBLIC_BLOCK_EXPLORER_URL
-      ? {
-        default: { name: 'Explorer', url: process.env.NEXT_PUBLIC_BLOCK_EXPLORER_URL }
-      }
-      : undefined,
-  })
-  : null;
-
-const chains = [customChain ?? celoAlfajores] as const;
-const wagmiConfig = defaultWagmiConfig({
+export const wagmiConfig = defaultWagmiConfig({
   chains,
   projectId,
   metadata,
   enableWalletConnect: true,
-  enableInjected: true,
+  enableInjected: true,  // MetaMask etc.
   enableEIP6963: true,
   enableCoinbase: true,
 });
 
-// 3. Create modal
-createWeb3Modal({
-  wagmiConfig,
-  projectId,
-  themeMode: 'light',
-  themeVariables: {
-    '--w3m-accent': '#0c3b92',
-    '--w3m-border-radius-master': '12px'
-  }
-});
+export function openWeb3Modal() {
+  web3ModalInstance?.open();
+}
 
 export function Web3Provider({ children }: { children: ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 5 * 60 * 1000,
+        gcTime: 10 * 60 * 1000,
+        refetchOnWindowFocus: false,
+        retry: 1,
+      },
+    },
+  }));
+
+  useEffect(() => {
+    if (web3ModalInitialized || typeof window === 'undefined') {
+      return;
+    }
+
+    web3ModalInstance = createWeb3Modal({
+      wagmiConfig,
+      projectId,
+      themeMode: 'dark',
+      themeVariables: {
+        '--w3m-accent': '#7c3aed',
+        '--w3m-border-radius-master': '12px',
+      },
+      defaultChain: baseSepolia,
+    });
+
+    web3ModalInitialized = true;
+  }, []);
 
   return (
     <WagmiProvider config={wagmiConfig}>

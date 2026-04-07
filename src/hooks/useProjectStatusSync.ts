@@ -89,8 +89,7 @@ export const useProjectStatusSync = (options: ProjectStatusSyncOptions = {}) => 
           `A new contribution of ${args?.amount ? Number(args.amount) / 1e18 : '?'} CELO was made to this project`
         );
       }
-    } catch (error) {
-      console.error('Error handling FundsDeposited event:', error);
+    } catch {
     }
   }, [queryClient, enableToasts, showInfo]);
 
@@ -140,8 +139,7 @@ export const useProjectStatusSync = (options: ProjectStatusSyncOptions = {}) => 
           );
         }
       }
-    } catch (error) {
-      console.error('Error handling ProjectStatusChanged event:', error);
+    } catch {
     }
   }, [queryClient, onStatusChange, enableToasts, showSuccess, showWarning]);
 
@@ -161,8 +159,7 @@ export const useProjectStatusSync = (options: ProjectStatusSyncOptions = {}) => 
           'A project milestone has been approved by validators.'
         );
       }
-    } catch (error) {
-      console.error('Error handling MilestoneApproved event:', error);
+    } catch {
     }
   }, [queryClient, enableToasts, showSuccess]);
 
@@ -183,15 +180,13 @@ export const useProjectStatusSync = (options: ProjectStatusSyncOptions = {}) => 
           `${amount.toFixed(2)} CELO has been released to the project creator.`
         );
       }
-    } catch (error) {
-      console.error('Error handling FundsReleased event:', error);
+    } catch {
     }
   }, [queryClient, enableToasts, showSuccess]);
 
   // Manual sync function - polls the blockchain for current state
   const syncProjectStatus = useCallback(async (projectOnChainId: string) => {
     if (!publicClient) {
-      console.warn('Public client not available');
       return;
     }
 
@@ -219,12 +214,6 @@ export const useProjectStatusSync = (options: ProjectStatusSyncOptions = {}) => 
 
       // Update backend with latest on-chain data
       // You could call a backend sync endpoint here
-      console.log('Synced project status from chain:', {
-        projectOnChainId,
-        raisedAmount: Number(raisedAmount) / 1e18,
-        status: statusString,
-      });
-
       // Invalidate queries to trigger refetch
       queryClient.invalidateQueries({ queryKey: ['project', projectOnChainId] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
@@ -243,7 +232,6 @@ export const useProjectStatusSync = (options: ProjectStatusSyncOptions = {}) => 
         status: statusString,
       };
     } catch (error) {
-      console.error('Error syncing project status:', error);
       throw error;
     } finally {
       setIsSyncing(false);
@@ -256,7 +244,7 @@ export const useProjectStatusSync = (options: ProjectStatusSyncOptions = {}) => 
 
     const interval = setInterval(() => {
       // Sync every 30 seconds
-      syncProjectStatus(projectId).catch(console.error);
+      syncProjectStatus(projectId).catch(() => undefined);
     }, 30000);
 
     return () => clearInterval(interval);

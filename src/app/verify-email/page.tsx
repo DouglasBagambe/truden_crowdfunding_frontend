@@ -225,7 +225,7 @@ function VerifyEmailContent() {
 
                             {/* Error */}
                             {errorMsg && (
-                                <div className="flex gap-2 items-start p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm">
+                                <div className="flex gap-2 items-start p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 dark:bg-rose-950/20 dark:border-rose-900/30 dark:text-rose-200 text-sm">
                                     <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
                                     {errorMsg}
                                 </div>

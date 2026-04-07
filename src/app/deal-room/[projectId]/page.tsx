@@ -13,16 +13,17 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { dealRoomService, type DealRoomFileItem } from '@/lib/deal-room-service';
 import { useAuth } from '@/hooks/useAuth';
+import { useRoiAccess } from '@/hooks/useRoiAccess';
 import { useToast } from '@/components/common/ToastProvider';
 import { apiClient } from '@/lib/api-client';
 import Link from 'next/link';
 
 // ─── Access Tiers ─────────────────────────────────────────────
 const TIERS = [
-  { tier: 1, label: 'Public', minInvestment: 0, description: 'Basic project information', color: 'text-gray-400', bg: 'bg-gray-500/10' },
-  { tier: 2, label: 'Starter', minInvestment: 1_000, description: 'Financial statements & projections', color: 'text-blue-400', bg: 'bg-blue-500/10' },
-  { tier: 3, label: 'Investor', minInvestment: 5_000, description: 'Legal documents & contracts', color: 'text-violet-400', bg: 'bg-violet-500/10' },
-  { tier: 4, label: 'Whale', minInvestment: 10_000, description: 'Full due diligence package', color: 'text-amber-400', bg: 'bg-amber-500/10' },
+  { tier: 1, label: 'Public', minInvestment: 0, description: 'Basic project information', color: 'text-slate-700 dark:text-slate-300', bg: 'bg-slate-100 dark:bg-slate-900/30' },
+  { tier: 2, label: 'Starter', minInvestment: 1_000, description: 'Financial statements & projections', color: 'text-blue-700 dark:text-blue-300', bg: 'bg-blue-100 dark:bg-blue-950/30' },
+  { tier: 3, label: 'Investor', minInvestment: 5_000, description: 'Legal documents & contracts', color: 'text-violet-700 dark:text-violet-300', bg: 'bg-violet-100 dark:bg-violet-950/30' },
+  { tier: 4, label: 'Whale', minInvestment: 10_000, description: 'Full due diligence package', color: 'text-amber-700 dark:text-amber-300', bg: 'bg-amber-100 dark:bg-amber-950/30' },
 ];
 
 // ─── File icon helper ─────────────────────────────────────────
@@ -188,6 +189,7 @@ export default function DealRoomProjectPage() {
   const router = useRouter();
   const projectId = String((params as any)?.projectId || '');
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const { hasRoiAccess, isLoading: roiLoading } = useRoiAccess();
   const { showError } = useToast();
 
   const [items, setItems] = useState<DealRoomFileItem[]>([]);
@@ -230,6 +232,13 @@ export default function DealRoomProjectPage() {
     if (projectId) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, isAuthenticated, projectId]);
+
+  useEffect(() => {
+    if (!roiLoading && !hasRoiAccess) {
+      showError('Access restricted', 'The deal room is available to internal ROI users only.');
+      router.replace('/explore');
+    }
+  }, [hasRoiAccess, roiLoading, router, showError]);
 
   const openPreview = async (doc: DealRoomFileItem) => {
     try {

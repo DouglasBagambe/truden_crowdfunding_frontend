@@ -7,21 +7,22 @@ import { useAuth } from '@/hooks/useAuth';
 import { motion } from 'framer-motion';
 import {
   User, Wallet, Shield, Bell, Sun, Moon, Mail,
-  HelpCircle, Send, TrendingUp, TrendingDown,
-  Activity, Loader2, Eye, EyeOff, CheckCircle
+  HelpCircle, Send, TrendingUp, TrendingDown, Monitor,
+  Activity, Loader2, Eye, EyeOff, CheckCircle, ShieldCheck, XCircle, Clock, AlertTriangle
 } from 'lucide-react';
 import { userService } from '@/lib/user-service';
 import { walletService, type WalletBalance } from '@/lib/wallet-service';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { ThemeToggle } from '@/components/common/ThemeToggle';
 import toast from 'react-hot-toast';
+import { useRoiAccess } from '@/hooks/useRoiAccess';
 
 type Tab = 'profile' | 'wallet' | 'notifications' | 'appearance' | 'security';
 
 export default function SettingsPage() {
   const router = useRouter();
   const { user, refetchUser, isAuthenticated, isLoading, logout } = useAuth();
+  const { hasRoiAccess } = useRoiAccess();
   const { theme, setTheme } = useTheme();
   const [themeReady, setThemeReady] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('profile');
@@ -130,8 +131,8 @@ export default function SettingsPage() {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex-shrink-0 ${activeTab === tab.id
-                        ? 'bg-[var(--primary)] text-white shadow-sm'
-                        : 'text-[var(--text-muted)] hover:bg-[var(--secondary)] hover:text-[var(--text-main)]'
+                      ? 'bg-[var(--primary)] text-white shadow-sm'
+                      : 'text-[var(--text-muted)] hover:bg-[var(--secondary)] hover:text-[var(--text-main)]'
                       }`}
                   >
                     {tab.icon}
@@ -197,11 +198,49 @@ export default function SettingsPage() {
                       <div>
                         <p className="font-bold">{firstName} {lastName}</p>
                         <p className="text-sm text-[var(--text-muted)]">{email}</p>
-                        {user?.emailVerifiedAt && (
-                          <span className="inline-flex items-center gap-1 text-xs text-emerald-500 font-semibold mt-1">
-                            <CheckCircle size={12} /> Verified
-                          </span>
-                        )}
+                        <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                          {user?.emailVerifiedAt && (
+                            <span className="chip-base chip-success">
+                              <CheckCircle size={12} /> Email Verified
+                            </span>
+                          )}
+                          {/* KYC Status Badge */}
+                          {hasRoiAccess && (() => {
+                            const kycStatus = (user as any)?.kycStatus || 'NOT_VERIFIED';
+                            if (kycStatus === 'VERIFIED') {
+                              return (
+                                <span className="chip-base chip-success">
+                                  <ShieldCheck size={12} /> KYC Verified
+                                </span>
+                              );
+                            }
+                            if (kycStatus === 'PENDING') {
+                              return (
+                                <span className="chip-base chip-warning">
+                                  <Clock size={12} /> KYC Under Review
+                                </span>
+                              );
+                            }
+                            if (kycStatus === 'REJECTED') {
+                              return (
+                                <button
+                                  onClick={() => router.push('/dashboard?tab=kyc')}
+                                  className="chip-base chip-danger hover:brightness-95 transition-all cursor-pointer"
+                                >
+                                  <XCircle size={12} /> KYC Rejected · Re-verify →
+                                </button>
+                              );
+                            }
+                            return (
+                              <button
+                                onClick={() => router.push('/dashboard?tab=kyc')}
+                                className="chip-base chip-info hover:brightness-95 transition-all cursor-pointer"
+                              >
+                                <ShieldCheck size={12} /> Verify Identity →
+                              </button>
+                            );
+                          })()}
+                        </div>
                       </div>
                     </div>
 
@@ -312,7 +351,7 @@ export default function SettingsPage() {
                               {transactions.slice(0, 15).map((tx: any) => (
                                 <div key={tx._id} className="flex items-center justify-between p-5 hover:bg-[var(--secondary)] transition-colors">
                                   <div className="flex items-center gap-4">
-                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${tx.amount > 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${tx.amount > 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300'
                                       }`}>
                                       {tx.amount > 0 ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
                                     </div>
@@ -324,10 +363,10 @@ export default function SettingsPage() {
                                     </div>
                                   </div>
                                   <div className="text-right">
-                                    <p className={`font-black text-sm ${tx.amount > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                    <p className={`font-black text-sm ${tx.amount > 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'}`}>
                                       {tx.amount > 0 ? '+' : ''}{tx.currency} {Math.abs(tx.amount).toLocaleString()}
                                     </p>
-                                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-[var(--secondary)] text-[var(--text-muted)]">
+                                    <span className="chip-base chip-compact chip-neutral">
                                       {tx.status}
                                     </span>
                                   </div>
@@ -380,103 +419,144 @@ export default function SettingsPage() {
 
                 {/* ── APPEARANCE ── */}
                 {activeTab === 'appearance' && (
-                  <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 space-y-8">
+                  <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 space-y-6">
                     <div>
-                      <h2 className="text-xl font-black">Appearance</h2>
-                      <p className="text-sm text-[var(--text-muted)] mt-1">Choose your preferred interface mode.</p>
+                      <h2 className="text-xl font-bold">Appearance</h2>
+                      <p className="text-sm text-[var(--text-muted)] mt-1">Choose how Keibo looks for you.</p>
                     </div>
 
                     {themeReady && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-                        <button
-                          onClick={() => setTheme('light')}
-                          className={`group p-5 rounded-2xl border-2 transition-all text-left space-y-4 ${theme === 'light'
-                            ? 'border-emerald-500 bg-emerald-500/5'
-                            : 'border-[var(--border)] hover:border-[var(--text-muted)]'
-                            }`}
-                        >
-                          <div className="w-full h-24 bg-white rounded-xl shadow-inner flex items-center justify-center border border-gray-200">
-                            <Sun className="text-yellow-500" size={32} />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-black uppercase tracking-widest">Light Mode</span>
-                            {theme === 'light' && <CheckCircle size={16} className="text-emerald-500" />}
-                          </div>
-                        </button>
-
-                        <button
-                          onClick={() => setTheme('dark')}
-                          className={`group p-5 rounded-2xl border-2 transition-all text-left space-y-4 ${theme === 'dark'
-                            ? 'border-emerald-500 bg-emerald-500/5'
-                            : 'border-[var(--border)] hover:border-[var(--text-muted)]'
-                            }`}
-                        >
-                          <div className="w-full h-24 bg-[#0d0d0d] rounded-xl shadow-inner flex items-center justify-center border border-[#262626]">
-                            <Moon className="text-blue-400" size={32} />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-black uppercase tracking-widest">Dark Mode</span>
-                            {theme === 'dark' && <CheckCircle size={16} className="text-emerald-500" />}
-                          </div>
-                        </button>
+                      <div className="grid grid-cols-3 gap-4">
+                        {([
+                          { id: 'light', label: 'Light', icon: <Sun size={22} className="text-amber-400" />, preview: 'bg-white border-gray-200' },
+                          { id: 'dark', label: 'Dark', icon: <Moon size={22} className="text-blue-400" />, preview: 'bg-[#0d1828] border-[#1e2d45]' },
+                          { id: 'system', label: 'System', icon: <Monitor size={22} className="text-[var(--text-muted)]" />, preview: 'bg-gradient-to-br from-white to-[#0d1828] border-gray-300' },
+                        ] as const).map((opt) => {
+                          const active = theme === opt.id;
+                          return (
+                            <button
+                              key={opt.id}
+                              onClick={() => setTheme(opt.id)}
+                              className={`flex flex-col items-center gap-3 p-5 rounded-2xl border-2 transition-all text-center ${active
+                                  ? 'border-[var(--primary)] bg-[var(--primary)]/5'
+                                  : 'border-[var(--border)] hover:border-[var(--text-muted)]/40 hover:bg-[var(--secondary)]'
+                                }`}
+                            >
+                              <div className={`w-full h-16 rounded-xl border ${opt.preview} flex items-center justify-center`}>
+                                {opt.icon}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-semibold">{opt.label}</span>
+                                {active && <CheckCircle size={14} className="text-[var(--primary)]" />}
+                              </div>
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
-
-                    <div className="flex items-center justify-between pt-4 border-t border-[var(--border)]">
-                      <div>
-                        <p className="font-semibold text-sm">Quick toggle</p>
-                        <p className="text-xs text-[var(--text-muted)]">Switch between light and dark instantly.</p>
-                      </div>
-                      <ThemeToggle />
-                    </div>
                   </div>
                 )}
 
                 {/* ── SECURITY ── */}
                 {activeTab === 'security' && (
-                  <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 space-y-8">
+                  <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 space-y-6">
                     <div>
-                      <h2 className="text-xl font-black">Security</h2>
-                      <p className="text-sm text-[var(--text-muted)] mt-1">Protect your account with additional security measures.</p>
+                      <h2 className="text-xl font-bold">Security</h2>
+                      <p className="text-sm text-[var(--text-muted)] mt-1">Manage your account security settings.</p>
                     </div>
 
-                    <div className="space-y-6 divide-y divide-[var(--border)]">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-bold text-sm">Two-Factor Authentication</p>
-                          <p className="text-xs text-[var(--text-muted)] mt-0.5">Adds an extra layer of security to sign-in.</p>
-                        </div>
-                        <Toggle checked={!!user?.mfaEnabled} onChange={() => toast('2FA configuration coming soon', { icon: '🔒' })} />
-                      </div>
-                      <div className="flex items-center justify-between pt-6">
-                        <div>
-                          <p className="font-bold text-sm">Change Password</p>
-                          <p className="text-xs text-[var(--text-muted)] mt-0.5">Update your account password anytime.</p>
-                        </div>
-                        <button onClick={() => setActiveTab('profile')} className="button_secondary py-2 text-xs px-5">
-                          Update
-                        </button>
-                      </div>
-                      <div className="flex items-center justify-between pt-6">
-                        <div>
-                          <p className="font-bold text-sm text-rose-500">Delete Account</p>
-                          <p className="text-xs text-[var(--text-muted)] mt-0.5">Permanently remove your account and all data.</p>
+                    <div className="space-y-3">
+                      {/* Password */}
+                      <div className="flex items-center justify-between p-5 rounded-2xl border border-[var(--border)] bg-[var(--secondary)]">
+                        <div className="space-y-0.5">
+                          <p className="font-semibold text-sm">Password</p>
+                          <p className="text-xs text-[var(--text-muted)]">Update your login password from the Profile tab.</p>
                         </div>
                         <button
-                          onClick={() => toast('Contact support to delete your account.', { icon: '⚠️' })}
-                          className="py-2 px-5 text-xs font-black uppercase tracking-widest rounded-xl border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 transition-all"
+                          onClick={() => setActiveTab('profile')}
+                          className="text-xs font-semibold px-4 py-2 rounded-xl border border-[var(--border)] hover:bg-[var(--card)] transition-all"
                         >
-                          Delete
+                          Change
+                        </button>
+                      </div>
+
+                      {/* 2FA */}
+                      {/* <div className="flex items-center justify-between p-5 rounded-2xl border border-[var(--border)] bg-[var(--secondary)]">
+                        <div className="space-y-0.5">
+                          <p className="font-semibold text-sm">Two-Factor Authentication</p>
+                          <p className="text-xs text-[var(--text-muted)]">Add an extra verification step when signing in.</p>
+                        </div>
+                        <Toggle checked={!!user?.mfaEnabled} onChange={() => toast('2FA setup coming soon', { icon: '🔒' })} />
+                      </div> */}
+
+                      {/* KYC */}
+                      {hasRoiAccess && (() => {
+                        const kycStatus = (user as any)?.kycStatus || 'NOT_VERIFIED';
+                        return (
+                          <div className="flex items-center justify-between p-5 rounded-2xl border border-[var(--border)] bg-[var(--secondary)]">
+                            <div className="space-y-0.5">
+                              <p className="font-semibold text-sm">Identity Verification (KYC)</p>
+                              <p className="text-xs text-[var(--text-muted)]">
+                                {kycStatus === 'VERIFIED' ? 'Your identity has been successfully verified.' :
+                                  kycStatus === 'PENDING' ? 'Verification is under review — we will notify you.' :
+                                    kycStatus === 'REJECTED' ? 'Your submission was not approved. Please re-verify.' :
+                                      'Required to withdraw funds and create investment projects.'}
+                              </p>
+                            </div>
+                            {kycStatus === 'VERIFIED' ? (
+                              <span className="chip-base chip-success flex-shrink-0">
+                                <CheckCircle size={13} /> Verified
+                              </span>
+                            ) : kycStatus === 'PENDING' ? (
+                              <span className="chip-base chip-warning flex-shrink-0">
+                                <Clock size={13} /> Under Review
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => router.push('/dashboard?tab=kyc')}
+                                className="text-xs font-semibold px-4 py-2 rounded-xl bg-[var(--primary)] text-white hover:opacity-90 transition-all flex-shrink-0"
+                              >
+                                {kycStatus === 'REJECTED' ? 'Re-verify →' : 'Verify Now →'}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* Sessions */}
+                      <div className="flex items-center justify-between p-5 rounded-2xl border border-[var(--border)] bg-[var(--secondary)]">
+                        <div className="space-y-0.5">
+                          <p className="font-semibold text-sm">Active Session</p>
+                          <p className="text-xs text-[var(--text-muted)]">You are signed in on this device.</p>
+                        </div>
+                        <button
+                          onClick={() => { if (confirm('Sign out of your account?')) logout(); }}
+                          className="text-xs font-semibold px-4 py-2 rounded-xl border border-[var(--border)] text-rose-700 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:border-rose-300 dark:hover:border-rose-900/40 transition-all"
+                        >
+                          Sign out
                         </button>
                       </div>
                     </div>
 
-                    <div className="p-5 bg-amber-500/5 border border-amber-500/20 rounded-2xl">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Mail size={14} className="text-amber-400" />
-                        <p className="text-xs font-black uppercase tracking-widest text-amber-400">Help & Support</p>
+                    {/* Danger zone */}
+                    <div className="p-5 rounded-2xl border border-rose-500/20 bg-rose-500/5 flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <p className="font-semibold text-sm text-rose-500">Delete Account</p>
+                        <p className="text-xs text-[var(--text-muted)]">Permanently removes your account and all data. This cannot be undone.</p>
                       </div>
-                      <p className="text-xs text-[var(--text-muted)]">Need help? Reach out at <strong className="text-[var(--text-main)]">support@truden.tech</strong> and we'll assist within 24 hours.</p>
+                      <button
+                        onClick={() => toast('To delete your account, email support@truden.tech', { icon: '⚠️', duration: 5000 })}
+                        className="text-xs font-semibold px-4 py-2 rounded-xl border border-rose-300 text-rose-700 dark:border-rose-900/40 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all flex-shrink-0 ml-4"
+                      >
+                        Delete
+                      </button>
+                    </div>
+
+                    <div className="p-4 bg-[var(--secondary)] border border-[var(--border)] rounded-xl flex items-start gap-3">
+                      <Mail size={14} className="text-[var(--text-muted)] flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                        Need help? Email <strong className="text-[var(--text-main)]">support@truden.tech</strong> — we respond within 24 hours.
+                      </p>
                     </div>
                   </div>
                 )}

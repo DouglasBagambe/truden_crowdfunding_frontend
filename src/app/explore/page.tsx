@@ -14,10 +14,13 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import { useRoiAccess } from '@/hooks/useRoiAccess';
+import { filterVisibleProjects } from '@/lib/roi-access';
 
 function ExplorePageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
+    const { hasRoiAccess } = useRoiAccess();
     const parseStatuses = (raw: string | null) => {
         if (!raw) return [];
         const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
@@ -27,7 +30,8 @@ function ExplorePageContent() {
     const initialApplied = useMemo(() => {
         const initialSearch = searchParams.get('search') || '';
         const initialCategory = searchParams.get('category') || 'ALL';
-        const initialType = searchParams.get('type') || 'ALL';
+        const rawType = searchParams.get('type') || 'ALL';
+        const initialType = !hasRoiAccess && rawType === 'ROI' ? 'ALL' : rawType;
         const initialStatuses = parseStatuses(searchParams.get('statuses'));
         const initialSort = searchParams.get('sort') || 'newest';
         return {
@@ -37,7 +41,7 @@ function ExplorePageContent() {
             statuses: initialStatuses,
             sortBy: initialSort,
         };
-    }, [searchParams]);
+    }, [hasRoiAccess, searchParams]);
 
     const [draftSearch, setDraftSearch] = useState(initialApplied.search);
     const [draftCategory, setDraftCategory] = useState(initialApplied.category);
@@ -119,7 +123,8 @@ function ExplorePageContent() {
     useEffect(() => {
         const nextSearch = searchParams.get('search') || '';
         const nextCategory = searchParams.get('category') || 'ALL';
-        const nextType = searchParams.get('type') || 'ALL';
+        const rawType = searchParams.get('type') || 'ALL';
+        const nextType = !hasRoiAccess && rawType === 'ROI' ? 'ALL' : rawType;
         const nextStatuses = parseStatuses(searchParams.get('statuses'));
         const nextSort = searchParams.get('sort') || 'newest';
 
@@ -134,7 +139,16 @@ function ExplorePageContent() {
         setAppliedProjectType(nextType);
         setAppliedStatusFilters(nextStatuses);
         setAppliedSortBy(nextSort);
-    }, [searchParams]);
+    }, [hasRoiAccess, searchParams]);
+
+    useEffect(() => {
+        if (!hasRoiAccess && searchParams.get('type') === 'ROI') {
+            const sp = new URLSearchParams(searchParams.toString());
+            sp.delete('type');
+            const qs = sp.toString();
+            router.replace(qs ? `/explore?${qs}` : '/explore');
+        }
+    }, [hasRoiAccess, router, searchParams]);
 
     useEffect(() => {
         const t = setTimeout(() => {
@@ -156,10 +170,13 @@ function ExplorePageContent() {
     const { data, isLoading } = useProjects(queryParams);
     const rawProjects = data?.projects || data?.items || [];
 
-    const projects = rawProjects.map((project: any) => ({
-        ...project,
-        id: project.id || project._id
-    })).filter((p: any) => p.id);
+    const projects = filterVisibleProjects(
+        rawProjects.map((project: any) => ({
+            ...project,
+            id: project.id || project._id
+        })).filter((p: any) => p.id),
+        hasRoiAccess,
+    );
 
     const categories = [
         { id: 'ALL', label: 'All Categories' },
@@ -178,7 +195,7 @@ function ExplorePageContent() {
         );
     };
 
-    const isCharitySelected = draftProjectType === 'CHARITY';
+    const isCharitySelected = !hasRoiAccess || draftProjectType === 'CHARITY';
     const accent = {
         focusText: isCharitySelected ? 'group-focus-within:text-emerald-500' : 'group-focus-within:text-blue-500',
         focusRing: isCharitySelected ? 'focus:ring-emerald-500/10 focus:border-emerald-500' : 'focus:ring-blue-500/10 focus:border-blue-500',
@@ -279,7 +296,29 @@ function ExplorePageContent() {
                                 </div>
                             )}
 
-
+                            {/* Project Type */}
+                            <div className="space-y-4">
+                                <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Project Type</h3>
+                                <div className="space-y-3">
+                                    {['ALL', ...(hasRoiAccess ? ['ROI'] : []), 'CHARITY'].map((type) => (
+                                        <label key={type} className="flex items-center gap-3 cursor-pointer group">
+                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${draftProjectType === type ? accent.radioOn : `border-[var(--border)] ${accent.radioOff}`}`}>
+                                                {draftProjectType === type && <div className="w-2 h-2 rounded-full bg-white" />}
+                                            </div>
+                                            <input
+                                                type="radio"
+                                                className="hidden"
+                                                name="projectType"
+                                                checked={draftProjectType === type}
+                                                onChange={() => setDraftProjectType(type)}
+                                            />
+                                            <span className={`text-sm font-bold transition-colors ${draftProjectType === type ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-main)]'}`}>
+                                                {type === 'ALL' ? 'All Projects' : type === 'ROI' ? 'ROI Projects' : 'Charity Projects'}
+                                            </span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
 
                             {/* Status */}
                             <div className="space-y-4">
@@ -385,6 +424,30 @@ function ExplorePageContent() {
                                             )}
                                         </div>
                                     )}
+
+                                    {/* Project Type */}
+                                    <div className="space-y-4">
+                                        <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Project Type</h3>
+                                        <div className="space-y-3">
+                                            {['ALL', ...(hasRoiAccess ? ['ROI'] : []), 'CHARITY'].map((type) => (
+                                                <label key={type} className="flex items-center gap-3 cursor-pointer group">
+                                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${draftProjectType === type ? accent.radioOn : `border-[var(--border)] ${accent.radioOff}`}`}>
+                                                        {draftProjectType === type && <div className="w-2 h-2 rounded-full bg-white" />}
+                                                    </div>
+                                                    <input
+                                                        type="radio"
+                                                        className="hidden"
+                                                        name="mobileProjectType"
+                                                        checked={draftProjectType === type}
+                                                        onChange={() => setDraftProjectType(type)}
+                                                    />
+                                                    <span className={`text-sm font-bold transition-colors ${draftProjectType === type ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-main)]'}`}>
+                                                        {type === 'ALL' ? 'All Projects' : type === 'ROI' ? 'ROI Projects' : 'Charity Projects'}
+                                                    </span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
 
                                     {/* Status */}
                                     <div className="space-y-4">

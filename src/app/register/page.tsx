@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import AuthCard from '@/components/auth/AuthCard';
 import Link from 'next/link';
-import { Mail, Lock, User, Eye, EyeOff, Wallet, Loader2, CheckCircle } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, Wallet, Loader2, CheckCircle, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { authService } from '@/lib/auth-service';
@@ -15,6 +15,7 @@ export default function RegisterPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
 
   const [formData, setFormData] = useState({
     email: '',
@@ -22,6 +23,20 @@ export default function RegisterPage() {
     lastName: '',
     password: ''
   });
+
+  // Password validation rules
+  const passwordChecks = useMemo(() => {
+    const p = formData.password;
+    return [
+      { label: 'At least 8 characters', pass: p.length >= 8 },
+      { label: 'One uppercase letter (A-Z)', pass: /[A-Z]/.test(p) },
+      { label: 'One lowercase letter (a-z)', pass: /[a-z]/.test(p) },
+      { label: 'One number (0-9)', pass: /\d/.test(p) },
+      { label: 'One special character (!@#$...)', pass: /[^\w\s]/.test(p) },
+    ];
+  }, [formData.password]);
+
+  const passwordValid = passwordChecks.every(c => c.pass);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -36,6 +51,13 @@ export default function RegisterPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!passwordValid) {
+      toast.error('Please fix the password requirements below.');
+      setPasswordTouched(true);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -49,11 +71,16 @@ export default function RegisterPage() {
       // Redirect to verification page with email pre-filled
       router.push(`/verify-email?email=${encodeURIComponent(formData.email)}`);
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Registration failed');
+      const msg = err.response?.data?.message;
+      // Backend may return an array of messages
+      const errorText = Array.isArray(msg) ? msg.join('. ') : (msg || 'Registration failed');
+      toast.error(errorText);
     } finally {
       setIsLoading(false);
     }
   };
+
+  const showChecks = passwordTouched && formData.password.length > 0;
 
   return (
     <AuthCard>
@@ -127,8 +154,9 @@ export default function RegisterPage() {
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
+                onFocus={() => setPasswordTouched(true)}
                 required
-                className="input_field pl-12 pr-12"
+                className={`input_field pl-12 pr-12 ${showChecks && !passwordValid ? 'border-rose-500/50 focus:border-rose-500' : ''}`}
               />
               <button
                 type="button"
@@ -138,9 +166,27 @@ export default function RegisterPage() {
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
-            <p className="text-[9px] text-[var(--text-muted)] font-medium leading-tight px-1 italic">
-              Must be 8+ characters with uppercase, lowercase, number, and special character.
-            </p>
+
+            {/* Password requirements checklist */}
+            {showChecks && (
+              <div className="space-y-1 pt-1 px-1">
+                {passwordChecks.map((check, i) => (
+                  <div key={i} className={`flex items-center gap-2 text-xs font-medium transition-colors ${check.pass ? 'text-emerald-500' : 'text-rose-400'}`}>
+                    {check.pass
+                      ? <CheckCircle size={12} className="flex-shrink-0" />
+                      : <X size={12} className="flex-shrink-0" />
+                    }
+                    {check.label}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!showChecks && (
+              <p className="text-[9px] text-[var(--text-muted)] font-medium leading-tight px-1 italic">
+                Must be 8+ characters with uppercase, lowercase, number, and special character.
+              </p>
+            )}
           </div>
 
           <button

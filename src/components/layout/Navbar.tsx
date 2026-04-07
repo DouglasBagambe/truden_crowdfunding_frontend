@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { canAccessROI } from '@/lib/roi-access';
 import { Logo } from '../common/Logo';
 import {
   LayoutDashboard,
@@ -16,12 +17,37 @@ import {
   X,
   ArrowRight,
   ShieldCheck,
+  Store,
+  Wallet,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAccount } from 'wagmi';
+import { openWeb3Modal } from '@/providers/Web3Provider';
+
+function getNavbarWalletAddress(user: unknown, connectedAddress?: string): string {
+  const currentUser = user as {
+    primaryWallet?: string;
+    linkedWallets?: string[];
+  } | null;
+
+  return connectedAddress
+    || currentUser?.primaryWallet
+    || currentUser?.linkedWallets?.[0]
+    || '';
+}
+
+function formatWalletAddress(address: string): string {
+  if (address.length <= 12) {
+    return address;
+  }
+
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const { address, isConnected } = useAccount();
 
   const ADMIN_USER_ID = process.env.NEXT_PUBLIC_ADMIN_USER_ID || '';
 
@@ -33,6 +59,12 @@ const Navbar = () => {
     );
     return (ADMIN_USER_ID && uid === ADMIN_USER_ID) || hasAdminRole;
   }, [user, ADMIN_USER_ID]);
+
+  const hasRoiAccess = React.useMemo(() => canAccessROI(user), [user]);
+  const walletAddress = React.useMemo(
+    () => getNavbarWalletAddress(user, isConnected ? address : undefined),
+    [address, isConnected, user]
+  );
 
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -77,11 +109,19 @@ const Navbar = () => {
   };
 
   const navCategories = [
-    { href: '/explore', label: 'All Causes' },
+    { href: '/explore', label: 'All Projects' },
     { href: '/explore?category=HEALTH', label: 'Health' },
     { href: '/explore?category=EDUCATION', label: 'Education' },
     { href: '/explore?category=ENVIRONMENT', label: 'Environment' },
     { href: '/explore?category=COMMUNITY', label: 'Community' },
+    ...(hasRoiAccess
+      ? [
+          { href: '/explore?industry=REAL_ESTATE', label: 'Real Estate' },
+          { href: '/explore?industry=TECHNOLOGY', label: 'Technology' },
+          { href: '/explore?industry=AGRICULTURE', label: 'Agriculture' },
+          { href: '/explore?industry=ENERGY', label: 'Energy' },
+        ]
+      : []),
   ];
 
   return (
@@ -98,25 +138,49 @@ const Navbar = () => {
 
           {/* Desktop Center: Explore dropdown + Search */}
           <div className="hidden md:flex items-center gap-3 absolute left-1/2 -translate-x-1/2">
-            {/* Explore dropdown */}
+            {/* Explore — click navigates, hover shows dropdown */}
             <div className="relative group">
-              <button className="flex items-center gap-2 text-sm font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors tracking-tight px-3 py-2 rounded-xl hover:bg-[var(--secondary)]">
+              <Link
+                href="/explore"
+                className="flex items-center gap-1.5 text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors px-3 py-2 rounded-xl hover:bg-[var(--secondary)]"
+              >
                 Explore
-                <ChevronDown size={16} className="opacity-70" />
-              </button>
-              <div className="absolute left-0 mt-3 w-52 bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                {navCategories.map((cat) => (
-                  <Link key={cat.href} href={cat.href} className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold hover:bg-[var(--secondary)] transition-colors">
-                    {cat.label}
+                <ChevronDown size={14} className="opacity-60" />
+              </Link>
+              <div className="absolute left-0 top-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="w-56 bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden py-2">
+                  <p className="px-4 pt-1 pb-2 text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)]">Browse by type</p>
+                  <Link href="/explore" className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-[var(--secondary)] transition-colors">
+                    <span className="w-6 h-6 rounded-lg bg-[var(--secondary)] flex items-center justify-center text-[var(--text-muted)] text-xs">★</span>
+                    All Projects
                   </Link>
-                ))}
-                <div className="border-t border-[var(--border)] mt-1 pt-1">
-                  <Link href="/dashboard/create-project" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-colors">
-                    + Start a Campaign
+                  <Link href="/explore?type=CHARITY" className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-[var(--secondary)] transition-colors">
+                    <span className="w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center text-emerald-700 dark:text-emerald-300 text-xs">♥</span>
+                    Charity Causes
+                  </Link>
+                  {hasRoiAccess && (
+                    <Link href="/explore?type=ROI" className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-[var(--secondary)] transition-colors">
+                      <span className="w-6 h-6 rounded-lg bg-blue-100 dark:bg-blue-950/30 flex items-center justify-center text-blue-700 dark:text-blue-300 text-xs">↑</span>
+                      Investments
+                    </Link>
+                  )}
+                  <div className="border-t border-[var(--border)] mx-3 my-1" />
+                  <Link href="/dashboard/create-project" className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-colors">
+                    <span className="w-6 h-6 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] text-xs font-black">+</span>
+                    Start a Campaign
                   </Link>
                 </div>
               </div>
             </div>
+
+            {/* Marketplace link
+            <Link
+              href="/marketplace"
+              className="flex items-center gap-1.5 text-sm font-bold text-[var(--text-muted)] hover:text-purple-500 transition-colors tracking-tight px-3 py-2 rounded-xl hover:bg-purple-500/5"
+            >
+              <Store size={15} className="text-purple-500" />
+              Marketplace
+            </Link> */}
 
             {/* Search bar */}
             <div ref={searchWrapRef} className="relative w-[320px]">
@@ -143,12 +207,30 @@ const Navbar = () => {
           <div className="hidden md:flex items-center gap-4">
             {user ? (
               <div className="flex items-center gap-3">
-                <Link
-                  href="/dashboard/create-project"
-                  className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold transition-all hover:bg-emerald-700"
-                >
-                  + Start Campaign
-                </Link>
+                {hasRoiAccess ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (walletAddress) {
+                        openWeb3Modal();
+                        return;
+                      }
+
+                      openWeb3Modal();
+                    }}
+                    className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-xs font-semibold transition-all hover:opacity-90"
+                  >
+                    <Wallet size={14} />
+                    {walletAddress ? formatWalletAddress(walletAddress) : 'Connect Wallet'}
+                  </button>
+                ) : (
+                  <Link
+                    href="/dashboard/create-project"
+                    className="hidden lg:flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-xs font-semibold transition-all hover:opacity-90"
+                  >
+                    + Start Campaign
+                  </Link>
+                )}
                 <div className="relative group">
                   <button className="w-10 h-10 rounded-xl bg-[var(--secondary)] text-[var(--primary)] flex items-center justify-center border border-[var(--primary)]/10 hover:border-[var(--primary)] transition-all">
                     <User size={20} />
@@ -282,6 +364,14 @@ const Navbar = () => {
             <div className="flex-1 p-4 space-y-1">
               {user && (
                 <>
+                  {hasRoiAccess && (
+                    <MobileNavLink
+                      href="/marketplace"
+                      icon={<Store size={18} className="text-purple-500" />}
+                      label="Marketplace"
+                      onClick={() => setMobileMenuOpen(false)}
+                    />
+                  )}
                   <MobileNavLink
                     href="/dashboard"
                     icon={<LayoutDashboard size={18} />}

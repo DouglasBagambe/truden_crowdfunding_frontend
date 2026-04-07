@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
+import { useRoiAccess } from '@/hooks/useRoiAccess';
+import { isCharityProject, isROIProject } from '@/lib/roi-access';
 
 interface ProjectCardProps {
   project: {
@@ -25,6 +28,7 @@ interface ProjectCardProps {
 }
 
 export default function ProjectCard({ project, onClick }: ProjectCardProps) {
+  const { hasRoiAccess } = useRoiAccess();
   const projectId = project._id || project.id;
   const router = useRouter();
   const projectName = project.name || project.title || 'Untitled Project';
@@ -38,17 +42,22 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
     } else {
       const projectId = project.id || project._id;
       if (!projectId) {
-        console.error('[ProjectCard] Cannot navigate: Project ID is undefined', project);
         return;
       }
       router.push(`/projects/${projectId}`);
     }
   };
 
-  const accentBg = 'bg-emerald-600';
-  const accentText = 'text-emerald-600';
-  const accentHoverText = 'group-hover:text-emerald-600';
-  const accentHoverBg = 'group-hover:bg-emerald-600';
+  const isCharity = isCharityProject(project);
+
+  if (isROIProject(project) && !hasRoiAccess) {
+    return null;
+  }
+
+  const accentBg = isCharity ? 'bg-emerald-600' : 'bg-blue-600';
+  const accentText = isCharity ? 'text-emerald-600' : 'text-blue-600';
+  const accentHoverText = isCharity ? 'group-hover:text-emerald-600' : 'group-hover:text-blue-600';
+  const accentHoverBg = isCharity ? 'group-hover:bg-emerald-600' : 'group-hover:bg-blue-600';
 
   return (
     <Link href={`/projects/${projectId}`}>
@@ -64,10 +73,12 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
         {/* Project Image */}
         <div className="relative h-48 bg-[var(--secondary)] overflow-hidden">
           {(project.imageUrl || (project.galleryImages && project.galleryImages[0])) ? (
-            <img
-              src={project.imageUrl || project.galleryImages?.[0]}
+            <Image
+              src={project.imageUrl || project.galleryImages?.[0] || ''}
               alt={projectName}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
@@ -78,7 +89,7 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
           {/* Project Type & Status Badge */}
           <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
             <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg ${accentBg} text-white`}>
-              Charity
+              {isCharity ? 'Charity' : 'ROI'}
             </span>
             {project.status && project.status !== 'APPROVED' && project.status !== 'FUNDING' && (
               <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-black/60 text-white backdrop-blur-md shadow-lg border border-white/20">

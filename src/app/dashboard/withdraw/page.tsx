@@ -9,9 +9,11 @@ import {
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
+import { useRoiAccess } from '@/hooks/useRoiAccess';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 
 // Withdrawal methods supported in Uganda
 const MOMO_PROVIDERS = [
@@ -38,8 +40,10 @@ function WithdrawPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const { user, isAuthenticated } = useAuth();
+    const { hasRoiAccess } = useRoiAccess();
     const projectId = searchParams.get('projectId');
     const projectName = searchParams.get('projectName') || 'Your Project';
+    const balanceType = (searchParams.get('type') as 'CHARITY' | 'ROI') || 'CHARITY';
 
     const [step, setStep] = useState<Step>('method');
     const [method, setMethod] = useState<WithdrawMethod>('mobile_money');
@@ -52,6 +56,13 @@ function WithdrawPageContent() {
     const [error, setError] = useState('');
     const [transactionId, setTransactionId] = useState('');
     const [withdrawResult, setWithdrawResult] = useState<{ platformFee?: number; youReceive?: number } | null>(null);
+    const [withdrawMeta, setWithdrawMeta] = useState<{
+        status?: string;
+        message?: string;
+        providerReference?: string;
+        providerTransferId?: string;
+        providerStatus?: string;
+    } | null>(null);
 
     // Wallet balance (Keibo wallet balance = what creator can withdraw)
     const [walletBalance, setWalletBalance] = useState<number | null>(null);
@@ -61,7 +72,14 @@ function WithdrawPageContent() {
         if (!isAuthenticated) {
             router.push('/login?next=/dashboard/withdraw');
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, router]);
+
+    useEffect(() => {
+        if (!hasRoiAccess && balanceType === 'ROI') {
+            toast.error('ROI withdrawals are available to internal users only.');
+            router.replace('/dashboard');
+        }
+    }, [balanceType, hasRoiAccess, router]);
 
     // Load creator's Keibo wallet balance (this is the withdrawable amount)
     useEffect(() => {
@@ -69,13 +87,15 @@ function WithdrawPageContent() {
             setLoadingBalance(true);
             apiClient.get('/wallet/balance')
                 .then(res => {
-                    const ugx = res.data?.fiatBalance?.UGX ?? 0;
-                    setWalletBalance(ugx);
+                    const uiBalance = balanceType === 'ROI'
+                        ? (res.data?.roiBalance?.UGX ?? 0)
+                        : (res.data?.fiatBalance?.UGX ?? 0);
+                    setWalletBalance(uiBalance);
                 })
                 .catch(() => setWalletBalance(null))
                 .finally(() => setLoadingBalance(false));
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, balanceType]);
 
     // Pre-fill account name from user profile
     useEffect(() => {
@@ -86,10 +106,12 @@ function WithdrawPageContent() {
         }
     }, [user]);
 
+    const minAmount = balanceType === 'CHARITY' ? 500 : 10000;
+
     const handleSubmitWithdrawal = async () => {
         const amountNum = Number(amount);
-        if (!Number.isFinite(amountNum) || amountNum < 10000) {
-            setError('Minimum withdrawal is UGX 10,000');
+        if (!Number.isFinite(amountNum) || amountNum < minAmount) {
+            setError(`Minimum withdrawal is UGX ${minAmount.toLocaleString()}`);
             return;
         }
         if (walletBalance !== null && amountNum > walletBalance) {
@@ -114,7 +136,7 @@ function WithdrawPageContent() {
             setIsSubmitting(true);
 
             // Step 1: Add withdrawal method and get its index
-            await apiClient.post('/wallet/withdrawal-method', {
+            const withdrawalMethodRes = await apiClient.post('/wallet/withdrawal-method', {
                 type: method === 'mobile_money' ? 'mobile_money' : 'bank_account',
                 provider,
                 accountNumber: accountNumber.trim(),
@@ -122,11 +144,18 @@ function WithdrawPageContent() {
                 isDefault: true,
             });
 
+            const withdrawalMethodIndex = Number(withdrawalMethodRes.data?.index);
+            if (!Number.isFinite(withdrawalMethodIndex) || withdrawalMethodIndex < 0) {
+                throw new Error('Could not resolve the withdrawal method that was just saved.');
+            }
+
             // Step 2: Request withdrawal (backend applies 2% fee automatically)
             const withdrawRes = await apiClient.post('/wallet/withdraw', {
                 amount: amountNum,
                 currency: 'UGX',
-                withdrawalMethodIndex: 0,
+                withdrawalMethodIndex,
+                balanceType: balanceType,
+                projectId: projectId,
                 note: note.trim() || `Withdrawal from ${projectName}`,
             });
 
@@ -134,6 +163,13 @@ function WithdrawPageContent() {
             setWithdrawResult({
                 platformFee: withdrawRes.data?.platformFee,
                 youReceive: withdrawRes.data?.youReceive,
+            });
+            setWithdrawMeta({
+                status: withdrawRes.data?.status,
+                message: withdrawRes.data?.message,
+                providerReference: withdrawRes.data?.providerReference,
+                providerTransferId: withdrawRes.data?.providerTransferId,
+                providerStatus: withdrawRes.data?.providerStatus,
             });
             setStep('done');
         } catch (err: any) {
@@ -146,9 +182,12 @@ function WithdrawPageContent() {
     const amountNum = Number(amount);
     const platformFee = Math.ceil(amountNum * PLATFORM_FEE_RATE); // 2% Keibo fee
     const youReceive = amountNum - platformFee;
+    const isRoiRequest = balanceType === 'ROI';
+    const requestIsAwaitingApproval = withdrawMeta?.status === 'pending';
+    const requestIsSubmittedToProvider = withdrawMeta?.status === 'processing';
 
     const validateAndNext = () => {
-        if (!amount || Number(amount) < 10000) { setError('Minimum withdrawal is UGX 10,000'); return; }
+        if (!amount || Number(amount) < minAmount) { setError(`Minimum withdrawal is UGX ${minAmount.toLocaleString()}`); return; }
         if (walletBalance !== null && Number(amount) > walletBalance) {
             setError(`Amount exceeds available balance of UGX ${walletBalance.toLocaleString()}`);
             return;
@@ -180,7 +219,7 @@ function WithdrawPageContent() {
                         <h1 className="text-4xl font-black tracking-tight mb-2">Withdraw Funds</h1>
                         {projectId && (
                             <p className="text-[var(--text-muted)] font-medium">
-                                From: <span className="text-white font-bold">{projectName}</span>
+                                From: <span className="chip-base chip-neutral ml-2 align-middle">{projectName}</span>
                             </p>
                         )}
                         {/* Keibo wallet balance */}
@@ -191,16 +230,16 @@ function WithdrawPageContent() {
                                     <span className="text-sm text-[var(--text-muted)]">Loading balance...</span>
                                 </div>
                             ) : walletBalance !== null ? (
-                                <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-2">
-                                    <Wallet size={14} className="text-emerald-400" />
-                                    <span className="text-sm font-black text-emerald-400">
+                                <div className="chip-base chip-success rounded-xl px-4 py-2">
+                                    <Wallet size={14} />
+                                    <span className="text-sm font-black">
                                         Keibo Wallet: UGX {walletBalance.toLocaleString()} available
                                     </span>
                                 </div>
                             ) : (
-                                <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-2">
-                                    <AlertCircle size={14} className="text-amber-400" />
-                                    <span className="text-sm text-amber-400">Could not load balance</span>
+                                <div className="chip-base chip-warning rounded-xl px-4 py-2">
+                                    <AlertCircle size={14} />
+                                    <span className="text-sm font-semibold">Could not load balance</span>
                                 </div>
                             )}
                         </div>
@@ -212,7 +251,7 @@ function WithdrawPageContent() {
                             <div key={s} className="flex items-center gap-3">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black transition-all ${step === s ? 'bg-[var(--primary)] text-white' :
                                     ['done', 'confirm', 'details'].indexOf(step) > ['done', 'confirm', 'details', 'method'].indexOf(s)
-                                        ? 'bg-emerald-500 text-white' : 'bg-white/10 text-[var(--text-muted)]'
+                                        ? 'bg-emerald-500 text-white' : 'bg-[var(--card)] border border-[var(--border)] text-[var(--text-muted)]'
                                     }`}>{i + 1}</div>
                                 {i < 2 && <div className="w-8 h-px bg-[var(--border)]" />}
                             </div>
@@ -260,12 +299,12 @@ function WithdrawPageContent() {
                                 </button>
 
                                 {/* Fee info */}
-                                <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-2xl flex gap-3">
-                                    <Info size={16} className="text-blue-400 flex-shrink-0 mt-0.5" />
+                                <div className="p-4 bg-[var(--primary)]/5 border border-[var(--primary)]/15 rounded-2xl flex gap-3">
+                                    <Info size={16} className="text-[var(--primary)] flex-shrink-0 mt-0.5" />
                                     <div className="text-sm text-[var(--text-muted)] space-y-1">
-                                        <p>Withdrawals are processed within 24 hours on business days.</p>
-                                        <p>A <strong className="text-white">2% Keibo platform fee</strong> is charged per withdrawal.</p>
-                                        <p>Minimum withdrawal: <strong className="text-white">UGX 10,000</strong></p>
+                                        <p>Use the account details exactly as registered with your mobile money line or bank account.</p>
+                                        <p>A <strong className="text-[var(--text-main)]">2% Keibo platform fee</strong> is charged per withdrawal.</p>
+                                        <p>Minimum withdrawal: <strong className="text-[var(--text-main)]">UGX {balanceType === 'CHARITY' ? '500' : '10,000'}</strong></p>
                                     </div>
                                 </div>
                             </motion.div>
@@ -275,7 +314,7 @@ function WithdrawPageContent() {
                         {step === 'details' && (
                             <motion.div key="details" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
                                 <h2 className="text-xl font-black mb-2">
-                                    {method === 'mobile_money' ? '📱 Mobile Money Details' : '🏦 Bank Transfer Details'}
+                                    {method === 'mobile_money' ? 'Mobile Money Details' : 'Bank Transfer Details'}
                                 </h2>
 
                                 {/* Provider */}
@@ -289,8 +328,8 @@ function WithdrawPageContent() {
                                                 key={p.value}
                                                 onClick={() => setProvider(p.value)}
                                                 className={`p-3 rounded-xl border text-sm font-bold text-left transition-all ${provider === p.value
-                                                    ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-white'
-                                                    : 'border-[var(--border)] text-[var(--text-muted)] hover:border-white/30'
+                                                    ? 'border-[var(--primary)] bg-[var(--primary)]/8 text-[var(--text-main)] shadow-sm'
+                                                    : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--primary)]/30 hover:text-[var(--text-main)]'
                                                     }`}
                                             >
                                                 {'emoji' in p ? `${p.emoji} ` : ''}{p.label}
@@ -336,9 +375,9 @@ function WithdrawPageContent() {
                                         value={amount}
                                         onChange={e => setAmount(e.target.value)}
                                         type="number"
-                                        min="10000"
-                                        step="1000"
-                                        placeholder="Minimum 10,000"
+                                        min={minAmount}
+                                        step={balanceType === 'CHARITY' ? 100 : 1000}
+                                        placeholder={`Minimum ${minAmount.toLocaleString()}`}
                                         className="input_field"
                                     />
                                     {/* Quick amounts from wallet balance */}
@@ -358,7 +397,7 @@ function WithdrawPageContent() {
                                 </div>
 
                                 {/* Fee breakdown (live) */}
-                                {amountNum >= 10000 && (
+                                {amountNum >= minAmount && (
                                     <div className="p-4 bg-[var(--card)] border border-[var(--border)] rounded-2xl space-y-2">
                                         <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-3">Fee Breakdown</p>
                                         <div className="flex justify-between text-sm">
@@ -367,11 +406,11 @@ function WithdrawPageContent() {
                                         </div>
                                         <div className="flex justify-between text-sm">
                                             <span className="text-[var(--text-muted)]">Keibo Platform Fee (2%)</span>
-                                            <span className="font-bold text-amber-400">- UGX {platformFee.toLocaleString()}</span>
+                                            <span className="font-bold text-amber-700 dark:text-amber-300">- UGX {platformFee.toLocaleString()}</span>
                                         </div>
                                         <div className="flex justify-between text-sm border-t border-[var(--border)] pt-2 mt-2">
                                             <span className="font-black">You Receive</span>
-                                            <span className="font-black text-emerald-400">UGX {youReceive.toLocaleString()}</span>
+                                            <span className="font-black text-emerald-700 dark:text-emerald-300">UGX {youReceive.toLocaleString()}</span>
                                         </div>
                                     </div>
                                 )}
@@ -391,7 +430,7 @@ function WithdrawPageContent() {
                                 </div>
 
                                 {error && (
-                                    <div className="p-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 text-rose-300 text-sm font-medium flex gap-2 items-start">
+                                    <div className="p-4 rounded-2xl border border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-200 text-sm font-medium flex gap-2 items-start">
                                         <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
                                         {error}
                                     </div>
@@ -423,23 +462,37 @@ function WithdrawPageContent() {
                                     ].map(([label, value]) => (
                                         <div key={label} className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] last:border-0">
                                             <span className="text-sm text-[var(--text-muted)] font-medium">{label}</span>
-                                            <span className={`text-sm font-black ${label === 'You Receive' ? 'text-emerald-400' : label?.includes('Fee') ? 'text-amber-400' : ''}`}>{value}</span>
+                                            <span className={`text-sm font-black ${label === 'You Receive' ? 'text-emerald-700 dark:text-emerald-300' : label?.includes('Fee') ? 'text-amber-700 dark:text-amber-300' : ''}`}>{value}</span>
                                         </div>
                                     ))}
                                 </div>
 
-                                <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-1">
-                                    <p className="text-xs text-[var(--text-muted)]">
-                                        ⚠️ Please double-check your account details. Withdrawals cannot be reversed once submitted.
-                                        Processing time: {method === 'mobile_money' ? '1 hour' : '1-3 business days'}.
+                                <div className="p-4 bg-amber-50 border border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/30 rounded-2xl space-y-2">
+                                    <p className="text-sm text-[var(--text-main)] font-semibold">
+                                        Review carefully before submitting.
                                     </p>
-                                    <p className="text-xs text-amber-400/70 mt-1">
-                                        The 2% Keibo platform fee helps maintain and improve the Keibo platform.
+                                    <p className="text-xs text-[var(--text-muted)]">
+                                        Your request will be submitted using the account details above. Delivery timing depends on provider confirmation and cannot be guaranteed instantly.
+                                    </p>
+                                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                                        If the payout provider rejects the transfer, the platform should mark the withdrawal as failed and refund the wallet balance.
                                     </p>
                                 </div>
 
+                                {balanceType === 'ROI' && (
+                                    <div className="p-4 bg-blue-50 border border-blue-200 dark:bg-blue-950/20 dark:border-blue-900/30 rounded-2xl space-y-1">
+                                        <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 mb-1">
+                                            <Info size={16} />
+                                            <span className="font-bold text-sm">ROI Investment Rules</span>
+                                        </div>
+                                        <p className="text-xs text-[var(--text-muted)]">
+                                            ROI payout requests are first reviewed internally, then sent to the payout provider only after approval.
+                                        </p>
+                                    </div>
+                                )}
+
                                 {error && (
-                                    <div className="p-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 text-rose-300 text-sm font-medium flex gap-2 items-start">
+                                    <div className="p-4 rounded-2xl border border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-200 text-sm font-medium flex gap-2 items-start">
                                         <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
                                         {error}
                                     </div>
@@ -461,7 +514,7 @@ function WithdrawPageContent() {
                                         {isSubmitting ? (
                                             <><Loader2 size={14} className="animate-spin" /> Submitting...</>
                                         ) : (
-                                            <><Send size={14} /> Confirm Withdrawal</>
+                                            <><Send size={14} /> Submit Withdrawal</>
                                         )}
                                     </button>
                                 </div>
@@ -471,13 +524,17 @@ function WithdrawPageContent() {
                         {/* STEP 4 — Done */}
                         {step === 'done' && (
                             <motion.div key="done" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center space-y-6 py-10">
-                                <div className="w-24 h-24 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto">
-                                    <CheckCircle2 size={48} className="text-emerald-400" />
+                                <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto ${requestIsAwaitingApproval ? 'bg-amber-500/15' : 'bg-emerald-500/15'}`}>
+                                    <CheckCircle2 size={48} className={requestIsAwaitingApproval ? 'text-amber-500' : 'text-emerald-500'} />
                                 </div>
                                 <div>
-                                    <h2 className="text-3xl font-black mb-2">Withdrawal Submitted! 🎉</h2>
+                                    <h2 className="text-3xl font-black mb-2">
+                                        {requestIsAwaitingApproval ? 'Withdrawal Request Received' : 'Withdrawal Submitted'}
+                                    </h2>
                                     <p className="text-[var(--text-muted)] font-medium">
-                                        UGX {(withdrawResult?.youReceive ?? youReceive).toLocaleString()} will be sent to your {method === 'mobile_money' ? 'mobile wallet' : 'bank account'} within {method === 'mobile_money' ? '1 hour' : '1-3 business days'}.
+                                        {withdrawMeta?.message || (requestIsAwaitingApproval
+                                            ? 'Your request is now waiting for internal approval before it is sent for payout.'
+                                            : 'Your request has been sent for payout processing. Final delivery depends on provider confirmation.')}
                                     </p>
                                     {transactionId && (
                                         <p className="text-xs text-[var(--text-muted)] mt-2 font-mono">Ref: {transactionId}</p>
@@ -485,19 +542,48 @@ function WithdrawPageContent() {
                                 </div>
 
                                 {/* Summary card */}
-                                <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 text-left max-w-xs mx-auto space-y-3">
+                                <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 text-left max-w-sm mx-auto space-y-3">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-[var(--text-muted)]">Request Status</span>
+                                        <span className={`font-bold ${requestIsAwaitingApproval ? 'text-amber-500' : requestIsSubmittedToProvider ? 'text-[var(--primary)]' : 'text-emerald-500'}`}>
+                                            {requestIsAwaitingApproval ? 'Awaiting approval' : requestIsSubmittedToProvider ? 'Sent to provider' : (withdrawMeta?.status || 'submitted')}
+                                        </span>
+                                    </div>
                                     <div className="flex justify-between text-sm">
                                         <span className="text-[var(--text-muted)]">Requested</span>
                                         <span className="font-bold">UGX {Number(amount).toLocaleString()}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
                                         <span className="text-[var(--text-muted)]">Keibo Fee (2%)</span>
-                                        <span className="font-bold text-amber-400">- UGX {(withdrawResult?.platformFee ?? platformFee).toLocaleString()}</span>
+                                        <span className="font-bold text-amber-700 dark:text-amber-300">- UGX {(withdrawResult?.platformFee ?? platformFee).toLocaleString()}</span>
                                     </div>
                                     <div className="flex justify-between text-sm border-t border-[var(--border)] pt-3">
                                         <span className="font-black">You Receive</span>
-                                        <span className="font-black text-emerald-400">UGX {(withdrawResult?.youReceive ?? youReceive).toLocaleString()}</span>
+                                        <span className="font-black text-emerald-700 dark:text-emerald-300">UGX {(withdrawResult?.youReceive ?? youReceive).toLocaleString()}</span>
                                     </div>
+                                    {withdrawMeta?.providerReference && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-[var(--text-muted)]">Provider Ref</span>
+                                            <span className="font-mono text-xs text-[var(--text-main)]">{withdrawMeta.providerReference}</span>
+                                        </div>
+                                    )}
+                                    {withdrawMeta?.providerTransferId && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-[var(--text-muted)]">Transfer ID</span>
+                                            <span className="font-mono text-xs text-[var(--text-main)]">{withdrawMeta.providerTransferId}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className={`max-w-sm mx-auto rounded-2xl border p-4 text-left ${requestIsAwaitingApproval ? 'bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/30' : 'bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-900/30'}`}>
+                                    <p className="text-sm font-semibold text-[var(--text-main)] mb-1">
+                                        What happens next
+                                    </p>
+                                    <p className="text-xs text-[var(--text-muted)]">
+                                        {requestIsAwaitingApproval
+                                            ? 'An administrator needs to approve this ROI withdrawal before any payout is sent.'
+                                            : `Flutterwave has accepted the transfer request for processing. That does not always mean the money has already reached your ${method === 'mobile_money' ? 'phone' : 'bank account'}.`}
+                                    </p>
                                 </div>
 
                                 <div className="flex flex-col gap-3 max-w-xs mx-auto">

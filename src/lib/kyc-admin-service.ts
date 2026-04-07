@@ -3,6 +3,8 @@ import { apiClient } from './api-client';
 export type KycAdminListItem = {
   id: string;
   userId: string;
+  userEmail?: string;
+  userName?: string;
   status: string;
   userKycStatus: string;
   level?: string | null;
@@ -35,11 +37,21 @@ export const kycAdminService = {
     return response.data;
   },
 
+  async getProfile(profileId: string) {
+    const response = await apiClient.get(`/kyc/admin/profiles/${profileId}`);
+    return response.data;
+  },
+
   async overrideStatus(
     profileId: string,
     dto: { status: string; rejectionReason?: string; manualNotes?: string; level?: string },
   ) {
     const response = await apiClient.post(`/kyc/admin/profiles/${profileId}/override-status`, dto);
+    return response.data;
+  },
+
+  async syncFromProvider(profileId: string) {
+    const response = await apiClient.post(`/kyc/admin/profiles/${profileId}/sync`);
     return response.data;
   },
 };

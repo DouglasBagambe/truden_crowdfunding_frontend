@@ -35,7 +35,6 @@ export function useWalletSync() {
       const wasAttempted = attemptedRef.current.has(normalizedAddress);
       // If the currently connected wallet is not the primary AND not in linked wallets
       if (!wasAttempted && normalizedAddress !== currentPrimary && !linkedWallets.includes(normalizedAddress)) {
-        console.log('Detected unlinked wallet:', address);
         let tId: string | undefined;
         try {
           setIsLinking(true);
@@ -59,11 +58,6 @@ export function useWalletSync() {
           await refetchUser();
           toast.success(`Wallet ${address.slice(0, 6)}... linked to profile`, { id: tId });
         } catch (err: any) {
-          console.error('[WALLET_LINK_ERROR]', {
-            status: err?.response?.status,
-            data: err?.response?.data,
-            message: err?.message,
-          });
           attemptedRef.current.add(normalizedAddress);
           try { setTimeout(() => attemptedRef.current.delete(normalizedAddress), 30000); } catch { }
           const msg = err?.response?.data?.message || 'Failed to link wallet';

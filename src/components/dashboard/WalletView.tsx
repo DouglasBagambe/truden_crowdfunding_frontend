@@ -5,8 +5,10 @@ import { Activity, Wallet, TrendingUp, TrendingDown, Loader2, Send } from 'lucid
 import { walletService, type WalletBalance } from '@/lib/wallet-service';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { useRoiAccess } from '@/hooks/useRoiAccess';
 
 export function WalletView() {
+    const { hasRoiAccess } = useRoiAccess();
     const [wallet, setWallet] = useState<any>(null);
     const [balance, setBalance] = useState<WalletBalance | null>(null);
     const [transactions, setTransactions] = useState<any[]>([]);
@@ -28,8 +30,7 @@ export function WalletView() {
             setWallet(walletData);
             setBalance(balanceData);
             setTransactions(txData);
-        } catch (error) {
-            console.error('Error loading wallet:', error);
+        } catch {
         } finally {
             setLoading(false);
         }
@@ -43,7 +44,8 @@ export function WalletView() {
         );
     }
 
-    const ugxBalance = balance?.fiatBalance?.UGX ?? 0;
+    const charityBalance = balance?.fiatBalance?.UGX ?? 0;
+    const roiBalance = balance?.roiBalance?.UGX ?? 0;
 
     return (
         <motion.div
@@ -67,21 +69,56 @@ export function WalletView() {
                                 <h2 className="text-2xl font-black tracking-tight">Keibo Wallet</h2>
                             </div>
 
-                            <div className="space-y-1">
-                                <p className="text-white/70 text-xs font-black uppercase tracking-widest">Withdrawable Balance</p>
-                                <div className="flex items-baseline gap-2">
-                                    <span className="text-sm font-bold opacity-60">UGX</span>
-                                    <h3 className="text-5xl font-black">
-                                        {ugxBalance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                                    </h3>
+                            <div className={`flex flex-col ${hasRoiAccess ? 'md:flex-row gap-6' : 'gap-4'}`}>
+                                <div className="space-y-1 flex-1">
+                                    <p className="text-white/70 text-xs font-black uppercase tracking-widest">Charity Balance</p>
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="text-sm font-bold opacity-60">UGX</span>
+                                        <h3 className="text-4xl font-black">
+                                            {charityBalance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                        </h3>
+                                    </div>
+                                    <p className="text-white/50 text-[10px] mt-1 pr-4">
+                                        Available funding from charity donations. Withdraw anytime directly to mobile money or bank.
+                                    </p>
                                 </div>
-                                <p className="text-white/50 text-xs mt-1">
-                                    Your balance from donations received. Withdraw anytime to mobile money or bank.
-                                </p>
+
+                                {hasRoiAccess && (
+                                    <>
+                                        <div className="w-px bg-white/10 hidden md:block"></div>
+
+                                        <div className="space-y-1 flex-1">
+                                            <p className="text-white/70 text-xs font-black uppercase tracking-widest">ROI Investment Balance</p>
+                                            <div className="flex items-baseline gap-2">
+                                                <span className="text-sm font-bold opacity-60">UGX</span>
+                                                <h3 className="text-4xl font-black">
+                                                    {roiBalance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                                </h3>
+                                            </div>
+                                            <p className="text-white/50 text-[10px] mt-1 pr-4">
+                                                Locked funding from your ROI projects. Withdrawable only from the Projects page upon 100% target completion.
+                                            </p>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
 
-
+                        {hasRoiAccess && (
+                            <div className="pt-6 border-t border-white/10">
+                                <p className="text-white/70 text-[10px] font-black uppercase tracking-widest mb-4">Crypto Balances (Coming Soon)</p>
+                                <div className="flex gap-4">
+                                    <div className="bg-white/10 rounded-xl p-3 flex-1 backdrop-blur-sm border border-white/5 opacity-50">
+                                        <p className="text-white/50 text-[10px] uppercase font-bold tracking-wider mb-1">USDT (TRC20)</p>
+                                        <p className="font-black">0.00</p>
+                                    </div>
+                                    <div className="bg-white/10 rounded-xl p-3 flex-1 backdrop-blur-sm border border-white/5 opacity-50">
+                                        <p className="text-white/50 text-[10px] uppercase font-bold tracking-wider mb-1">USDC (ERC20)</p>
+                                        <p className="font-black">0.00</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex flex-col gap-3 justify-center min-w-[200px]">
@@ -110,7 +147,7 @@ export function WalletView() {
                 {transactions.length === 0 ? (
                     <div className="py-16 text-center bg-[var(--card)] rounded-3xl border border-[var(--border)] border-dashed">
                         <p className="text-[var(--text-muted)] font-medium">No transactions yet.</p>
-                        <p className="text-xs text-[var(--text-muted)] mt-1 opacity-70">Donations you receive will appear here.</p>
+                        <p className="text-xs text-[var(--text-muted)] mt-1 opacity-70">Funds you receive will appear here.</p>
                     </div>
                 ) : (
                     <div className="space-y-3">
@@ -121,8 +158,8 @@ export function WalletView() {
                             >
                                 <div className="flex items-center gap-4">
                                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${tx.amount > 0
-                                        ? 'bg-emerald-500/10 text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white'
-                                        : 'bg-rose-500/10 text-rose-600 group-hover:bg-rose-500 group-hover:text-white'
+                                        ? 'bg-emerald-100 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white dark:bg-emerald-950/30 dark:text-emerald-300'
+                                        : 'bg-rose-100 text-rose-700 group-hover:bg-rose-600 group-hover:text-white dark:bg-rose-950/30 dark:text-rose-300'
                                         }`}>
                                         {tx.amount > 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
                                     </div>
@@ -130,7 +167,7 @@ export function WalletView() {
                                         <p className="font-bold text-[var(--text-main)]">
                                             {tx.amount < 0
                                                 ? 'Withdrawal'
-                                                : 'Donation Received'}
+                                                : tx.type === 'INVESTMENT' ? 'Investment Received' : 'Donation Received'}
                                         </p>
                                         <p className="text-xs text-[var(--text-muted)] font-medium">
                                             {new Date(tx.createdAt).toLocaleDateString()} at {new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -138,10 +175,10 @@ export function WalletView() {
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className={`text-lg font-black ${tx.amount > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                    <p className={`text-lg font-black ${tx.amount > 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'}`}>
                                         {tx.amount > 0 ? '+' : ''}{tx.currency} {Math.abs(tx.amount).toLocaleString()}
                                     </p>
-                                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-[var(--secondary)] text-[var(--text-muted)]">
+                                    <span className="chip-base chip-compact chip-neutral rounded-md">
                                         {tx.status}
                                     </span>
                                 </div>

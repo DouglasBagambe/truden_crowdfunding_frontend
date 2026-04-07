@@ -82,7 +82,7 @@ export default function AdminKycPage() {
         </header>
 
         {error && (
-          <div className="p-4 rounded-2xl border border-red-500/20 bg-red-500/10 text-red-300 text-sm font-medium">
+          <div className="p-4 rounded-2xl border border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-200 text-sm font-medium">
             {error}
           </div>
         )}
@@ -127,21 +127,23 @@ export default function AdminKycPage() {
               <div key={p._id} className="p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
                 <div className="lg:col-span-5 space-y-1">
                   <div className="flex items-center gap-3 flex-wrap">
-                    <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-300">
+                    <span className="chip-base chip-compact chip-warning">
                       {p.status}
                     </span>
-                    <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-slate-500/10 text-slate-300">
+                    <span className="chip-base chip-compact chip-neutral">
                       userKyc: {p.userKycStatus}
                     </span>
-                    <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-slate-500/10 text-slate-300">
+                    <span className="chip-base chip-compact chip-neutral">
                       docs: {p.documentCount}
                     </span>
                   </div>
 
                   <p className="text-sm font-black break-words">Profile: {p.id}</p>
-                  <p className="text-xs text-[var(--text-muted)] font-semibold break-words">User: {p.userId}</p>
+                  <p className="text-xs text-[var(--text-muted)] font-semibold break-words">
+                    User: {p.userName || 'Unknown'} {p.userEmail ? `(${p.userEmail})` : ''} — {p.userId}
+                  </p>
                   {p.rejectionReason && (
-                    <p className="text-xs text-rose-300 font-bold break-words">Reason: {p.rejectionReason}</p>
+                    <p className="text-xs text-rose-700 dark:text-rose-300 font-bold break-words">Reason: {p.rejectionReason}</p>
                   )}
                 </div>
 

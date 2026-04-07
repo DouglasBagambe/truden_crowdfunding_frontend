@@ -76,6 +76,15 @@ export const projectService = {
    * Get project details (works for all statuses including DRAFT)
    */
   async getProject(id: string) {
+    try {
+      const ownerResponse = await apiClient.get(`/projects/${id}/owner`);
+      return ownerResponse.data;
+    } catch (error: any) {
+      if (error?.response?.status && error.response.status !== 401 && error.response.status !== 403) {
+        throw error;
+      }
+    }
+
     const response = await apiClient.get(`/projects/${id}`);
     return response.data;
   },
@@ -168,14 +177,35 @@ export const projectService = {
         'Content-Type': 'multipart/form-data',
       },
     });
-    return response.data;
+    const data = response.data || {};
+    const apiBase = String(apiClient.defaults.baseURL || '').replace(/\/+$/, '');
+    const origin = apiBase.replace(/\/api$/, '');
+
+    const toAbsoluteUrl = (value?: string) => {
+      if (!value || typeof value !== 'string') return '';
+      if (/^https?:\/\//i.test(value)) return value;
+      if (value.startsWith('/api/')) return `${origin}${value}`;
+      if (value.startsWith('/projects/files/')) return `${origin}/api${value}`;
+      if (value.startsWith('/')) return `${origin}${value}`;
+      return '';
+    };
+
+    return {
+      ...data,
+      url:
+        toAbsoluteUrl(data.url) ||
+        toAbsoluteUrl(data.fileUrl) ||
+        toAbsoluteUrl(data.path) ||
+        toAbsoluteUrl(data.location) ||
+        (data.fileId ? `${origin}/api/projects/files/${data.fileId}` : ''),
+    };
   },
 
   /**
    * Simple invest (deprecated in favor of flutterwave/wallet flow)
    */
   async invest(data: { projectId: string; amount: number; txHash?: string }) {
-    const response = await apiClient.post('/investments/invest', data);
-    return response.data;
+    void data;
+    throw new Error('Direct investment creation is disabled. Use the DPO checkout flow.');
   }
 };

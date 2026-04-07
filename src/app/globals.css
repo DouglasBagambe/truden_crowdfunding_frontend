@@ -11,136 +11,213 @@
   --color-text-muted: var(--text-muted);
 }
 
-/* Base Design System - Light Mode (Figma) */
+/* ── Light Mode ────────────────────────────────────────── */
 :root {
-  --background: #f6f8fb;
-  --foreground: #111827;
-  --primary: #0c3b92;
-  --primary-hover: #0a2f75;
-  --secondary: #e0e7ff;
+  --background: #f4f6f9;
+  --foreground: #0f172a;
+  --primary: #1a56db;
+  --primary-hover: #1447c0;
+  --secondary: #eef2f8;
   --card: #ffffff;
-  --border: #e5e7eb;
-  --text-main: #111827;
-  --text-muted: #6b7280;
+  --border: #e2e8f0;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
   --input-bg: #ffffff;
   --brand-success: #10b981;
-  --accent-roi: #2563eb;
-  --accent-roi-hover: #1d4ed8;
-  --accent-charity: #16a34a;
-  --accent-charity-hover: #15803d;
+  --accent-roi: #1d4ed8;
+  --accent-roi-hover: #1e40af;
+  --accent-charity: #059669;
+  --accent-charity-hover: #047857;
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --chip-neutral-bg: #e9eef5;
+  --chip-neutral-border: #ced8e6;
+  --chip-neutral-text: #334155;
+  --chip-info-bg: #dce9ff;
+  --chip-info-border: #bfd3fb;
+  --chip-info-text: #1d4ed8;
+  --chip-success-bg: #dff8ec;
+  --chip-success-border: #aee8c8;
+  --chip-success-text: #0f7a52;
+  --chip-warning-bg: #fff1cf;
+  --chip-warning-border: #f4cd84;
+  --chip-warning-text: #8a5a00;
+  --chip-danger-bg: #ffe1e1;
+  --chip-danger-border: #f4b5b5;
+  --chip-danger-text: #a61b1b;
+  --chip-violet-bg: #efe7ff;
+  --chip-violet-border: #d8c8ff;
+  --chip-violet-text: #6d28d9;
 }
 
-/* Base Design System - Dark Mode (Premium) */
+/* ── Dark Mode ─────────────────────────────────────────── */
 .dark {
-  --background: #0b1220;
-  --foreground: #f8fafc;
-  --primary: #3b82f6;
-  --primary-hover: #60a5fa;
-  --secondary: #111a2e;
-  --card: #0f1a2f;
-  --border: #1f2a44;
-  --text-main: #f8fafc;
-  --text-muted: #a3b2c8;
-  --input-bg: #0f1a2f;
+  --background: #09101f;
+  --foreground: #f1f5f9;
+  --primary: #4b8dff;
+  --primary-hover: #6aa3ff;
+  --secondary: #0e1929;
+  --card: #0d1828;
+  --border: #1e2d45;
+  --text-main: #f1f5f9;
+  --text-muted: #8fa3c1;
+  --input-bg: #0d1828;
   --brand-success: #34d399;
   --accent-roi: #60a5fa;
   --accent-roi-hover: #3b82f6;
   --accent-charity: #34d399;
   --accent-charity-hover: #22c55e;
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.25);
+  --chip-neutral-bg: #172335;
+  --chip-neutral-border: #30425d;
+  --chip-neutral-text: #d9e4f3;
+  --chip-info-bg: #142744;
+  --chip-info-border: #275083;
+  --chip-info-text: #c6ddff;
+  --chip-success-bg: #112b25;
+  --chip-success-border: #255648;
+  --chip-success-text: #a9f2d0;
+  --chip-warning-bg: #33260d;
+  --chip-warning-border: #6c4d15;
+  --chip-warning-text: #ffd98c;
+  --chip-danger-bg: #33171d;
+  --chip-danger-border: #6c2935;
+  --chip-danger-text: #ffc3cc;
+  --chip-violet-bg: #241a44;
+  --chip-violet-border: #4d3981;
+  --chip-violet-text: #ddceff;
 }
 
 @layer base {
   body {
     @apply bg-brand-background text-text-main transition-colors duration-300;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  * {
+    box-sizing: border-box;
   }
 }
 
 @layer components {
-  /* Standardized component classes using CSS variables */
-  
   .button_primary {
-    @apply bg-[var(--primary)] text-white font-bold py-3 px-8 rounded-xl transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 shadow-lg shadow-blue-500/10;
+    @apply bg-[var(--primary)] text-white font-semibold py-2.5 px-6 rounded-xl transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
   }
 
   .button_secondary {
-    @apply bg-[var(--secondary)] text-[var(--primary)] font-bold py-3 px-8 rounded-xl transition-all hover:opacity-80 active:scale-95 border border-[var(--primary)]/10;
+    @apply bg-[var(--secondary)] text-[var(--text-main)] font-semibold py-2.5 px-6 rounded-xl transition-all hover:opacity-80 active:scale-[0.98] border border-[var(--border)];
   }
 
   .input_field {
-    @apply w-full bg-[var(--input-bg)] border border-[var(--border)] rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all text-[var(--text-main)] placeholder:text-[var(--text-muted)]/50 font-medium;
+    @apply w-full bg-[var(--input-bg)] border border-[var(--border)] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]/40 transition-all text-[var(--text-main)] placeholder:text-[var(--text-muted)]/60 font-medium text-sm;
   }
 
   .card_base {
-    @apply bg-[var(--card)] rounded-2xl shadow-sm border border-[var(--border)] p-8 transition-all duration-300;
+    @apply bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 transition-all duration-200;
+    box-shadow: var(--shadow-card);
   }
 
   .glass_card {
-    @apply bg-[var(--card)] border border-[var(--border)] rounded-[2.5rem] shadow-sm;
+    @apply bg-[var(--card)] border border-[var(--border)] rounded-2xl;
   }
 
   .typography_h1 {
-    @apply text-4xl md:text-5xl lg:text-6xl font-black text-[var(--text-main)] tracking-tight leading-[1.1];
+    @apply text-3xl md:text-4xl lg:text-5xl font-bold text-[var(--text-main)] tracking-tight leading-tight;
   }
 
   .typography_h2 {
-    @apply text-3xl md:text-4xl font-bold text-[var(--text-main)] tracking-tight;
+    @apply text-2xl md:text-3xl font-bold text-[var(--text-main)] tracking-tight;
   }
 
   .typography_body {
-    @apply text-base text-[var(--text-muted)] leading-relaxed;
+    @apply text-sm text-[var(--text-muted)] leading-relaxed;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold;
+  }
+
+  .chip-base {
+    @apply inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold;
+  }
+
+  .chip-compact {
+    @apply px-2.5 py-1 text-[10px] font-black uppercase tracking-widest;
+  }
+
+  .chip-neutral {
+    background: var(--chip-neutral-bg);
+    border-color: var(--chip-neutral-border);
+    color: var(--chip-neutral-text);
+  }
+
+  .chip-info {
+    background: var(--chip-info-bg);
+    border-color: var(--chip-info-border);
+    color: var(--chip-info-text);
+  }
+
+  .chip-success {
+    background: var(--chip-success-bg);
+    border-color: var(--chip-success-border);
+    color: var(--chip-success-text);
+  }
+
+  .chip-warning {
+    background: var(--chip-warning-bg);
+    border-color: var(--chip-warning-border);
+    color: var(--chip-warning-text);
+  }
+
+  .chip-danger {
+    background: var(--chip-danger-bg);
+    border-color: var(--chip-danger-border);
+    color: var(--chip-danger-text);
+  }
+
+  .chip-violet {
+    background: var(--chip-violet-bg);
+    border-color: var(--chip-violet-border);
+    color: var(--chip-violet-text);
   }
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
+  height: 5px;
 }
-
 ::-webkit-scrollbar-track {
-  background: var(--background);
+  background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 10px;
 }
-
 .dark ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #2a3d58;
 }
 
-/* Utility for hiding scrollbars but keeping functionality */
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
+/* Hide scrollbar but keep scroll */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Mobile safe area support */
+/* Mobile safe area */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 }
 
-/* Better tap targets on mobile */
+/* Mobile tap target + input zoom fix */
 @media (max-width: 768px) {
-  button, a {
-    -webkit-tap-highlight-color: transparent;
-  }
-  
-  /* Prevent zoom on input focus on iOS */
-  input, select, textarea {
-    font-size: 16px;
-  }
+  button, a { -webkit-tap-highlight-color: transparent; }
+  input, select, textarea { font-size: 16px; }
 }
 
-/* Smooth momentum scrolling on mobile */
-.overflow-x-auto,
-.overflow-y-auto {
-  -webkit-overflow-scrolling: touch;
-}
+/* Smooth momentum scroll on mobile */
+.overflow-x-auto, .overflow-y-auto { -webkit-overflow-scrolling: touch; }
 
+/* Focus-visible only, never on click */
+:focus:not(:focus-visible) { outline: none; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
