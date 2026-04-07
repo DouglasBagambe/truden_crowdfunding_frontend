@@ -389,7 +389,7 @@ export default function AdminPage() {
                 OVERVIEW — redesigned
             ══════════════════════════════════════════════════════════════ */}
             {activeTab === 'overview' && (
-              <div className="space-y-10 max-w-6xl">
+              <div className="w-full space-y-10">
 
                 {/* Page header */}
                 <div className="flex items-start justify-between gap-6">
