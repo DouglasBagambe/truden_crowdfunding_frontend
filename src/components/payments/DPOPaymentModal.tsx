@@ -1,613 +1,316 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-    X,
-    Loader2,
-    Smartphone,
-    CreditCard,
-    CheckCircle,
-    AlertCircle,
-    Clock,
-    Copy,
-    Check,
-} from 'lucide-react';
-import { dpoService } from '@/lib/dpo-service';
-import { useQueryClient } from '@tanstack/react-query';
+import React, { useEffect, useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { AlertCircle, ArrowRight, Heart, Loader2, Wallet, X } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import { useRoiAccess } from '@/hooks/useRoiAccess';
-import { isCharityProject } from '@/lib/roi-access';
+import { isCharityProject, isROIProject } from '@/lib/roi-access';
+import { paymentService } from '@/lib/payment-service';
 
-// ─── Types ────────────────────────────────────────────────────
-type PaymentMethod = 'mobile_money' | 'card';
-type MNO = 'MTN' | 'AIRTEL';
-type Step = 'method' | 'details' | 'wallet' | 'waiting' | 'success' | 'failed';
+interface PaymentProject {
+    id?: string;
+    _id?: string;
+    name?: string;
+    title?: string;
+    currency?: string;
+    projectType?: string;
+    type?: string;
+    [key: string]: unknown;
+}
 
 interface DPOPaymentModalProps {
     isOpen: boolean;
     onClose: () => void;
-    project: {
-        id?: string;
-        _id?: string;
+    project: PaymentProject;
+}
+
+function getDisplayName(user: unknown): string {
+    const currentUser = user as {
+        profile?: { firstName?: string; lastName?: string; displayName?: string };
+        firstName?: string;
+        lastName?: string;
         name?: string;
-        title?: string;
-        currency?: string;
-        projectType?: string;
-    };
+        fullName?: string;
+        email?: string;
+    } | null;
+
+    const firstName = currentUser?.profile?.firstName || currentUser?.firstName || '';
+    const lastName = currentUser?.profile?.lastName || currentUser?.lastName || '';
+    const combined = `${firstName} ${lastName}`.trim();
+
+    return combined
+        || currentUser?.profile?.displayName
+        || currentUser?.name
+        || currentUser?.fullName
+        || currentUser?.email
+        || '';
 }
 
-// ─── Helpers ─────────────────────────────────────────────────
-function formatPhone(raw: string) {
-    const digits = raw.replace(/\D/g, '');
-    if (digits.startsWith('0')) return '256' + digits.slice(1);
-    if (digits.startsWith('+')) return digits.slice(1);
-    return digits;
-}
-
-// ─── Component ───────────────────────────────────────────────
 export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPaymentModalProps) {
-    const queryClient = useQueryClient();
+    const { user, isAuthenticated } = useAuth();
     const { hasRoiAccess } = useRoiAccess();
-    const currency = project.currency || 'UGX';
+
     const projectId = String(project.id || project._id || '');
+    const projectName = project.name || project.title || 'Untitled Project';
+    const currency = project.currency || 'UGX';
+    const isCharity = isCharityProject(project);
+    const isROI = isROIProject(project);
+    const donorQuickAmounts = useMemo(() => [5000, 10000, 50000, 100000], []);
+    const investmentQuickAmounts = useMemo(() => [50000, 100000, 500000, 1000000], []);
 
-    // State
-    const [step, setStep] = useState<Step>('method');
-    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('mobile_money');
-    const [mno, setMno] = useState<MNO>('MTN');
     const [amount, setAmount] = useState('');
-    const [phone, setPhone] = useState('');
-    const [error, setError] = useState('');
-    const [instructions, setInstructions] = useState<string | null>(null);
-    const [token, setToken] = useState<string | null>(null);
-    const [pollPercent, setPollPercent] = useState(0);
-    const [copiedPhone, setCopiedPhone] = useState(false);
-
-    // Card fields
-    const [cardNumber, setCardNumber] = useState('');
-    const [cardExpiry, setCardExpiry] = useState('');
-    const [cardCvv, setCardCvv] = useState('');
-    const [cardName, setCardName] = useState('');
-
-    // Wallet (NFT) — only relevant for ROI projects
+    const [donorName, setDonorName] = useState('');
     const [walletAddress, setWalletAddress] = useState('');
-    const isROI = hasRoiAccess && !isCharityProject(project);
+    const [error, setError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const reset = useCallback(() => {
-        setStep('method');
-        setAmount('');
-        setPhone('');
-        setError('');
-        setInstructions(null);
-        setToken(null);
-        setPollPercent(0);
-        setCardNumber('');
-        setCardExpiry('');
-        setCardCvv('');
-        setCardName('');
-        setWalletAddress('');
-    }, []);
+    useEffect(() => {
+        if (!isOpen) {
+            setAmount('');
+            setDonorName('');
+            setWalletAddress('');
+            setError('');
+            setIsSubmitting(false);
+            return;
+        }
+
+        if (isCharity) {
+            setDonorName(getDisplayName(user));
+        }
+    }, [isCharity, isOpen, user]);
 
     const handleClose = () => {
-        reset();
+        if (isSubmitting) {
+            return;
+        }
         onClose();
     };
 
-    // ── Step 1: Proceed from method/amount ────────────────────────────────────
-    const handleProceed = () => {
-        setError('');
-        const amt = parseFloat(amount);
-        if (!amt || amt <= 0) {
-            setError('Please enter a valid amount');
+    const handleSubmit = async () => {
+        const normalizedAmount = Number(amount);
+        if (!projectId) {
+            setError('Project reference is missing.');
             return;
         }
-        // For ROI projects, ask for wallet address before entering payment details
-        if (isROI) {
-            setStep('wallet');
-        } else {
-            setStep('details');
+        if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
+            setError('Enter a valid amount.');
+            return;
         }
-    };
-
-    // ── Step 1b: Proceed from wallet step ────────────────────────────────────
-    const handleWalletProceed = () => {
-        // Wallet is optional — user can skip it (NFT won't be minted automatically)
-        setStep('details');
-    };
-
-    // ── Step 2: Submit payment ─────────────────────────────────────────────────
-    const handleSubmit = async () => {
-        setError('');
-        const amt = parseFloat(amount);
-        if (!amt || amt <= 0) { setError('Invalid amount'); return; }
+        if (isROI && !hasRoiAccess) {
+            setError('ROI investments are currently restricted.');
+            return;
+        }
+        if (isROI && !isAuthenticated) {
+            window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+            return;
+        }
+        if (isROI && !walletAddress.trim()) {
+            setError('Wallet address is required so your NFT can be minted.');
+            return;
+        }
 
         try {
-            setStep('waiting');
+            setError('');
+            setIsSubmitting(true);
 
-            let result;
-            if (paymentMethod === 'mobile_money') {
-                const formattedPhone = formatPhone(phone);
-                if (formattedPhone.length < 10) {
-                    setError('Please enter a valid phone number');
-                    setStep('details');
-                    return;
-                }
-                result = await dpoService.initialize({
-                    projectId,
-                    amount: amt,
-                    currency,
-                    paymentMethod: 'mobile_money',
-                    phoneNumber: formattedPhone,
-                    mno,
-                    walletAddress: walletAddress.trim() || undefined,
-                });
-            } else {
-                // Card
-                const [em, ey] = cardExpiry.split('/').map((s) => s.trim());
-                result = await dpoService.initialize({
-                    projectId,
-                    amount: amt,
-                    currency,
-                    paymentMethod: 'card',
-                    card: {
-                        number: cardNumber.replace(/\s/g, ''),
-                        expiryMonth: em ?? '',
-                        expiryYear: ey ? (ey.length === 2 ? `20${ey}` : ey) : '',
-                        cvv: cardCvv,
-                        holderName: cardName,
-                    },
-                    walletAddress: walletAddress.trim() || undefined,
-                });
-            }
+            const result = await paymentService.initializeDPOPayment({
+                projectId,
+                amount: normalizedAmount,
+                currency,
+                paymentMethod: 'card',
+                donorName: isCharity ? (donorName.trim() || 'Anonymous') : undefined,
+                walletAddress: isROI ? walletAddress.trim() : undefined,
+            });
 
-            setToken(result.token);
-            setInstructions(result.instructions);
-
-            // Poll for confirmation
-            const finalStatus = await dpoService.pollUntilComplete(
-                result.token,
-                (_status) => {
-                    setPollPercent((p) => Math.min(p + 8, 90));
-                },
-                36,
-                5000,
-            );
-
-            setPollPercent(100);
-
-            if (finalStatus === 'successful') {
-                queryClient.invalidateQueries({ queryKey: ['projects'] });
-                queryClient.invalidateQueries({ queryKey: ['investments'] });
-                setStep('success');
-            } else if (finalStatus === 'failed') {
-                setError('Payment was declined. Please try again or use a different method.');
-                setStep('failed');
-            } else {
-                setError('Payment timed out. Please check your phone for the USSD prompt and contact support if not resolved.');
-                setStep('failed');
-            }
-        } catch (err: any) {
-            const msg = err?.response?.data?.message || err?.message || 'Payment failed';
-            setError(msg);
-            setStep('failed');
+            window.location.href = result.redirectUrl;
+        } catch (err: unknown) {
+            const message =
+                (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message
+                || (err as { message?: string })?.message
+                || 'Failed to initialize payment. Please try again.';
+            setError(message);
+            setIsSubmitting(false);
         }
     };
 
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard?.writeText(text).then(() => {
-            setCopiedPhone(true);
-            setTimeout(() => setCopiedPhone(false), 2000);
-        });
-    };
+    if (isROI && !hasRoiAccess) {
+        return null;
+    }
 
-    // ── Render ─────────────────────────────────────────────────────────────────
     return (
         <AnimatePresence>
             {isOpen && (
                 <>
-                    {/* Backdrop */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        onClick={step !== 'waiting' ? handleClose : undefined}
-                        className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100]"
+                        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+                        onClick={handleClose}
                     />
 
-                    {/* Modal */}
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        initial={{ opacity: 0, scale: 0.96, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-[101] px-4"
+                        exit={{ opacity: 0, scale: 0.96, y: 20 }}
+                        transition={{ type: 'spring', stiffness: 280, damping: 28 }}
+                        className="fixed inset-0 z-[51] flex items-center justify-center px-4"
                     >
-                        <div className="bg-[var(--card)] rounded-3xl border border-[var(--border)] shadow-2xl overflow-hidden">
-
-                            {/* Header */}
-                            <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--border)]">
+                        <div className="w-full max-w-md overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-2xl">
+                            <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-5">
                                 <div>
                                     <h2 className="text-lg font-black text-[var(--text-main)]">
-                                        {step === 'success' ? '🎉 Payment Successful' :
-                                            step === 'failed' ? '⚠️ Payment Failed' :
-                                                step === 'waiting' ? 'Processing Payment…' :
-                                                    'Pay with DPO'}
+                                        {isCharity ? 'Donate to Project' : 'Invest in Project'}
                                     </h2>
-                                    <p className="text-xs text-[var(--text-muted)] mt-0.5 font-medium truncate max-w-[16rem]">
-                                        {project.name || project.title}
+                                    <p className="mt-0.5 text-xs font-medium text-[var(--text-muted)]">
+                                        {projectName}
                                     </p>
                                 </div>
-                                {step !== 'waiting' && (
-                                    <button
-                                        onClick={handleClose}
-                                        className="p-2 rounded-xl hover:bg-white/5 transition-colors"
-                                    >
-                                        <X className="w-5 h-5 text-[var(--text-muted)]" />
-                                    </button>
-                                )}
+                                <button
+                                    type="button"
+                                    onClick={handleClose}
+                                    className="rounded-xl p-2 transition hover:bg-white/5"
+                                >
+                                    <X className="h-5 w-5 text-[var(--text-muted)]" />
+                                </button>
                             </div>
 
-                            {/* Body */}
-                            <div className="p-6 space-y-5">
-
-                                {/* ── Step: method ─────────────────────────────────── */}
-                                {step === 'method' && (
-                                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
-                                        {/* Payment Method Tabs */}
-                                        <div className="grid grid-cols-2 gap-2 bg-[var(--secondary)] rounded-2xl p-1">
-                                            {(['mobile_money', 'card'] as PaymentMethod[]).map((m) => (
-                                                <button
-                                                    key={m}
-                                                    onClick={() => setPaymentMethod(m)}
-                                                    className={`flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${paymentMethod === m
-                                                        ? 'bg-[var(--primary)] text-white shadow-lg shadow-blue-500/20'
-                                                        : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
-                                                        }`}
-                                                >
-                                                    {m === 'mobile_money' ? <Smartphone className="w-4 h-4" /> : <CreditCard className="w-4 h-4" />}
-                                                    {m === 'mobile_money' ? 'Mobile Money' : 'Card'}
-                                                </button>
-                                            ))}
-                                        </div>
-
-                                        {/* MNO selection (mobile money only) */}
-                                        {paymentMethod === 'mobile_money' && (
-                                            <div className="grid grid-cols-2 gap-2">
-                                                {(['MTN', 'AIRTEL'] as MNO[]).map((n) => (
-                                                    <button
-                                                        key={n}
-                                                        onClick={() => setMno(n)}
-                                                        className={`py-3 rounded-2xl text-xs font-black uppercase tracking-widest border-2 transition-all ${mno === n
-                                                            ? n === 'MTN'
-                                                                ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400'
-                                                                : 'border-red-400 bg-red-400/10 text-red-400'
-                                                            : 'border-[var(--border)] text-[var(--text-muted)]'
-                                                            }`}
-                                                    >
-                                                        {n === 'MTN' ? '🟡 MTN MoMo' : '🔴 Airtel Money'}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        {/* Amount */}
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
-                                                Amount ({currency})
-                                            </label>
-                                            <div className="relative">
-                                                <input
-                                                    id="dpo-amount"
-                                                    type="number"
-                                                    min="1"
-                                                    value={amount}
-                                                    onChange={(e) => setAmount(e.target.value)}
-                                                    placeholder="0"
-                                                    className="input_field text-2xl font-bold py-5 pr-20"
-                                                />
-                                                <span className="absolute right-5 top-1/2 -translate-y-1/2 text-xs font-black text-[var(--text-muted)] uppercase tracking-widest">
-                                                    {currency}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        {error && (
-                                            <div className="flex items-center gap-2 p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-400 text-sm font-medium">
-                                                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                                                {error}
-                                            </div>
-                                        )}
-
-                                        <button
-                                            onClick={handleProceed}
-                                            className="w-full py-4 bg-[var(--primary)] text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:opacity-90 active:scale-[0.98] transition-all shadow-xl shadow-blue-500/20"
-                                        >
-                                            Continue →
-                                        </button>
-                                    </motion.div>
-                                )}
-
-                                {/* ── Step: wallet ─────────────────────────────────── */}
-                                {step === 'wallet' && (
-                                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
-                                        <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-2xl p-4 flex gap-3">
-                                            <span className="text-2xl">🎫</span>
-                                            <div>
-                                                <p className="font-black text-sm text-[var(--text-main)]">Receive your Investment NFT</p>
-                                                <p className="text-xs text-[var(--text-muted)] mt-1 font-medium">
-                                                    After payment, we'll mint an ERC-1155 NFT representing your stake.
-                                                    Provide your wallet address to receive it automatically. You can skip and claim later from your dashboard.
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
-                                                Your Wallet Address (optional)
-                                            </label>
-                                            <input
-                                                id="dpo-wallet-address"
-                                                type="text"
-                                                value={walletAddress}
-                                                onChange={(e) => setWalletAddress(e.target.value)}
-                                                placeholder="0x..."
-                                                className="input_field font-mono text-sm"
-                                            />
-                                            <p className="text-[10px] text-[var(--text-muted)] font-medium pl-1">
-                                                MetaMask, Coinbase Wallet, or any Ethereum-compatible wallet on Base network.
-                                            </p>
-                                        </div>
-
-                                        <div className="flex gap-3">
-                                            <button
-                                                onClick={() => setStep('method')}
-                                                className="flex-1 py-4 border border-[var(--border)] rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white/5 transition-all"
-                                            >
-                                                ← Back
-                                            </button>
-                                            <button
-                                                onClick={handleWalletProceed}
-                                                className="flex-[2] py-4 bg-[var(--primary)] text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:opacity-90 active:scale-[0.98] transition-all shadow-xl shadow-blue-500/20"
-                                            >
-                                                {walletAddress.trim() ? 'Continue →' : 'Skip & Continue →'}
-                                            </button>
-                                        </div>
-                                    </motion.div>
-                                )}
-
-                                {/* ── Step: details ────────────────────────────────── */}
-                                {step === 'details' && (
-                                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
-
-                                        {/* Summary */}
-                                        <div className="bg-[var(--secondary)] rounded-2xl p-4 flex items-center justify-between">
-                                            <span className="text-sm text-[var(--text-muted)] font-medium">Amount</span>
-                                            <span className="text-xl font-black">{currency} {parseFloat(amount).toLocaleString()}</span>
-                                        </div>
-
-                                        {paymentMethod === 'mobile_money' ? (
-                                            /* Mobile Money phone entry */
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
-                                                    {mno} Phone Number
-                                                </label>
-                                                <input
-                                                    id="dpo-phone"
-                                                    type="tel"
-                                                    value={phone}
-                                                    onChange={(e) => setPhone(e.target.value)}
-                                                    placeholder="e.g. 0701234567"
-                                                    className="input_field"
-                                                />
-                                                <p className="text-[10px] text-[var(--text-muted)] font-medium pl-1">
-                                                    You'll receive a USSD prompt on this number to approve the payment.
-                                                </p>
-                                            </div>
+                            <div className="space-y-5 px-6 py-6">
+                                <div className={`rounded-2xl border px-4 py-3 ${isCharity ? 'border-emerald-500/20 bg-emerald-500/10' : 'border-blue-500/20 bg-blue-500/10'}`}>
+                                    <div className="flex items-start gap-3">
+                                        {isCharity ? (
+                                            <Heart className="mt-0.5 h-5 w-5 text-emerald-400" />
                                         ) : (
-                                            /* Card fields */
-                                            <div className="space-y-4">
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Card Number</label>
-                                                    <input
-                                                        id="dpo-card-number"
-                                                        type="text"
-                                                        inputMode="numeric"
-                                                        maxLength={19}
-                                                        value={cardNumber}
-                                                        onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim())}
-                                                        placeholder="1234 5678 9012 3456"
-                                                        className="input_field font-mono tracking-widest"
-                                                    />
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <div className="space-y-2">
-                                                        <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Expiry (MM/YY)</label>
-                                                        <input
-                                                            id="dpo-card-expiry"
-                                                            type="text"
-                                                            maxLength={5}
-                                                            value={cardExpiry}
-                                                            onChange={(e) => {
-                                                                let v = e.target.value.replace(/\D/g, '');
-                                                                if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2, 4);
-                                                                setCardExpiry(v);
-                                                            }}
-                                                            placeholder="MM/YY"
-                                                            className="input_field font-mono"
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">CVV</label>
-                                                        <input
-                                                            id="dpo-card-cvv"
-                                                            type="text"
-                                                            maxLength={4}
-                                                            value={cardCvv}
-                                                            onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, ''))}
-                                                            placeholder="123"
-                                                            className="input_field font-mono"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Cardholder Name</label>
-                                                    <input
-                                                        id="dpo-card-name"
-                                                        type="text"
-                                                        value={cardName}
-                                                        onChange={(e) => setCardName(e.target.value)}
-                                                        placeholder="Full name on card"
-                                                        className="input_field"
-                                                    />
-                                                </div>
-                                            </div>
+                                            <Wallet className="mt-0.5 h-5 w-5 text-blue-400" />
                                         )}
-
-                                        {error && (
-                                            <div className="flex items-center gap-2 p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-400 text-sm font-medium">
-                                                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                                                {error}
-                                            </div>
-                                        )}
-
-                                        <div className="flex gap-3">
-                                            <button
-                                                onClick={() => { setStep('method'); setError(''); }}
-                                                className="flex-1 py-4 border border-[var(--border)] rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white/5 transition-all"
-                                            >
-                                                ← Back
-                                            </button>
-                                            <button
-                                                onClick={handleSubmit}
-                                                className="flex-[2] py-4 bg-[var(--primary)] text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:opacity-90 active:scale-[0.98] transition-all shadow-xl shadow-blue-500/20"
-                                            >
-                                                Pay {currency} {parseFloat(amount).toLocaleString()}
-                                            </button>
-                                        </div>
-                                    </motion.div>
-                                )}
-
-                                {/* ── Step: waiting ────────────────────────────────── */}
-                                {step === 'waiting' && (
-                                    <motion.div
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        className="flex flex-col items-center gap-6 py-4"
-                                    >
-                                        <div className="relative w-20 h-20">
-                                            <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
-                                                <circle cx="40" cy="40" r="34" fill="none" stroke="var(--border)" strokeWidth="6" />
-                                                <circle
-                                                    cx="40" cy="40" r="34" fill="none"
-                                                    stroke="var(--primary)" strokeWidth="6"
-                                                    strokeDasharray={`${2 * Math.PI * 34}`}
-                                                    strokeDashoffset={`${2 * Math.PI * 34 * (1 - pollPercent / 100)}`}
-                                                    strokeLinecap="round"
-                                                    style={{ transition: 'stroke-dashoffset 0.5s ease' }}
-                                                />
-                                            </svg>
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                <Clock className="w-7 h-7 text-[var(--primary)] animate-pulse" />
-                                            </div>
-                                        </div>
-
-                                        <div className="text-center space-y-2">
-                                            <p className="font-black text-[var(--text-main)]">Waiting for Payment</p>
-                                            {paymentMethod === 'mobile_money' && instructions && (
-                                                <div className="bg-[var(--secondary)] rounded-2xl p-4 text-left space-y-3 max-w-sm">
-                                                    <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">USSD Instructions:</p>
-                                                    <p className="text-sm text-[var(--text-main)] font-medium leading-relaxed">{instructions}</p>
-                                                    <button
-                                                        onClick={() => copyToClipboard(phone)}
-                                                        className="flex items-center gap-2 text-xs font-bold text-[var(--primary)] hover:underline"
-                                                    >
-                                                        {copiedPhone ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                                                        {copiedPhone ? 'Copied!' : 'Copy phone number'}
-                                                    </button>
-                                                </div>
-                                            )}
-                                            <p className="text-xs text-[var(--text-muted)] font-medium">
-                                                Checking every 5 seconds · Do not close this window
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-bold text-[var(--text-main)]">
+                                                {isCharity ? 'You will continue on DPO Pay.' : 'You will continue on DPO Pay.'}
+                                            </p>
+                                            <p className="text-xs leading-relaxed text-[var(--text-muted)]">
+                                                {isCharity
+                                                    ? 'DPO handles the payment page and method selection after this step.'
+                                                    : 'ROI investments require a wallet address so the NFT can be minted to the correct owner after payment confirmation.'}
                                             </p>
                                         </div>
-                                    </motion.div>
-                                )}
-
-                                {/* ── Step: success ────────────────────────────────── */}
-                                {step === 'success' && (
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.9 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        className="flex flex-col items-center gap-4 py-6 text-center"
-                                    >
-                                        <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center border border-emerald-500/20">
-                                            <CheckCircle className="w-10 h-10 text-emerald-400" />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-xl font-black text-[var(--text-main)]">Investment Confirmed! 🎫</h3>
-                                            <p className="text-sm text-[var(--text-muted)] mt-1 font-medium">
-                                                {currency} {parseFloat(amount).toLocaleString()} received. Your investment has been recorded.
-                                            </p>
-                                            {isROI && walletAddress && (
-                                                <p className="text-xs text-purple-400 mt-2 font-medium">
-                                                    🎫 NFT will be minted to {walletAddress.slice(0, 6)}…{walletAddress.slice(-4)} shortly.
-                                                </p>
-                                            )}
-                                            {isROI && !walletAddress && (
-                                                <p className="text-xs text-gray-400 mt-2">
-                                                    Connect your wallet in the Dashboard → My NFTs to claim your NFT stake.
-                                                </p>
-                                            )}
-                                        </div>
-                                        <button
-                                            onClick={handleClose}
-                                            className="mt-2 px-8 py-3 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all"
-                                        >
-                                            Done
-                                        </button>
-                                    </motion.div>
-                                )}
-
-                                {/* ── Step: failed ─────────────────────────────────── */}
-                                {step === 'failed' && (
-                                    <motion.div
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        className="flex flex-col items-center gap-4 py-4 text-center"
-                                    >
-                                        <div className="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center border border-rose-500/20">
-                                            <AlertCircle className="w-8 h-8 text-rose-400" />
-                                        </div>
-                                        <div>
-                                            <h3 className="font-black text-[var(--text-main)]">Payment Failed</h3>
-                                            <p className="text-sm text-[var(--text-muted)] mt-1 font-medium max-w-xs">{error}</p>
-                                        </div>
-                                        <div className="flex gap-3 w-full">
-                                            <button
-                                                onClick={() => { setStep('method'); setError(''); setPollPercent(0); }}
-                                                className="flex-1 py-3 bg-[var(--primary)] text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all"
-                                            >
-                                                Try Again
-                                            </button>
-                                            <button
-                                                onClick={handleClose}
-                                                className="flex-1 py-3 border border-[var(--border)] rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white/5 transition-all"
-                                            >
-                                                Cancel
-                                            </button>
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </div>
-
-                            {/* Footer */}
-                            {(step === 'method' || step === 'details') && (
-                                <div className="px-6 pb-5 text-center">
-                                    <p className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-widest opacity-60">
-                                        Secured by DPO Group · PCI DSS Compliant
-                                    </p>
+                                    </div>
                                 </div>
-                            )}
+
+                                {isCharity && (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                                                Donor Name
+                                            </label>
+                                            <span className="text-[10px] font-medium text-[var(--text-muted)]">
+                                                Leave blank for anonymous
+                                            </span>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={donorName}
+                                            onChange={(event) => setDonorName(event.target.value)}
+                                            placeholder="Anonymous"
+                                            className="input_field"
+                                        />
+                                    </div>
+                                )}
+
+                                {isROI && (
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                                            Investor Wallet Address
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={walletAddress}
+                                            onChange={(event) => setWalletAddress(event.target.value)}
+                                            placeholder="0x..."
+                                            className="input_field"
+                                            autoCapitalize="off"
+                                            autoCorrect="off"
+                                            spellCheck={false}
+                                        />
+                                        <p className="text-xs text-[var(--text-muted)]">
+                                            This address is used for NFT minting after the payment is confirmed.
+                                        </p>
+                                    </div>
+                                )}
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                                        Amount ({currency})
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        step="500"
+                                        value={amount}
+                                        onChange={(event) => setAmount(event.target.value)}
+                                        placeholder={isCharity ? 'e.g. 10000' : 'e.g. 100000'}
+                                        className="input_field"
+                                        autoFocus
+                                    />
+                                </div>
+
+                                <div className="flex flex-wrap gap-2">
+                                    {(isCharity ? donorQuickAmounts : investmentQuickAmounts).map((quickAmount) => (
+                                        <button
+                                            key={quickAmount}
+                                            type="button"
+                                            onClick={() => setAmount(String(quickAmount))}
+                                            className={`rounded-xl border px-3 py-1.5 text-xs font-black transition-all ${
+                                                amount === String(quickAmount)
+                                                    ? 'border-[var(--primary)] bg-[var(--primary)] text-white'
+                                                    : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--primary)]/50'
+                                            }`}
+                                        >
+                                            {quickAmount.toLocaleString()}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {error && (
+                                    <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+                                        <div className="flex items-start gap-2">
+                                            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                                            <span>{error}</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="flex gap-3 pt-1">
+                                    <button
+                                        type="button"
+                                        onClick={handleClose}
+                                        disabled={isSubmitting}
+                                        className="flex-1 rounded-2xl border border-[var(--border)] py-3 text-[10px] font-black uppercase tracking-widest transition hover:bg-white/5 disabled:opacity-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleSubmit}
+                                        disabled={isSubmitting}
+                                        className={`flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-[10px] font-black uppercase tracking-widest text-white transition disabled:opacity-50 ${
+                                            isCharity ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-blue-600 hover:bg-blue-500'
+                                        }`}
+                                    >
+                                        {isSubmitting ? (
+                                            <>
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                Redirecting...
+                                            </>
+                                        ) : (
+                                            <>
+                                                Continue to DPO
+                                                <ArrowRight className="h-4 w-4" />
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </motion.div>
                 </>

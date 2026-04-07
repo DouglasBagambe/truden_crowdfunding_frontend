@@ -13,10 +13,10 @@ import Footer from '@/components/layout/Footer';
 import Image from 'next/image';
 import { projectService } from '@/lib/project-service';
 import { useAuth } from '@/hooks/useAuth';
-import { paymentService } from '@/lib/payment-service';
 import { useRoiAccess } from '@/hooks/useRoiAccess';
 import { isCharityProject, isROIProject } from '@/lib/roi-access';
 import toast from 'react-hot-toast';
+import DPOPaymentModal from '@/components/payments/DPOPaymentModal';
 
 export default function ProjectDetailPage() {
     const params = useParams();
@@ -34,23 +34,10 @@ export default function ProjectDetailPage() {
     const [copySuccess, setCopySuccess] = useState(false);
     const [isSubmittingForReview, setIsSubmittingForReview] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-    const [paymentMode, setPaymentMode] = useState<'donate' | 'invest'>('donate');
-    const [paymentAmount, setPaymentAmount] = useState('');
-    const [isInitiatingPayment, setIsInitiatingPayment] = useState(false);
-    const [paymentError, setPaymentError] = useState('');
 
     // Donors (charity projects)
     const [donors, setDonors] = useState<any[]>([]);
     const [donorsLoading, setDonorsLoading] = useState(false);
-
-    // Donate modal
-    const [isDonateOpen, setIsDonateOpen] = useState(false);
-    const [donationAmount, setDonationAmount] = useState('');
-    const [donorName, setDonorName] = useState('');
-    const [donationError, setDonationError] = useState('');
-    const [isDonating, setIsDonating] = useState(false);
-
-    // Donate/Invest combined modal handled above
 
     const isCharity = isCharityProject(project);
     const isRoi = isROIProject(project);
@@ -63,24 +50,7 @@ export default function ProjectDetailPage() {
     ] : [];
     const currentMedia = mediaItems[mediaIndex];
 
-    const getPrefillDonorName = () => {
-        const u = user as any;
-        const firstName = u?.profile?.firstName || u?.firstName;
-        const lastName = u?.profile?.lastName || u?.lastName;
-        const combined = `${typeof firstName === 'string' ? firstName : ''} ${typeof lastName === 'string' ? lastName : ''}`.trim();
-        const fallback = u?.profile?.displayName || u?.name || u?.fullName;
-        const email = u?.email;
-        const profileName = (combined || fallback || email || '').toString().trim();
-        return profileName;
-    };
-
     const openDonateModal = () => {
-        // Anyone can donate — no login required
-        setPaymentMode('donate');
-        setPaymentAmount('');
-        // Pre-fill name from profile if logged in, empty otherwise (shown as Anonymous)
-        setDonorName(isAuthenticated ? (getPrefillDonorName() || '') : '');
-        setPaymentError('');
         setIsPaymentModalOpen(true);
     };
 
@@ -89,42 +59,7 @@ export default function ProjectDetailPage() {
             window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
             return;
         }
-        setPaymentMode('invest');
-        setPaymentAmount('');
-        setPaymentError('');
         setIsPaymentModalOpen(true);
-    };
-
-    const handleDPOPayment = async () => {
-        const amount = Number(paymentAmount);
-        if (!Number.isFinite(amount) || amount <= 0) {
-            setPaymentError('Please enter a valid amount (minimum 1 UGX)');
-            return;
-        }
-        try {
-            setPaymentError('');
-            setIsInitiatingPayment(true);
-            const resolvedProjectId = (project as any)?.id || (project as any)?._id || projectId;
-            const currentProjectType = paymentMode === 'invest' ? 'ROI' : 'CHARITY';
-            const description = paymentMode === 'invest' ? `Investment in ${project?.name} - Keibo` : `Donation to ${project?.name} - Keibo`;
-
-            const result = await paymentService.initializeDPOPayment({
-                projectId: String(resolvedProjectId),
-                amount,
-                currency: currency,
-                paymentMethod: 'card',
-                projectType: currentProjectType,
-                description,
-                donorName: paymentMode === 'donate' ? (donorName?.trim() || 'Anonymous') : undefined,
-            });
-
-            // Redirect user to DPO hosted payment page
-            window.location.href = result.redirectUrl;
-        } catch (err: any) {
-            setPaymentError(err?.response?.data?.message || 'Failed to initialize payment. Please try again.');
-        } finally {
-            setIsInitiatingPayment(false);
-        }
     };
 
     useEffect(() => {
@@ -179,38 +114,6 @@ export default function ProjectDetailPage() {
             setDonors([]);
         } finally {
             setDonorsLoading(false);
-        }
-    };
-
-    const handleDonate = async () => {
-        try {
-            setDonationError('');
-            const amountNumber = Number(donationAmount);
-            if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
-                setDonationError('Enter a valid amount');
-                return;
-            }
-            setIsDonating(true);
-
-            const resolvedProjectId = (project as any)?.id || (project as any)?._id || projectId;
-            const projectType = 'CHARITY';
-            const description = `Donation to ${project?.name || 'Project'} - Keibo`;
-
-            const result = await paymentService.initializeDPOPayment({
-                projectId: String(resolvedProjectId),
-                amount: amountNumber,
-                currency: currency,
-                paymentMethod: 'card', // DPO handles the actual method choice on their page
-                projectType,
-                description,
-                donorName: donorName.trim() ? donorName.trim() : 'Anonymous',
-            });
-
-            // Redirect user to DPO hosted payment page
-            window.location.href = result.redirectUrl;
-        } catch (err: any) {
-            setDonationError(err?.response?.data?.message || 'Failed to initialize payment. Please try again.');
-            setIsDonating(false);
         }
     };
 
@@ -815,116 +718,11 @@ export default function ProjectDetailPage() {
 
             <Footer />
 
-
-            {/* ── DPO Payment Modal ── */}
-            {isPaymentModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-6">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        className="w-full max-w-md bg-[var(--card)] border border-[var(--border)] rounded-3xl overflow-hidden shadow-2xl"
-                    >
-                        {/* Header */}
-                        <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
-                            <div>
-                                <h3 className="text-lg font-black">
-                                    {paymentMode === 'invest' ? 'Invest in Project' : 'Donate to Project'}
-                                </h3>
-                            </div>
-                            <button
-                                onClick={() => setIsPaymentModalOpen(false)}
-                                className="p-2 rounded-xl hover:bg-white/5 transition-all"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        {/* Body */}
-                        <div className="p-6 space-y-5">
-                            {/* Donor Name (Only for donation) */}
-                            {paymentMode === 'donate' && (
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
-                                            Your Name
-                                        </label>
-                                        <span className="text-[10px] text-[var(--text-muted)] font-medium">
-                                            Leave blank to donate anonymously
-                                        </span>
-                                    </div>
-                                    <input
-                                        value={donorName}
-                                        onChange={(e) => setDonorName(e.target.value)}
-                                        type="text"
-                                        placeholder="Anonymous"
-                                        className="input_field"
-                                    />
-                                </div>
-                            )}
-
-                            {/* Amount */}
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
-                                    Amount ({currency})
-                                </label>
-                                <input
-                                    value={paymentAmount}
-                                    onChange={(e) => setPaymentAmount(e.target.value)}
-                                    type="number"
-                                    min="1"
-                                    step="500"
-                                    placeholder={paymentMode === 'donate' ? 'e.g. 10000' : 'e.g. 100000'}
-                                    className="input_field"
-                                    autoFocus
-                                />
-                            </div>
-
-                            {/* Quick amounts */}
-                            <div className="flex gap-2 flex-wrap">
-                                {(paymentMode === 'donate' ? [5000, 10000, 50000, 100000] : [50000, 100000, 500000, 1000000]).map(amt => (
-                                    <button
-                                        key={amt}
-                                        onClick={() => setPaymentAmount(String(amt))}
-                                        className={`px-3 py-1.5 rounded-xl text-xs font-black border transition-all ${paymentAmount === String(amt)
-                                            ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
-                                            : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--primary)]/50'
-                                            }`}
-                                    >
-                                        {amt.toLocaleString()}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {paymentError && (
-                                <div className="p-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 text-rose-300 text-sm font-medium">
-                                    {paymentError}
-                                </div>
-                            )}
-
-                            <div className="flex gap-3 pt-1">
-                                <button
-                                    onClick={() => setIsPaymentModalOpen(false)}
-                                    disabled={isInitiatingPayment}
-                                    className="flex-1 py-3 border border-[var(--border)] rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white/5 transition-all disabled:opacity-50"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleDPOPayment}
-                                    disabled={isInitiatingPayment || !paymentAmount}
-                                    className={`flex-1 py-3 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2 ${paymentMode === 'invest' ? 'bg-blue-600 hover:bg-blue-500' : 'bg-emerald-600 hover:bg-emerald-500'}`}
-                                >
-                                    {isInitiatingPayment ? (
-                                        <><Loader2 size={14} className="animate-spin" /> Processing...</>
-                                    ) : (
-                                        <>{paymentMode === 'invest' ? 'Invest Now →' : 'Donate Now →'}</>
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-                    </motion.div>
-                </div>
-            )}
+            <DPOPaymentModal
+                isOpen={isPaymentModalOpen}
+                onClose={() => setIsPaymentModalOpen(false)}
+                project={project}
+            />
 
         </div>
     );

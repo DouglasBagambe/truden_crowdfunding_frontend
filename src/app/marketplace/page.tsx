@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAccount } from 'wagmi';
-import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { useRouter } from 'next/navigation';
 import { marketplaceService, MarketplaceListing } from '@/lib/marketplace-service';
 import { formatDistanceToNow, fromUnixTime } from 'date-fns';
@@ -24,6 +23,7 @@ import {
 import Link from 'next/link';
 import { useRoiAccess } from '@/hooks/useRoiAccess';
 import toast from 'react-hot-toast';
+import { openWeb3Modal } from '@/providers/Web3Provider';
 
 // ─── BuyModal ────────────────────────────────────────────────────────────────
 
@@ -314,7 +314,6 @@ export default function MarketplacePage() {
     }, [hasRoiAccess, roiLoading, router]);
 
     const { address, isConnected } = useAccount();
-    const { open } = useWeb3Modal();
     const [listings, setListings] = useState<MarketplaceListing[]>([]);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -427,7 +426,7 @@ export default function MarketplacePage() {
 
                             {!isConnected ? (
                                 <button
-                                    onClick={() => open()}
+                                    onClick={() => openWeb3Modal()}
                                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors"
                                 >
                                     <Wallet size={15} />

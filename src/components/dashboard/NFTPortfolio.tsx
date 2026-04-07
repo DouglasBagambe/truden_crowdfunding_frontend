@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
-import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { investmentService } from '@/lib/investment-service';
 import { marketplaceService } from '@/lib/marketplace-service';
 import { formatDistanceToNow } from 'date-fns';
+import { openWeb3Modal } from '@/providers/Web3Provider';
 
 interface Investment {
   id: string;
@@ -142,7 +142,6 @@ function CreateListingModal({ investment, walletAddress, onClose, onSuccess }: C
 
 export function NFTPortfolio() {
   const { address, isConnected } = useAccount();
-  const { open } = useWeb3Modal();
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedInvestment, setSelectedInvestment] = useState<Investment | null>(null);
@@ -201,7 +200,7 @@ export function NFTPortfolio() {
             </p>
           </div>
           <button
-            onClick={() => open()}
+            onClick={() => openWeb3Modal()}
             className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg transition"
           >
             Connect

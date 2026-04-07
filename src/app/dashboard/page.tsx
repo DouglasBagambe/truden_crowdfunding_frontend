@@ -10,7 +10,6 @@ import { NotificationsView } from '@/components/dashboard/NotificationsView';
 import { KYCView } from '@/components/dashboard/KYCView';
 import { WalletView } from '@/components/dashboard/WalletView';
 import KYCModal from '@/components/dashboard/KYCModal';
-import InvestModal from '@/components/dashboard/InvestModal';
 import { NFTPortfolio } from '@/components/dashboard/NFTPortfolio';
 import { motion } from 'framer-motion';
 import { useProjects, useMyProjects } from '@/hooks/useProjects';
@@ -58,8 +57,6 @@ export default function DashboardPage() {
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isKYCModalOpen, setIsKYCModalOpen] = useState(false);
-    const [isInvestModalOpen, setIsInvestModalOpen] = useState(false);
-    const [selectedProject, setSelectedProject] = useState<any>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState<'investments' | 'donations' | 'campaigns' | 'nfts' | 'kyc'>('donations');
 
@@ -344,14 +341,7 @@ export default function DashboardPage() {
                                                     <ProjectCard
                                                         key={project.id || project._id}
                                                         project={project}
-                                                        onClick={() => {
-                                                            if (activeTab === 'investments') {
-                                                                setSelectedProject(project);
-                                                                setIsInvestModalOpen(true);
-                                                            } else {
-                                                                router.push(`/projects/${project.id || project._id}`);
-                                                            }
-                                                        }}
+                                                        onClick={() => router.push(`/projects/${project.id || project._id}`)}
                                                     />
                                                 ))}
                                             </div>
@@ -487,16 +477,6 @@ export default function DashboardPage() {
 
             <CreateProjectWizard isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
             {hasRoiAccess && <KYCModal isOpen={isKYCModalOpen} onClose={() => setIsKYCModalOpen(false)} />}
-            {selectedProject && (
-                <InvestModal
-                    isOpen={isInvestModalOpen}
-                    onClose={() => {
-                        setIsInvestModalOpen(false);
-                        setSelectedProject(null);
-                    }}
-                    project={selectedProject}
-                />
-            )}
             <Footer />
         </div>
     );

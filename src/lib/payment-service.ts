@@ -30,6 +30,7 @@ export const paymentService = {
         projectType?: string;
         description?: string;
         donorName?: string;
+        walletAddress?: string;
     }): Promise<DPOInitResponse> {
         const response = await apiClient.post('/payments/dpo/initialize', {
             projectId: params.projectId,
@@ -39,6 +40,7 @@ export const paymentService = {
             projectType: params.projectType,
             description: params.description,
             donorName: params.donorName,
+            walletAddress: params.walletAddress,
         });
         return response.data;
     },
