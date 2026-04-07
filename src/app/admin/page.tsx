@@ -47,17 +47,19 @@ function StatCard({
   label: string;
   value: number;
   icon: React.ReactNode;
-  tone: { bar: string; iconBox: string; value: string };
+  tone: { dot: string; iconBox: string };
 }) {
   return (
-    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] overflow-hidden shadow-sm">
-      <div className={`h-1.5 w-full ${tone.bar}`} />
-      <div className="p-6 space-y-3">
+    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-5 shadow-sm transition-all hover:border-slate-300 dark:hover:border-slate-700">
+      <div className="flex items-start justify-between gap-4">
         <div className={`w-11 h-11 rounded-xl border flex items-center justify-center ${tone.iconBox}`}>
           {icon}
         </div>
-        <p className={`text-3xl font-black ${tone.value}`}>{value}</p>
+        <span className={`mt-1 h-2.5 w-2.5 rounded-full ${tone.dot}`} />
+      </div>
+      <div className="mt-6 space-y-1.5">
         <p className="text-[11px] text-[var(--text-muted)] font-black uppercase tracking-[0.18em]">{label}</p>
+        <p className="text-3xl font-black text-[var(--text-main)] tracking-tight">{value}</p>
       </div>
     </div>
   );
@@ -310,7 +312,20 @@ export default function AdminPage() {
             {/* ── OVERVIEW ── */}
             {activeTab === 'overview' && (
               <div className="space-y-8">
-                <h2 className="text-2xl font-black">Platform Overview</h2>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--text-muted)]">Operations</p>
+                    <h2 className="text-2xl font-black tracking-tight">Platform Overview</h2>
+                    <p className="text-sm text-[var(--text-muted)]">Monitor campaign moderation, user verification, and payout workload from one place.</p>
+                  </div>
+                  <button
+                    onClick={() => { loadProjects(); loadUsers(); loadKycProfiles(); loadPayouts(); }}
+                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2.5 text-sm font-semibold text-[var(--text-main)] hover:border-slate-300 dark:hover:border-slate-700 transition-all"
+                  >
+                    <RefreshCw size={15} className="text-[var(--text-muted)]" />
+                    Refresh data
+                  </button>
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                   <StatCard
@@ -318,9 +333,8 @@ export default function AdminPage() {
                     value={allProjects.length}
                     icon={<FolderOpen size={18} />}
                     tone={{
-                      bar: 'bg-blue-600',
-                      iconBox: 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/30 dark:border-blue-900/40 dark:text-blue-300',
-                      value: 'text-blue-700 dark:text-blue-300',
+                      dot: 'bg-blue-600',
+                      iconBox: 'bg-slate-50 border-slate-200 text-blue-700 dark:bg-slate-900/30 dark:border-slate-800 dark:text-blue-300',
                     }}
                   />
                   <StatCard
@@ -328,9 +342,8 @@ export default function AdminPage() {
                     value={pendingCount}
                     icon={<Clock size={18} />}
                     tone={{
-                      bar: 'bg-amber-500',
-                      iconBox: 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950/30 dark:border-amber-900/40 dark:text-amber-300',
-                      value: 'text-amber-700 dark:text-amber-300',
+                      dot: 'bg-amber-500',
+                      iconBox: 'bg-slate-50 border-slate-200 text-amber-700 dark:bg-slate-900/30 dark:border-slate-800 dark:text-amber-300',
                     }}
                   />
                   <StatCard
@@ -338,9 +351,8 @@ export default function AdminPage() {
                     value={approvedCount}
                     icon={<CheckCircle size={18} />}
                     tone={{
-                      bar: 'bg-emerald-600',
-                      iconBox: 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-900/40 dark:text-emerald-300',
-                      value: 'text-emerald-700 dark:text-emerald-300',
+                      dot: 'bg-emerald-600',
+                      iconBox: 'bg-slate-50 border-slate-200 text-emerald-700 dark:bg-slate-900/30 dark:border-slate-800 dark:text-emerald-300',
                     }}
                   />
                   <StatCard
@@ -348,9 +360,8 @@ export default function AdminPage() {
                     value={users.length}
                     icon={<Users size={18} />}
                     tone={{
-                      bar: 'bg-violet-600',
-                      iconBox: 'bg-violet-50 border-violet-200 text-violet-700 dark:bg-violet-950/30 dark:border-violet-900/40 dark:text-violet-300',
-                      value: 'text-violet-700 dark:text-violet-300',
+                      dot: 'bg-violet-600',
+                      iconBox: 'bg-slate-50 border-slate-200 text-violet-700 dark:bg-slate-900/30 dark:border-slate-800 dark:text-violet-300',
                     }}
                   />
                   <StatCard
@@ -358,19 +369,24 @@ export default function AdminPage() {
                     value={payouts.length}
                     icon={<RotateCcw size={18} />}
                     tone={{
-                      bar: 'bg-rose-600',
-                      iconBox: 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-950/30 dark:border-rose-900/40 dark:text-rose-300',
-                      value: 'text-rose-700 dark:text-rose-300',
+                      dot: 'bg-rose-600',
+                      iconBox: 'bg-slate-50 border-slate-200 text-rose-700 dark:bg-slate-900/30 dark:border-slate-800 dark:text-rose-300',
                     }}
                   />
                 </div>
 
                 {/* Pending campaigns quick list */}
-                <div className="bg-[var(--card)] rounded-3xl border border-[var(--border)] overflow-hidden">
+                <div className="bg-[var(--card)] rounded-3xl border border-[var(--border)] overflow-hidden shadow-sm">
                   <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
-                    <h3 className="font-black flex items-center gap-2">
-                      <Bell size={16} className="text-amber-700 dark:text-amber-300" /> Awaiting Review ({pendingCount})
-                    </h3>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/30 flex items-center justify-center">
+                        <Bell size={16} className="text-amber-700 dark:text-amber-300" />
+                      </div>
+                      <div>
+                        <h3 className="font-black">Awaiting Review</h3>
+                        <p className="text-xs text-[var(--text-muted)] font-medium">{pendingCount} campaign{pendingCount === 1 ? '' : 's'} currently need moderation.</p>
+                      </div>
+                    </div>
                     <button onClick={() => setActiveTab('projects')} className="text-xs font-black text-[var(--primary)] hover:underline flex items-center gap-1">
                       Manage All <ChevronRight size={12} />
                     </button>
@@ -395,8 +411,12 @@ export default function AdminPage() {
                       );
                     })}
                     {pendingCount === 0 && (
-                      <div className="p-10 text-center text-sm text-[var(--text-muted)] font-medium">
-                        All caught up — no pending reviews.
+                      <div className="p-12 text-center">
+                        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/30">
+                          <CheckCircle size={18} className="text-emerald-700 dark:text-emerald-300" />
+                        </div>
+                        <p className="text-sm font-semibold text-[var(--text-main)]">No campaigns awaiting action</p>
+                        <p className="mt-1 text-sm text-[var(--text-muted)]">The moderation queue is clear right now.</p>
                       </div>
                     )}
                   </div>
@@ -408,31 +428,32 @@ export default function AdminPage() {
                     {
                       label: 'Draft',
                       count: allProjects.filter(p => p.status === 'DRAFT').length,
-                      color: 'text-slate-700 dark:text-slate-300',
-                      card: 'bg-slate-50 border-slate-200 dark:bg-slate-900/20 dark:border-slate-800/40',
+                      dot: 'bg-slate-400',
                     },
                     {
                       label: 'Pending',
                       count: pendingCount,
-                      color: 'text-amber-700 dark:text-amber-300',
-                      card: 'bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/40',
+                      dot: 'bg-amber-500',
                     },
                     {
                       label: 'Approved',
                       count: approvedCount,
-                      color: 'text-emerald-700 dark:text-emerald-300',
-                      card: 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900/40',
+                      dot: 'bg-emerald-500',
                     },
                     {
                       label: 'Rejected',
                       count: rejectedCount,
-                      color: 'text-rose-700 dark:text-rose-300',
-                      card: 'bg-rose-50 border-rose-200 dark:bg-rose-950/20 dark:border-rose-900/40',
+                      dot: 'bg-rose-500',
                     },
                   ].map(s => (
-                    <div key={s.label} className={`rounded-2xl p-4 text-center border ${s.card}`}>
-                      <p className={`text-2xl font-black ${s.color}`}>{s.count}</p>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mt-1">{s.label}</p>
+                    <div key={s.label} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <span className={`h-3 w-3 rounded-full ${s.dot}`} />
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">{s.label}</p>
+                          <p className="mt-1 text-2xl font-black text-[var(--text-main)]">{s.count}</p>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
