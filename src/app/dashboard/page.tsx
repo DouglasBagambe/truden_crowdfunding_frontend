@@ -191,11 +191,11 @@ export default function DashboardPage() {
 
             {/* Email Verification Banner */}
             {isAuthenticated && user && !user.emailVerifiedAt && (
-                <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-3">
+                <div className="bg-amber-50 border-b border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/30 px-4 py-3">
                     <div className="container mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                         <div className="flex items-start gap-3">
-                            <AlertTriangle size={16} className="text-amber-400 flex-shrink-0 mt-0.5" />
-                            <span className="text-sm text-amber-200 font-medium">
+                            <AlertTriangle size={16} className="text-amber-700 dark:text-amber-300 flex-shrink-0 mt-0.5" />
+                            <span className="text-sm text-amber-900 dark:text-amber-100 font-medium">
                                 Please verify your email address to unlock all features.
                             </span>
                         </div>
@@ -215,11 +215,11 @@ export default function DashboardPage() {
                     <div className="flex-1 space-y-6">
                         {/* KYC Banner */}
                         {hasRoiAccess && isAuthenticated && user && user.kycStatus !== 'VERIFIED' && user.kycStatus !== 'PENDING' && (
-                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                            <div className="bg-blue-50 border border-blue-200 dark:bg-blue-950/20 dark:border-blue-900/30 rounded-2xl px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                                 <div className="flex items-start gap-3">
-                                    <ShieldCheck size={18} className="text-blue-400 flex-shrink-0 mt-0.5" />
+                                    <ShieldCheck size={18} className="text-blue-700 dark:text-blue-300 flex-shrink-0 mt-0.5" />
                                     <div>
-                                        <p className="text-sm font-bold text-blue-300">Identity Verification Required</p>
+                                        <p className="text-sm font-bold text-blue-900 dark:text-blue-100">Identity Verification Required</p>
                                         <p className="text-xs text-[var(--text-muted)] mt-0.5">Complete KYC to invest in ROI projects and access all platform features.</p>
                                     </div>
                                 </div>
@@ -266,8 +266,8 @@ export default function DashboardPage() {
                                     <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-1">Total Raised from My Campaigns</p>
                                     <h4 className="text-2xl font-black text-[var(--text-main)]">UGX {totalRaised.toLocaleString()}</h4>
                                 </div>
-                                <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center">
-                                    <Activity className="text-blue-500" size={20} />
+                                <div className="w-12 h-12 bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300 rounded-xl flex items-center justify-center">
+                                    <Activity size={20} />
                                 </div>
                             </div>
                         </div>
@@ -401,7 +401,7 @@ export default function DashboardPage() {
                                                         <div key={pId} className="bg-[var(--background)] border border-[var(--border)] rounded-2xl p-5 hover:border-[var(--primary)]/30 transition-all">
                                                             <div className="flex items-start gap-4">
                                                                 {/* Icon */}
-                                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${isCharity ? 'bg-emerald-500/10 text-emerald-500' : 'bg-blue-500/10 text-blue-500'
+                                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${isCharity ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300'
                                                                     }`}>
                                                                     {isCharity ? <Heart size={20} /> : <TrendingUp size={20} />}
                                                                 </div>
@@ -409,9 +409,9 @@ export default function DashboardPage() {
                                                                 <div className="flex-1 min-w-0">
                                                                     <div className="flex items-center gap-2 flex-wrap mb-1">
                                                                         <p className="font-black text-sm truncate">{(project as any).name}</p>
-                                                                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${(project as any).status === 'FUNDING' || (project as any).status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400'
-                                                                            : (project as any).status === 'DRAFT' ? 'bg-gray-500/10 text-gray-400'
-                                                                                : 'bg-blue-500/10 text-blue-400'
+                                                                        <span className={`chip-base chip-compact ${(project as any).status === 'FUNDING' || (project as any).status === 'ACTIVE' ? 'chip-success'
+                                                                            : (project as any).status === 'DRAFT' ? 'chip-neutral'
+                                                                                : 'chip-info'
                                                                             }`}>{(project as any).status}</span>
                                                                     </div>
                                                                     {/* Progress */}
@@ -427,14 +427,14 @@ export default function DashboardPage() {
                                                                     <div className="flex gap-2 flex-wrap">
                                                                         <Link
                                                                             href={`/projects/${pId}`}
-                                                                            className="px-3 py-1.5 rounded-lg bg-[var(--secondary)] text-xs font-black text-[var(--text-muted)] hover:text-white border border-[var(--border)] hover:border-white/20 transition-all"
+                                                                            className="px-3 py-1.5 rounded-lg bg-[var(--secondary)] text-xs font-black text-[var(--text-main)] border border-[var(--border)] hover:border-[var(--primary)]/40 hover:text-[var(--primary)] transition-all"
                                                                         >
                                                                             View →
                                                                         </Link>
                                                                         {(isCharity && raised > 0) || (!isCharity && raised > 0 && raised >= target) ? (
                                                                             <Link
                                                                                 href={`/dashboard/withdraw?projectId=${pId}&projectName=${pName}&type=${isCharity ? 'CHARITY' : 'ROI'}&amount=${raised}`}
-                                                                                className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs font-black text-emerald-400 hover:bg-emerald-500/20 transition-all flex items-center gap-1"
+                                                                                className="chip-base chip-success rounded-lg text-xs font-black hover:brightness-95 transition-all flex items-center gap-1"
                                                                             >
                                                                                 <Wallet size={14} /> Withdraw Funds
                                                                             </Link>
@@ -489,7 +489,7 @@ const KPICard = ({ label, value, trend, icon }: KPICardProps) => (
         </div>
         <div className="flex items-baseline justify-between">
             <p className="text-3xl font-black tracking-tight text-[var(--text-main)]">{value}</p>
-            {trend && <span className="text-[9px] font-black text-emerald-600 bg-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 px-2 py-1 rounded-md tracking-widest">{trend}</span>}
+            {trend && <span className="chip-base chip-success px-2 py-1 rounded-md text-[9px] font-black tracking-widest">{trend}</span>}
         </div>
     </div>
 );
@@ -504,9 +504,9 @@ const VoteCard = ({ title, description, status, progress }: any) => {
                     <h4 className="text-sm font-bold text-[var(--text-main)]">{title}</h4>
                     <p className="text-xs text-[var(--text-muted)] font-medium">{description}</p>
                 </div>
-                <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg shrink-0 ${isPassing
-                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                <span className={`chip-base chip-compact rounded-lg shrink-0 ${isPassing
+                    ? 'chip-success'
+                    : 'chip-danger'
                     }`}>
                     {status}
                 </span>

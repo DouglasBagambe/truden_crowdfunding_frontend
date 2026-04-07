@@ -20,19 +20,19 @@ const ADMIN_USER_ID = process.env.NEXT_PUBLIC_ADMIN_USER_ID || '';
 type AdminTab = 'overview' | 'projects' | 'kyc' | 'users' | 'payouts';
 
 const STATUS_COLORS: Record<string, string> = {
-  DRAFT: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
-  PENDING_REVIEW: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  APPROVED: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  FUNDING: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  FUNDED: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  COMPLETED: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  REJECTED: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-  CHANGES_REQUESTED: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+  DRAFT: 'chip-neutral',
+  PENDING_REVIEW: 'chip-warning',
+  APPROVED: 'chip-success',
+  FUNDING: 'chip-success',
+  FUNDED: 'chip-info',
+  COMPLETED: 'chip-info',
+  REJECTED: 'chip-danger',
+  CHANGES_REQUESTED: 'chip-warning',
 };
 
 function StatusBadge({ status }: { status: string }) {
   return (
-    <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${STATUS_COLORS[status] ?? 'bg-gray-500/10 text-gray-400 border-gray-500/20'}`}>
+    <span className={`chip-base chip-compact ${STATUS_COLORS[status] ?? 'chip-neutral'}`}>
       {status?.replace(/_/g, ' ')}
     </span>
   );
@@ -300,11 +300,11 @@ export default function AdminPage() {
                 <h2 className="text-2xl font-black">Platform Overview</h2>
 
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  <StatCard label="Total Campaigns" value={allProjects.length} icon={<FolderOpen size={18} />} color="bg-blue-500/10 text-blue-400" />
-                  <StatCard label="Pending Review" value={pendingCount} icon={<Clock size={18} />} color="bg-amber-500/10 text-amber-400" />
-                  <StatCard label="Approved / Live" value={approvedCount} icon={<CheckCircle size={18} />} color="bg-emerald-500/10 text-emerald-400" />
-                  <StatCard label="Total Users" value={users.length} icon={<Users size={18} />} color="bg-violet-500/10 text-violet-400" />
-                  <StatCard label="Pending Payouts" value={payouts.length} icon={<RotateCcw size={18} />} color="bg-rose-500/10 text-rose-400" />
+                  <StatCard label="Total Campaigns" value={allProjects.length} icon={<FolderOpen size={18} />} color="bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300" />
+                  <StatCard label="Pending Review" value={pendingCount} icon={<Clock size={18} />} color="bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300" />
+                  <StatCard label="Approved / Live" value={approvedCount} icon={<CheckCircle size={18} />} color="bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300" />
+                  <StatCard label="Total Users" value={users.length} icon={<Users size={18} />} color="bg-violet-100 text-violet-700 dark:bg-violet-950/30 dark:text-violet-300" />
+                  <StatCard label="Pending Payouts" value={payouts.length} icon={<RotateCcw size={18} />} color="bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300" />
                 </div>
 
                 {/* Pending campaigns quick list */}
@@ -346,11 +346,11 @@ export default function AdminPage() {
 
                 {/* Status breakdown */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                  {[
-                    { label: 'Draft', count: allProjects.filter(p => p.status === 'DRAFT').length, color: 'text-gray-400' },
-                    { label: 'Pending', count: pendingCount, color: 'text-amber-400' },
-                    { label: 'Approved', count: approvedCount, color: 'text-emerald-400' },
-                    { label: 'Rejected', count: rejectedCount, color: 'text-rose-400' },
+                    {[
+                    { label: 'Draft', count: allProjects.filter(p => p.status === 'DRAFT').length, color: 'text-slate-700 dark:text-slate-300' },
+                    { label: 'Pending', count: pendingCount, color: 'text-amber-700 dark:text-amber-300' },
+                    { label: 'Approved', count: approvedCount, color: 'text-emerald-700 dark:text-emerald-300' },
+                    { label: 'Rejected', count: rejectedCount, color: 'text-rose-700 dark:text-rose-300' },
                   ].map(s => (
                     <div key={s.label} className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 text-center">
                       <p className={`text-2xl font-black ${s.color}`}>{s.count}</p>
@@ -436,17 +436,12 @@ export default function AdminPage() {
                         <div className="p-5 border-b border-[var(--border)] flex items-center gap-3 flex-wrap">
                           <StatusBadge status={p.status} />
                           <span
-                            className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full border"
-                            style={{
-                              background: (p.projectType || p.type) === 'ROI' ? 'rgba(59,130,246,0.1)' : 'rgba(16,185,129,0.1)',
-                              color: (p.projectType || p.type) === 'ROI' ? '#60a5fa' : '#34d399',
-                              borderColor: (p.projectType || p.type) === 'ROI' ? 'rgba(59,130,246,0.3)' : 'rgba(16,185,129,0.3)',
-                            }}
+                            className={`chip-base chip-compact ${(p.projectType || p.type) === 'ROI' ? 'chip-info' : 'chip-success'}`}
                           >
                             {p.projectType || p.type || 'CHARITY'}
                           </span>
                           {p.category && (
-                            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-[var(--secondary)] text-[var(--text-muted)]">
+                            <span className="chip-base chip-compact chip-neutral">
                               {p.category}
                             </span>
                           )}
@@ -485,7 +480,7 @@ export default function AdminPage() {
                               </div>
                             )}
                             {p.decisionReason && (
-                              <p className="text-xs text-amber-400 font-medium bg-amber-500/10 rounded-lg px-2 py-1">
+                              <p className="text-xs text-amber-800 dark:text-amber-200 font-medium bg-amber-50 dark:bg-amber-950/20 rounded-lg px-2 py-1 border border-amber-200 dark:border-amber-900/30">
                                 Previous note: {p.decisionReason}
                               </p>
                             )}
@@ -530,7 +525,7 @@ export default function AdminPage() {
                               <button
                                 onClick={() => decide(id, 'REJECTED')}
                                 disabled={isActing}
-                                className="py-3 rounded-xl border border-rose-500/50 text-rose-400 text-[10px] font-black uppercase tracking-widest disabled:opacity-60 hover:bg-rose-500/10 transition-all flex items-center justify-center gap-2"
+                                className="py-3 rounded-xl border border-rose-300 text-rose-700 dark:border-rose-900/40 dark:text-rose-300 text-[10px] font-black uppercase tracking-widest disabled:opacity-60 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all flex items-center justify-center gap-2"
                               >
                                 {isActing ? <Loader2 size={12} className="animate-spin" /> : <XCircle size={12} />}
                                 Revoke
@@ -597,13 +592,13 @@ export default function AdminPage() {
                   <div className="space-y-3">
                     {kycProfiles.map(kyc => {
                       const statusColors: Record<string, string> = {
-                        APPROVED: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-                        PENDING: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-                        UNDER_REVIEW: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-                        REJECTED: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-                        EXPIRED: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+                        APPROVED: 'chip-success',
+                        PENDING: 'chip-warning',
+                        UNDER_REVIEW: 'chip-warning',
+                        REJECTED: 'chip-danger',
+                        EXPIRED: 'chip-warning',
                       };
-                      const sc = statusColors[kyc.status] ?? 'bg-gray-500/10 text-gray-400 border-gray-500/20';
+                      const sc = statusColors[kyc.status] ?? 'chip-neutral';
                       const isPending = kyc.status === 'PENDING' || kyc.status === 'UNDER_REVIEW';
                       return (
                         <div key={kyc.id} className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 flex items-center gap-4 flex-wrap hover:border-[var(--primary)]/30 transition-all">
@@ -616,7 +611,7 @@ export default function AdminPage() {
                               {kyc.userEmail ? `${kyc.userEmail} · ` : ''}{kyc.documentCount} document(s) · Submitted {kyc.submittedAt ? new Date(kyc.submittedAt).toLocaleDateString() : '—'}
                             </p>
                           </div>
-                          <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border ${sc}`}>
+                          <span className={`chip-base chip-compact ${sc}`}>
                             {kyc.status}
                           </span>
                           {isPending && (
@@ -632,7 +627,7 @@ export default function AdminPage() {
                                   const reason = prompt('Rejection reason (shown to user):');
                                   if (reason !== null) overrideKycStatus(kyc.id, 'REJECTED', reason);
                                 }}
-                                className="px-4 py-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[10px] font-black uppercase tracking-widest hover:bg-rose-500/20 transition-all"
+                                className="chip-base chip-compact chip-danger rounded-xl hover:brightness-95 transition-all"
                               >
                                 Reject
                               </button>
@@ -706,7 +701,7 @@ export default function AdminPage() {
                                 <p className="font-bold text-sm">{displayName}</p>
                                 <p className="text-xs text-[var(--text-muted)]">{u.email}</p>
                               </div>
-                              <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${isBlocked ? 'bg-rose-500/10 text-rose-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                              <span className={`chip-base chip-compact ${isBlocked ? 'chip-danger' : 'chip-info'}`}>
                                 {role}
                               </span>
                             </div>
@@ -716,8 +711,8 @@ export default function AdminPage() {
                                   onClick={() => toggleBlock(uid, isBlocked)}
                                   disabled={isActingUser}
                                   className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 ${isBlocked
-                                    ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
-                                    : 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20'}`}
+                                    ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300'
+                                    : 'bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-950/30 dark:text-rose-300'}`}
                                 >
                                   {isActingUser ? <Loader2 size={10} className="animate-spin" /> : isBlocked ? <UserCheck size={10} /> : <Ban size={10} />}
                                   {isBlocked ? 'Unblock' : 'Block'}
@@ -752,18 +747,18 @@ export default function AdminPage() {
                             </div>
                             <div className="col-span-3 text-sm text-[var(--text-muted)] font-medium truncate pr-4">{u.email}</div>
                             <div className="col-span-2">
-                              <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${u.kycStatus === 'VERIFIED'
-                                ? 'bg-emerald-500/10 text-emerald-400'
+                              <span className={`chip-base chip-compact ${u.kycStatus === 'VERIFIED'
+                                ? 'chip-success'
                                 : u.kycStatus === 'PENDING'
-                                  ? 'bg-amber-500/10 text-amber-400'
-                                  : 'bg-gray-500/10 text-gray-400'
+                                  ? 'chip-warning'
+                                  : 'chip-neutral'
                                 }`}>
                                 {u.kycStatus || 'NOT VERIFIED'}
                               </span>
                             </div>
                             <div className="col-span-2">
                               {isCurrentAdmin ? (
-                                <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-violet-500/10 text-violet-400">
+                                <span className="chip-base chip-compact chip-violet">
                                   {role} (you)
                                 </span>
                               ) : (
@@ -785,8 +780,8 @@ export default function AdminPage() {
                                   onClick={() => toggleBlock(uid, isBlocked)}
                                   disabled={isActingUser}
                                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${isBlocked
-                                    ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
-                                    : 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20'
+                                    ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300'
+                                    : 'bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-950/30 dark:text-rose-300'
                                     }`}
                                 >
                                   {isActingUser ? <Loader2 size={10} className="animate-spin" /> : isBlocked ? <UserCheck size={10} /> : <Ban size={10} />}
@@ -826,7 +821,7 @@ export default function AdminPage() {
                         <div className="flex flex-col md:flex-row justify-between gap-6">
                           <div className="space-y-3 flex-1">
                             <div className="flex items-center gap-3">
-                              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-500 border border-amber-500/20">ROI WithDrawal</span>
+                              <span className="chip-base chip-compact chip-warning">ROI Withdrawal</span>
                               <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-bold">Ref: {payout._id}</span>
                             </div>
                             <div>
@@ -840,11 +835,11 @@ export default function AdminPage() {
                               </div>
                               <div>
                                 <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-wider mb-1">Fee (2%)</p>
-                                <p className="font-bold text-sm text-amber-400">UGX {(payout.metadata?.platformFee || 0).toLocaleString()}</p>
+                                <p className="font-bold text-sm text-amber-700 dark:text-amber-300">UGX {(payout.metadata?.platformFee || 0).toLocaleString()}</p>
                               </div>
                               <div>
                                 <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-wider mb-1">Net Payout</p>
-                                <p className="font-black text-lg text-emerald-400">UGX {(payout.metadata?.payoutAmount || 0).toLocaleString()}</p>
+                                <p className="font-black text-lg text-emerald-700 dark:text-emerald-300">UGX {(payout.metadata?.payoutAmount || 0).toLocaleString()}</p>
                               </div>
                               <div>
                                 <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-wider mb-1">Destination</p>
@@ -887,7 +882,7 @@ export default function AdminPage() {
                                 } finally { setActingOn(null); }
                               }}
                               disabled={actingOn === `reject_${payout._id}`}
-                              className="bg-transparent border border-rose-500/30 text-rose-500 font-bold text-xs uppercase tracking-widest py-3 px-4 rounded-xl hover:bg-rose-500/10 transition-all flex items-center justify-center gap-2"
+                              className="bg-transparent border border-rose-300 text-rose-700 dark:border-rose-900/40 dark:text-rose-300 font-bold text-xs uppercase tracking-widest py-3 px-4 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all flex items-center justify-center gap-2"
                             >
                               {actingOn === `reject_${payout._id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
                               Reject & Refund

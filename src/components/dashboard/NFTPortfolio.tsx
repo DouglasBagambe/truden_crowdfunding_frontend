@@ -219,11 +219,11 @@ export function NFTPortfolio() {
             {/* Status badge */}
             <div className="absolute top-3 right-3">
               {inv.listed ? (
-                <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-700 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                <span className="chip-base chip-warning">
                   Listed
                 </span>
               ) : (
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs text-emerald-700 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300">
+                <span className="chip-base chip-success">
                   Holding
                 </span>
               )}
@@ -242,7 +242,7 @@ export function NFTPortfolio() {
                 <p className="mt-0.5 text-sm text-[var(--text-muted)]">
                   {inv.nftTokenAmount?.toLocaleString() ?? '?'} tokens
                   &nbsp;·&nbsp;
-                  <span className="text-blue-700 dark:text-blue-300">
+                  <span className="text-blue-800 dark:text-blue-300 font-semibold">
                     {inv.currency ?? 'UGX'} {inv.amount.toLocaleString()} invested
                   </span>
                 </p>
@@ -267,7 +267,7 @@ export function NFTPortfolio() {
             {isConnected && marketplaceEnabled && !inv.listed && inv.nftMinted && (
               <button
                 onClick={() => setSelectedInvestment(inv)}
-                className="mt-3 w-full py-2 rounded-xl border border-purple-500/40 text-purple-300 text-sm font-medium hover:bg-purple-500/10 transition"
+                className="mt-3 w-full py-2 rounded-xl border border-violet-300 bg-violet-50 text-violet-700 text-sm font-medium hover:bg-violet-100 dark:border-violet-900/30 dark:bg-violet-950/20 dark:text-violet-300 transition"
               >
                 List for Sale
               </button>

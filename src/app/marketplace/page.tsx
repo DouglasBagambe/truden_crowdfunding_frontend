@@ -118,11 +118,11 @@ function BuyModal({
                         </div>
                         <div className="flex justify-between">
                             <span className="text-[var(--text-muted)]">Marketplace fee (2.5%)</span>
-                            <span className="text-orange-600 dark:text-orange-400 font-medium">−{fee} ETH</span>
+                            <span className="text-amber-700 dark:text-amber-300 font-medium">−{fee} ETH</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-[var(--text-muted)]">Seller receives</span>
-                            <span className="text-emerald-600 dark:text-emerald-400 font-medium">{sellerGets} ETH</span>
+                            <span className="text-emerald-700 dark:text-emerald-300 font-medium">{sellerGets} ETH</span>
                         </div>
                     </div>
 
@@ -132,7 +132,7 @@ function BuyModal({
                     </div>
 
                     {error && (
-                        <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1.5">
+                        <p className="text-sm text-rose-700 dark:text-rose-300 flex items-center gap-1.5">
                             <AlertCircle size={14} /> {error}
                         </p>
                     )}
@@ -198,9 +198,9 @@ function ListingCard({
                             </p>
                         </div>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${isOwn
-                        ? 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900/40'
-                        : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900/40'
+                    <span className={`chip-base shrink-0 ${isOwn
+                        ? 'chip-violet'
+                        : 'chip-success'
                         }`}>
                         {isOwn ? 'Your listing' : 'Available'}
                     </span>
@@ -386,7 +386,7 @@ export default function MarketplacePage() {
                         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
                             <div>
                                 {/* Network badge */}
-                                <div className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 px-3 py-1.5 rounded-full mb-3">
+                                <div className="chip-base chip-info mb-3">
                                     <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                                     Base Sepolia
                                 </div>
@@ -448,7 +448,7 @@ export default function MarketplacePage() {
                                     Connect wallet
                                 </button>
                             ) : (
-                                <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-sm font-medium">
+                                <div className="chip-base chip-success rounded-xl px-4 py-2.5 text-sm">
                                     <span className="w-2 h-2 bg-emerald-500 rounded-full" />
                                     <span className="font-mono">{address?.slice(0, 6)}…{address?.slice(-4)}</span>
                                 </div>
@@ -502,7 +502,7 @@ export default function MarketplacePage() {
                             </p>
                             <Link
                                 href="/explore"
-                                className="inline-flex items-center gap-1.5 rounded-xl bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100 dark:bg-blue-950/20 dark:text-blue-300 dark:hover:bg-blue-950/30"
+                                className="chip-base chip-info rounded-xl px-4 py-2.5 text-sm transition-colors hover:brightness-95"
                             >
                                 Browse projects <ChevronRight size={14} />
                             </Link>

@@ -155,12 +155,12 @@ const Navbar = () => {
                     All Projects
                   </Link>
                   <Link href="/explore?type=CHARITY" className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-[var(--secondary)] transition-colors">
-                    <span className="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 text-xs">♥</span>
+                    <span className="w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center text-emerald-700 dark:text-emerald-300 text-xs">♥</span>
                     Charity Causes
                   </Link>
                   {hasRoiAccess && (
                     <Link href="/explore?type=ROI" className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-[var(--secondary)] transition-colors">
-                      <span className="w-6 h-6 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 text-xs">↑</span>
+                      <span className="w-6 h-6 rounded-lg bg-blue-100 dark:bg-blue-950/30 flex items-center justify-center text-blue-700 dark:text-blue-300 text-xs">↑</span>
                       Investments
                     </Link>
                   )}

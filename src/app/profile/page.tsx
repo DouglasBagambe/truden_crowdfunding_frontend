@@ -200,7 +200,7 @@ export default function SettingsPage() {
                         <p className="text-sm text-[var(--text-muted)]">{email}</p>
                         <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                           {user?.emailVerifiedAt && (
-                            <span className="inline-flex items-center gap-1 text-xs text-emerald-500 font-semibold">
+                            <span className="chip-base chip-success">
                               <CheckCircle size={12} /> Email Verified
                             </span>
                           )}
@@ -209,14 +209,14 @@ export default function SettingsPage() {
                             const kycStatus = (user as any)?.kycStatus || 'NOT_VERIFIED';
                             if (kycStatus === 'VERIFIED') {
                               return (
-                                <span className="inline-flex items-center gap-1 text-xs text-emerald-500 font-semibold bg-emerald-500/10 px-2.5 py-1 rounded-lg">
+                                <span className="chip-base chip-success">
                                   <ShieldCheck size={12} /> KYC Verified
                                 </span>
                               );
                             }
                             if (kycStatus === 'PENDING') {
                               return (
-                                <span className="inline-flex items-center gap-1 text-xs text-amber-500 font-semibold bg-amber-500/10 px-2.5 py-1 rounded-lg">
+                                <span className="chip-base chip-warning">
                                   <Clock size={12} /> KYC Under Review
                                 </span>
                               );
@@ -225,7 +225,7 @@ export default function SettingsPage() {
                               return (
                                 <button
                                   onClick={() => router.push('/dashboard?tab=kyc')}
-                                  className="inline-flex items-center gap-1 text-xs text-rose-500 font-semibold bg-rose-500/10 px-2.5 py-1 rounded-lg hover:bg-rose-500/20 transition-all cursor-pointer"
+                                  className="chip-base chip-danger hover:brightness-95 transition-all cursor-pointer"
                                 >
                                   <XCircle size={12} /> KYC Rejected · Re-verify →
                                 </button>
@@ -234,7 +234,7 @@ export default function SettingsPage() {
                             return (
                               <button
                                 onClick={() => router.push('/dashboard?tab=kyc')}
-                                className="inline-flex items-center gap-1 text-xs text-blue-400 font-semibold bg-blue-500/10 px-2.5 py-1 rounded-lg hover:bg-blue-500/20 transition-all cursor-pointer"
+                                className="chip-base chip-info hover:brightness-95 transition-all cursor-pointer"
                               >
                                 <ShieldCheck size={12} /> Verify Identity →
                               </button>
@@ -351,7 +351,7 @@ export default function SettingsPage() {
                               {transactions.slice(0, 15).map((tx: any) => (
                                 <div key={tx._id} className="flex items-center justify-between p-5 hover:bg-[var(--secondary)] transition-colors">
                                   <div className="flex items-center gap-4">
-                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${tx.amount > 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${tx.amount > 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300'
                                       }`}>
                                       {tx.amount > 0 ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
                                     </div>
@@ -363,10 +363,10 @@ export default function SettingsPage() {
                                     </div>
                                   </div>
                                   <div className="text-right">
-                                    <p className={`font-black text-sm ${tx.amount > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                    <p className={`font-black text-sm ${tx.amount > 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'}`}>
                                       {tx.amount > 0 ? '+' : ''}{tx.currency} {Math.abs(tx.amount).toLocaleString()}
                                     </p>
-                                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-[var(--secondary)] text-[var(--text-muted)]">
+                                    <span className="chip-base chip-compact chip-neutral">
                                       {tx.status}
                                     </span>
                                   </div>
@@ -504,11 +504,11 @@ export default function SettingsPage() {
                               </p>
                             </div>
                             {kycStatus === 'VERIFIED' ? (
-                              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-xl flex-shrink-0">
+                              <span className="chip-base chip-success flex-shrink-0">
                                 <CheckCircle size={13} /> Verified
                               </span>
                             ) : kycStatus === 'PENDING' ? (
-                              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-500 bg-amber-500/10 px-3 py-1.5 rounded-xl flex-shrink-0">
+                              <span className="chip-base chip-warning flex-shrink-0">
                                 <Clock size={13} /> Under Review
                               </span>
                             ) : (
@@ -531,7 +531,7 @@ export default function SettingsPage() {
                         </div>
                         <button
                           onClick={() => { if (confirm('Sign out of your account?')) logout(); }}
-                          className="text-xs font-semibold px-4 py-2 rounded-xl border border-[var(--border)] text-rose-500 hover:bg-rose-500/10 hover:border-rose-500/30 transition-all"
+                          className="text-xs font-semibold px-4 py-2 rounded-xl border border-[var(--border)] text-rose-700 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:border-rose-300 dark:hover:border-rose-900/40 transition-all"
                         >
                           Sign out
                         </button>
@@ -546,7 +546,7 @@ export default function SettingsPage() {
                       </div>
                       <button
                         onClick={() => toast('To delete your account, email support@truden.tech', { icon: '⚠️', duration: 5000 })}
-                        className="text-xs font-semibold px-4 py-2 rounded-xl border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 transition-all flex-shrink-0 ml-4"
+                        className="text-xs font-semibold px-4 py-2 rounded-xl border border-rose-300 text-rose-700 dark:border-rose-900/40 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all flex-shrink-0 ml-4"
                       >
                         Delete
                       </button>

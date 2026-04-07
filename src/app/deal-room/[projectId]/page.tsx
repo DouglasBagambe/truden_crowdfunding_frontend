@@ -20,10 +20,10 @@ import Link from 'next/link';
 
 // ─── Access Tiers ─────────────────────────────────────────────
 const TIERS = [
-  { tier: 1, label: 'Public', minInvestment: 0, description: 'Basic project information', color: 'text-gray-400', bg: 'bg-gray-500/10' },
-  { tier: 2, label: 'Starter', minInvestment: 1_000, description: 'Financial statements & projections', color: 'text-blue-400', bg: 'bg-blue-500/10' },
-  { tier: 3, label: 'Investor', minInvestment: 5_000, description: 'Legal documents & contracts', color: 'text-violet-400', bg: 'bg-violet-500/10' },
-  { tier: 4, label: 'Whale', minInvestment: 10_000, description: 'Full due diligence package', color: 'text-amber-400', bg: 'bg-amber-500/10' },
+  { tier: 1, label: 'Public', minInvestment: 0, description: 'Basic project information', color: 'text-slate-700 dark:text-slate-300', bg: 'bg-slate-100 dark:bg-slate-900/30' },
+  { tier: 2, label: 'Starter', minInvestment: 1_000, description: 'Financial statements & projections', color: 'text-blue-700 dark:text-blue-300', bg: 'bg-blue-100 dark:bg-blue-950/30' },
+  { tier: 3, label: 'Investor', minInvestment: 5_000, description: 'Legal documents & contracts', color: 'text-violet-700 dark:text-violet-300', bg: 'bg-violet-100 dark:bg-violet-950/30' },
+  { tier: 4, label: 'Whale', minInvestment: 10_000, description: 'Full due diligence package', color: 'text-amber-700 dark:text-amber-300', bg: 'bg-amber-100 dark:bg-amber-950/30' },
 ];
 
 // ─── File icon helper ─────────────────────────────────────────

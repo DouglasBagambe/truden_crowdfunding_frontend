@@ -300,7 +300,7 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
                                 </div>
 
                                 {error && (
-                                    <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+                                    <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-200">
                                         <div className="flex items-start gap-2">
                                             <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
                                             <span>{error}</span>

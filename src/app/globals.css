@@ -29,6 +29,24 @@
   --accent-charity: #059669;
   --accent-charity-hover: #047857;
   --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --chip-neutral-bg: #e9eef5;
+  --chip-neutral-border: #ced8e6;
+  --chip-neutral-text: #334155;
+  --chip-info-bg: #dce9ff;
+  --chip-info-border: #bfd3fb;
+  --chip-info-text: #1d4ed8;
+  --chip-success-bg: #dff8ec;
+  --chip-success-border: #aee8c8;
+  --chip-success-text: #0f7a52;
+  --chip-warning-bg: #fff1cf;
+  --chip-warning-border: #f4cd84;
+  --chip-warning-text: #8a5a00;
+  --chip-danger-bg: #ffe1e1;
+  --chip-danger-border: #f4b5b5;
+  --chip-danger-text: #a61b1b;
+  --chip-violet-bg: #efe7ff;
+  --chip-violet-border: #d8c8ff;
+  --chip-violet-text: #6d28d9;
 }
 
 /* ── Dark Mode ─────────────────────────────────────────── */
@@ -49,6 +67,24 @@
   --accent-charity: #34d399;
   --accent-charity-hover: #22c55e;
   --shadow-card: 0 1px 3px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.25);
+  --chip-neutral-bg: #172335;
+  --chip-neutral-border: #30425d;
+  --chip-neutral-text: #d9e4f3;
+  --chip-info-bg: #142744;
+  --chip-info-border: #275083;
+  --chip-info-text: #c6ddff;
+  --chip-success-bg: #112b25;
+  --chip-success-border: #255648;
+  --chip-success-text: #a9f2d0;
+  --chip-warning-bg: #33260d;
+  --chip-warning-border: #6c4d15;
+  --chip-warning-text: #ffd98c;
+  --chip-danger-bg: #33171d;
+  --chip-danger-border: #6c2935;
+  --chip-danger-text: #ffc3cc;
+  --chip-violet-bg: #241a44;
+  --chip-violet-border: #4d3981;
+  --chip-violet-text: #ddceff;
 }
 
 @layer base {
@@ -101,6 +137,50 @@
 
   .badge {
     @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold;
+  }
+
+  .chip-base {
+    @apply inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold;
+  }
+
+  .chip-compact {
+    @apply px-2.5 py-1 text-[10px] font-black uppercase tracking-widest;
+  }
+
+  .chip-neutral {
+    background: var(--chip-neutral-bg);
+    border-color: var(--chip-neutral-border);
+    color: var(--chip-neutral-text);
+  }
+
+  .chip-info {
+    background: var(--chip-info-bg);
+    border-color: var(--chip-info-border);
+    color: var(--chip-info-text);
+  }
+
+  .chip-success {
+    background: var(--chip-success-bg);
+    border-color: var(--chip-success-border);
+    color: var(--chip-success-text);
+  }
+
+  .chip-warning {
+    background: var(--chip-warning-bg);
+    border-color: var(--chip-warning-border);
+    color: var(--chip-warning-text);
+  }
+
+  .chip-danger {
+    background: var(--chip-danger-bg);
+    border-color: var(--chip-danger-border);
+    color: var(--chip-danger-text);
+  }
+
+  .chip-violet {
+    background: var(--chip-violet-bg);
+    border-color: var(--chip-violet-border);
+    color: var(--chip-violet-text);
   }
 }
 

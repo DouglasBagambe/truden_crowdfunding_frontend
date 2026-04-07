@@ -219,7 +219,7 @@ function WithdrawPageContent() {
                         <h1 className="text-4xl font-black tracking-tight mb-2">Withdraw Funds</h1>
                         {projectId && (
                             <p className="text-[var(--text-muted)] font-medium">
-                                From: <span className="text-white font-bold">{projectName}</span>
+                                From: <span className="chip-base chip-neutral ml-2 align-middle">{projectName}</span>
                             </p>
                         )}
                         {/* Keibo wallet balance */}
@@ -230,16 +230,16 @@ function WithdrawPageContent() {
                                     <span className="text-sm text-[var(--text-muted)]">Loading balance...</span>
                                 </div>
                             ) : walletBalance !== null ? (
-                                <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-2">
-                                    <Wallet size={14} className="text-emerald-400" />
-                                    <span className="text-sm font-black text-emerald-400">
+                                <div className="chip-base chip-success rounded-xl px-4 py-2">
+                                    <Wallet size={14} />
+                                    <span className="text-sm font-black">
                                         Keibo Wallet: UGX {walletBalance.toLocaleString()} available
                                     </span>
                                 </div>
                             ) : (
-                                <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-2">
-                                    <AlertCircle size={14} className="text-amber-400" />
-                                    <span className="text-sm text-amber-400">Could not load balance</span>
+                                <div className="chip-base chip-warning rounded-xl px-4 py-2">
+                                    <AlertCircle size={14} />
+                                    <span className="text-sm font-semibold">Could not load balance</span>
                                 </div>
                             )}
                         </div>
@@ -251,7 +251,7 @@ function WithdrawPageContent() {
                             <div key={s} className="flex items-center gap-3">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black transition-all ${step === s ? 'bg-[var(--primary)] text-white' :
                                     ['done', 'confirm', 'details'].indexOf(step) > ['done', 'confirm', 'details', 'method'].indexOf(s)
-                                        ? 'bg-emerald-500 text-white' : 'bg-white/10 text-[var(--text-muted)]'
+                                        ? 'bg-emerald-500 text-white' : 'bg-[var(--card)] border border-[var(--border)] text-[var(--text-muted)]'
                                     }`}>{i + 1}</div>
                                 {i < 2 && <div className="w-8 h-px bg-[var(--border)]" />}
                             </div>
@@ -406,11 +406,11 @@ function WithdrawPageContent() {
                                         </div>
                                         <div className="flex justify-between text-sm">
                                             <span className="text-[var(--text-muted)]">Keibo Platform Fee (2%)</span>
-                                            <span className="font-bold text-amber-400">- UGX {platformFee.toLocaleString()}</span>
+                                            <span className="font-bold text-amber-700 dark:text-amber-300">- UGX {platformFee.toLocaleString()}</span>
                                         </div>
                                         <div className="flex justify-between text-sm border-t border-[var(--border)] pt-2 mt-2">
                                             <span className="font-black">You Receive</span>
-                                            <span className="font-black text-emerald-400">UGX {youReceive.toLocaleString()}</span>
+                                            <span className="font-black text-emerald-700 dark:text-emerald-300">UGX {youReceive.toLocaleString()}</span>
                                         </div>
                                     </div>
                                 )}
@@ -430,7 +430,7 @@ function WithdrawPageContent() {
                                 </div>
 
                                 {error && (
-                                    <div className="p-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 text-rose-300 text-sm font-medium flex gap-2 items-start">
+                                    <div className="p-4 rounded-2xl border border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-200 text-sm font-medium flex gap-2 items-start">
                                         <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
                                         {error}
                                     </div>
@@ -462,26 +462,26 @@ function WithdrawPageContent() {
                                     ].map(([label, value]) => (
                                         <div key={label} className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] last:border-0">
                                             <span className="text-sm text-[var(--text-muted)] font-medium">{label}</span>
-                                            <span className={`text-sm font-black ${label === 'You Receive' ? 'text-emerald-400' : label?.includes('Fee') ? 'text-amber-400' : ''}`}>{value}</span>
+                                            <span className={`text-sm font-black ${label === 'You Receive' ? 'text-emerald-700 dark:text-emerald-300' : label?.includes('Fee') ? 'text-amber-700 dark:text-amber-300' : ''}`}>{value}</span>
                                         </div>
                                     ))}
                                 </div>
 
-                                <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-2">
+                                <div className="p-4 bg-amber-50 border border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/30 rounded-2xl space-y-2">
                                     <p className="text-sm text-[var(--text-main)] font-semibold">
                                         Review carefully before submitting.
                                     </p>
                                     <p className="text-xs text-[var(--text-muted)]">
                                         Your request will be submitted using the account details above. Delivery timing depends on provider confirmation and cannot be guaranteed instantly.
                                     </p>
-                                    <p className="text-xs text-amber-500">
+                                    <p className="text-xs text-amber-700 dark:text-amber-300">
                                         If the payout provider rejects the transfer, the platform should mark the withdrawal as failed and refund the wallet balance.
                                     </p>
                                 </div>
 
                                 {balanceType === 'ROI' && (
-                                    <div className="p-4 bg-[var(--primary)]/8 border border-[var(--primary)]/20 rounded-2xl space-y-1">
-                                        <div className="flex items-center gap-2 text-[var(--primary)] mb-1">
+                                    <div className="p-4 bg-blue-50 border border-blue-200 dark:bg-blue-950/20 dark:border-blue-900/30 rounded-2xl space-y-1">
+                                        <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 mb-1">
                                             <Info size={16} />
                                             <span className="font-bold text-sm">ROI Investment Rules</span>
                                         </div>
@@ -492,7 +492,7 @@ function WithdrawPageContent() {
                                 )}
 
                                 {error && (
-                                    <div className="p-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 text-rose-300 text-sm font-medium flex gap-2 items-start">
+                                    <div className="p-4 rounded-2xl border border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-200 text-sm font-medium flex gap-2 items-start">
                                         <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
                                         {error}
                                     </div>
@@ -555,11 +555,11 @@ function WithdrawPageContent() {
                                     </div>
                                     <div className="flex justify-between text-sm">
                                         <span className="text-[var(--text-muted)]">Keibo Fee (2%)</span>
-                                        <span className="font-bold text-amber-400">- UGX {(withdrawResult?.platformFee ?? platformFee).toLocaleString()}</span>
+                                        <span className="font-bold text-amber-700 dark:text-amber-300">- UGX {(withdrawResult?.platformFee ?? platformFee).toLocaleString()}</span>
                                     </div>
                                     <div className="flex justify-between text-sm border-t border-[var(--border)] pt-3">
                                         <span className="font-black">You Receive</span>
-                                        <span className="font-black text-emerald-400">UGX {(withdrawResult?.youReceive ?? youReceive).toLocaleString()}</span>
+                                        <span className="font-black text-emerald-700 dark:text-emerald-300">UGX {(withdrawResult?.youReceive ?? youReceive).toLocaleString()}</span>
                                     </div>
                                     {withdrawMeta?.providerReference && (
                                         <div className="flex justify-between text-sm">
@@ -575,7 +575,7 @@ function WithdrawPageContent() {
                                     )}
                                 </div>
 
-                                <div className={`max-w-sm mx-auto rounded-2xl border p-4 text-left ${requestIsAwaitingApproval ? 'bg-amber-500/5 border-amber-500/20' : 'bg-[var(--primary)]/5 border-[var(--primary)]/15'}`}>
+                                <div className={`max-w-sm mx-auto rounded-2xl border p-4 text-left ${requestIsAwaitingApproval ? 'bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/30' : 'bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-900/30'}`}>
                                     <p className="text-sm font-semibold text-[var(--text-main)] mb-1">
                                         What happens next
                                     </p>

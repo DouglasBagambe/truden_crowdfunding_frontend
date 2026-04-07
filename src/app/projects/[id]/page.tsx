@@ -170,21 +170,19 @@ export default function ProjectDetailPage() {
             : 30;
 
     const statusColorMap: Record<string, string> = {
-        DRAFT: 'bg-gray-500/10 text-gray-400',
-        PENDING_REVIEW: 'bg-amber-500/10 text-amber-400',
-        APPROVED: 'bg-blue-500/10 text-blue-400',
-        FUNDING: 'bg-emerald-500/10 text-emerald-400',
-        FUNDED: 'bg-blue-500/10 text-blue-400',
-        ACTIVE: 'bg-emerald-500/10 text-emerald-400',
-        COMPLETED: 'bg-blue-500/10 text-blue-400',
-        REJECTED: 'bg-red-500/10 text-red-400',
+        DRAFT: 'chip-neutral',
+        PENDING_REVIEW: 'chip-warning',
+        APPROVED: 'chip-info',
+        FUNDING: 'chip-success',
+        FUNDED: 'chip-info',
+        ACTIVE: 'chip-success',
+        COMPLETED: 'chip-info',
+        REJECTED: 'chip-danger',
     };
-    const statusColor = statusColorMap[project.status] || 'bg-gray-500/10 text-gray-400';
+    const statusColor = statusColorMap[project.status] || 'chip-neutral';
     const isOwner = isAuthenticated && (user?.id || user?._id) && (project.creatorId === (user?.id || user?._id));
 
     const charityProject = project.projectType === 'CHARITY' || project.type === 'CHARITY';
-    const accentText = charityProject ? 'text-emerald-400' : 'text-blue-400';
-    const accentBorderText = charityProject ? 'bg-emerald-500/10 text-emerald-400' : 'bg-blue-500/10 text-blue-400';
     const accentBg = charityProject ? 'bg-emerald-600' : 'bg-blue-600';
     const accentShadow = charityProject ? 'shadow-emerald-500/20' : 'shadow-blue-500/20';
     const accentGlow = charityProject ? 'bg-emerald-500/10' : 'bg-blue-500/10';
@@ -208,19 +206,19 @@ export default function ProjectDetailPage() {
                     {/* Status Notice */}
                     {(project.status === 'DRAFT' || project.status === 'PENDING_REVIEW' || project.status === 'REJECTED' || project.status === 'CHANGES_REQUESTED') && isOwner && (
                         <div className={`mb-8 p-4 rounded-2xl flex items-start gap-3 ${project.status === 'REJECTED'
-                            ? 'bg-rose-500/10 border border-rose-500/20'
+                            ? 'bg-rose-50 border border-rose-200 dark:bg-rose-950/20 dark:border-rose-900/30'
                             : project.status === 'CHANGES_REQUESTED'
-                                ? 'bg-orange-500/10 border border-orange-500/20'
-                                : 'bg-amber-500/10 border border-amber-500/20'
+                                ? 'bg-orange-50 border border-orange-200 dark:bg-orange-950/20 dark:border-orange-900/30'
+                                : 'bg-amber-50 border border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/30'
                             }`}>
-                            <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${project.status === 'REJECTED' ? 'text-rose-400'
-                                : project.status === 'CHANGES_REQUESTED' ? 'text-orange-400'
-                                    : 'text-amber-400'
+                            <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${project.status === 'REJECTED' ? 'text-rose-700 dark:text-rose-300'
+                                : project.status === 'CHANGES_REQUESTED' ? 'text-orange-600 dark:text-orange-300'
+                                    : 'text-amber-700 dark:text-amber-300'
                                 }`} />
                             <div className="flex-1 space-y-1">
-                                <p className={`text-sm font-semibold ${project.status === 'REJECTED' ? 'text-rose-300'
-                                    : project.status === 'CHANGES_REQUESTED' ? 'text-orange-300'
-                                        : 'text-amber-300'
+                                <p className={`text-sm font-semibold ${project.status === 'REJECTED' ? 'text-rose-700 dark:text-rose-300'
+                                    : project.status === 'CHANGES_REQUESTED' ? 'text-orange-700 dark:text-orange-300'
+                                        : 'text-amber-800 dark:text-amber-200'
                                     }`}>
                                     {project.status === 'DRAFT'
                                         ? 'This campaign is in draft mode. Submit it for review to make it public.'
@@ -265,11 +263,10 @@ export default function ProjectDetailPage() {
                             {/* Project Header */}
                             <div>
                                 <div className="flex items-center gap-3 mb-4">
-                                    <span className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest shadow-lg
-                                        bg-emerald-600 text-white`}>
-                                        Charity
+                                    <span className={`chip-base chip-compact px-4 py-2 shadow-lg ${charityProject ? 'chip-success' : 'chip-info'}`}>
+                                        {charityProject ? 'Charity' : 'ROI'}
                                     </span>
-                                    <span className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${statusColor}`}>
+                                    <span className={`chip-base chip-compact px-3 py-1.5 ${statusColor}`}>
                                         {project.status}
                                     </span>
                                     {project.category && (

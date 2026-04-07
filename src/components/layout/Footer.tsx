@@ -37,7 +37,7 @@ const Footer = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="WhatsApp"
-                className="w-8 h-8 rounded-lg bg-[var(--secondary)] flex items-center justify-center text-[var(--text-muted)] hover:text-emerald-500 hover:bg-emerald-500/10 transition-all"
+                className="w-8 h-8 rounded-lg bg-[var(--secondary)] flex items-center justify-center text-[var(--text-muted)] hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-950/30 transition-all"
               >
                 <MessageCircle size={14} />
               </a>

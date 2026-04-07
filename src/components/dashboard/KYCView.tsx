@@ -29,14 +29,56 @@ interface KycProfile {
 
 type Step = 'overview' | 'form' | 'submitting' | 'redirect' | 'pending';
 
-const STATUS_MAP: Record<string, { label: string; color: string; bg: string; border: string }> = {
-    UNVERIFIED: { label: 'Not Verified', color: 'text-gray-400', bg: 'bg-gray-500/10', border: 'border-gray-500/20' },
-    PENDING: { label: 'Under Review', color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
-    VERIFIED: { label: 'Verified', color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
-    APPROVED: { label: 'Verified', color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
-    REJECTED: { label: 'Rejected', color: 'text-rose-500', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
-    EXPIRED: { label: 'Expired', color: 'text-orange-500', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
-    NEEDS_MORE_INFO: { label: 'More Info Needed', color: 'text-blue-500', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+const STATUS_MAP: Record<string, { label: string; container: string; iconBox: string; icon: string; labelClass: string }> = {
+    UNVERIFIED: {
+        label: 'Not Verified',
+        container: 'bg-[var(--secondary)] border-[var(--border)]',
+        iconBox: 'bg-slate-100 border-slate-200 dark:bg-slate-900/30 dark:border-slate-800/40',
+        icon: 'text-slate-700 dark:text-slate-300',
+        labelClass: 'text-slate-800 dark:text-slate-200',
+    },
+    PENDING: {
+        label: 'Under Review',
+        container: 'bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/30',
+        iconBox: 'bg-amber-100 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900/40',
+        icon: 'text-amber-700 dark:text-amber-300',
+        labelClass: 'text-amber-800 dark:text-amber-200',
+    },
+    VERIFIED: {
+        label: 'Verified',
+        container: 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900/30',
+        iconBox: 'bg-emerald-100 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900/40',
+        icon: 'text-emerald-700 dark:text-emerald-300',
+        labelClass: 'text-emerald-800 dark:text-emerald-200',
+    },
+    APPROVED: {
+        label: 'Verified',
+        container: 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900/30',
+        iconBox: 'bg-emerald-100 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900/40',
+        icon: 'text-emerald-700 dark:text-emerald-300',
+        labelClass: 'text-emerald-800 dark:text-emerald-200',
+    },
+    REJECTED: {
+        label: 'Rejected',
+        container: 'bg-rose-50 border-rose-200 dark:bg-rose-950/20 dark:border-rose-900/30',
+        iconBox: 'bg-rose-100 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/40',
+        icon: 'text-rose-700 dark:text-rose-300',
+        labelClass: 'text-rose-800 dark:text-rose-200',
+    },
+    EXPIRED: {
+        label: 'Expired',
+        container: 'bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-900/30',
+        iconBox: 'bg-orange-100 border-orange-200 dark:bg-orange-950/30 dark:border-orange-900/40',
+        icon: 'text-orange-700 dark:text-orange-300',
+        labelClass: 'text-orange-800 dark:text-orange-200',
+    },
+    NEEDS_MORE_INFO: {
+        label: 'More Info Needed',
+        container: 'bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-900/30',
+        iconBox: 'bg-blue-100 border-blue-200 dark:bg-blue-950/30 dark:border-blue-900/40',
+        icon: 'text-blue-700 dark:text-blue-300',
+        labelClass: 'text-blue-800 dark:text-blue-200',
+    },
 };
 
 export function KYCView() {
@@ -221,8 +263,8 @@ export function KYCView() {
         return (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
                 <div className="text-center space-y-5 py-8">
-                    <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mx-auto border border-amber-500/20">
-                        <Clock className="w-7 h-7 text-amber-500" />
+                    <div className="w-16 h-16 bg-amber-100 dark:bg-amber-950/30 rounded-2xl flex items-center justify-center mx-auto border border-amber-200 dark:border-amber-900/40">
+                        <Clock className="w-7 h-7 text-amber-700 dark:text-amber-300" />
                     </div>
                     <div className="space-y-2">
                         <h3 className="text-xl font-bold">Under Review</h3>
@@ -348,16 +390,16 @@ export function KYCView() {
     return (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             {/* Status banner */}
-            <div className={`p-5 rounded-2xl border flex items-center gap-4 ${cfg.bg} ${cfg.border}`}>
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${cfg.bg} ${cfg.border} border`}>
-                    {isVerified ? <CheckCircle size={22} className={cfg.color} /> :
-                        isPending ? <Clock size={22} className={cfg.color} /> :
-                            kycStatus === 'REJECTED' ? <XCircle size={22} className={cfg.color} /> :
-                                kycStatus === 'EXPIRED' ? <AlertTriangle size={22} className={cfg.color} /> :
-                                    <Shield size={22} className={cfg.color} />}
+            <div className={`p-5 rounded-2xl border flex items-center gap-4 ${cfg.container}`}>
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${cfg.iconBox}`}>
+                    {isVerified ? <CheckCircle size={22} className={cfg.icon} /> :
+                        isPending ? <Clock size={22} className={cfg.icon} /> :
+                            kycStatus === 'REJECTED' ? <XCircle size={22} className={cfg.icon} /> :
+                                kycStatus === 'EXPIRED' ? <AlertTriangle size={22} className={cfg.icon} /> :
+                                    <Shield size={22} className={cfg.icon} />}
                 </div>
                 <div className="flex-1">
-                    <p className={`font-bold ${cfg.color}`}>{cfg.label}</p>
+                    <p className={`font-bold ${cfg.labelClass}`}>{cfg.label}</p>
                     <p className="text-xs text-[var(--text-muted)] mt-0.5">
                         {isVerified && profile?.approvedAt
                             ? `Verified on ${new Date(profile.approvedAt).toLocaleDateString()}. Valid for 12 months.`

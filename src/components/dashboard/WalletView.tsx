@@ -158,8 +158,8 @@ export function WalletView() {
                             >
                                 <div className="flex items-center gap-4">
                                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${tx.amount > 0
-                                        ? 'bg-emerald-500/10 text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white'
-                                        : 'bg-rose-500/10 text-rose-600 group-hover:bg-rose-500 group-hover:text-white'
+                                        ? 'bg-emerald-100 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white dark:bg-emerald-950/30 dark:text-emerald-300'
+                                        : 'bg-rose-100 text-rose-700 group-hover:bg-rose-600 group-hover:text-white dark:bg-rose-950/30 dark:text-rose-300'
                                         }`}>
                                         {tx.amount > 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
                                     </div>
@@ -175,10 +175,10 @@ export function WalletView() {
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className={`text-lg font-black ${tx.amount > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                    <p className={`text-lg font-black ${tx.amount > 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'}`}>
                                         {tx.amount > 0 ? '+' : ''}{tx.currency} {Math.abs(tx.amount).toLocaleString()}
                                     </p>
-                                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-[var(--secondary)] text-[var(--text-muted)]">
+                                    <span className="chip-base chip-compact chip-neutral rounded-md">
                                         {tx.status}
                                     </span>
                                 </div>
