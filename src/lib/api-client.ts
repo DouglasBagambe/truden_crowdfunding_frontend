@@ -1,44 +1,6 @@
 import axios, { InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 
-const TEST_FRONTEND_HOSTS = new Set(['akeibo.netlify.app']);
-const LIVE_FRONTEND_HOSTS = new Set(['keibo.io', 'www.keibo.io']);
-const TEST_API_URL = 'https://keibo.onrender.com/api';
-const LIVE_API_URL = 'https://api.keibo.io/api';
-const LOCAL_API_URL = 'http://localhost:3000/api';
-
-const normalizeApiUrl = (value: string): string =>
-  value.replace(/\/+$/, '');
-
-const resolveApiUrl = (): string => {
-  if (typeof window !== 'undefined') {
-    const host = window.location.hostname;
-
-    if (host === 'localhost' || host === '127.0.0.1') {
-      return LOCAL_API_URL;
-    }
-
-    if (TEST_FRONTEND_HOSTS.has(host)) {
-      return TEST_API_URL;
-    }
-
-    if (LIVE_FRONTEND_HOSTS.has(host)) {
-      return LIVE_API_URL;
-    }
-  }
-
-  const envUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (envUrl && envUrl.startsWith('http')) {
-    return normalizeApiUrl(envUrl);
-  }
-
-  if (process.env.NODE_ENV === 'development') {
-    return LOCAL_API_URL;
-  }
-
-  return LIVE_API_URL;
-};
-
-const API_URL = resolveApiUrl();
+const API_URL = 'https://keibo.onrender.com/api';
 
 export const apiClient = axios.create({
   baseURL: API_URL,
