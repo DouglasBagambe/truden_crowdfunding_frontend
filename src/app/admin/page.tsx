@@ -195,26 +195,10 @@ export default function AdminPage() {
       const data = await projectService.adminListAll();
       const list = extractArray(data, ['projects', 'items']);
       setAllProjects(list);
-      if (list.length === 0) {
-        const fallbackPublic = await projectService.getProjects({ pageSize: 100, page: 1 });
-        const fallbackMine = await projectService.getMyProjects();
-        const publicList = extractArray(fallbackPublic, ['projects', 'items']);
-        const myList = Array.isArray(fallbackMine) ? (fallbackMine as Record<string, unknown>[]) : [];
-        const merged = [...publicList, ...myList].filter(
-          (project, idx, arr) =>
-            arr.findIndex((it) => String(it._id ?? it.id ?? '') === String(project._id ?? project.id ?? '')) === idx,
-        );
-        setAllProjects(merged);
-      }
-    } catch {
-      try {
-        const data = await projectService.adminListPending();
-        const list = extractArray(data, ['projects', 'items']);
-        setAllProjects(list);
-      } catch {
-        setAllProjects([]);
-        toast.error('Unable to fetch campaigns. Check admin permissions for this account.');
-      }
+    } catch (e: unknown) {
+      setAllProjects([]);
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || 'Unable to fetch campaigns. Please re-login with an admin account.');
     } finally { setLoadingProjects(false); }
   }, [extractArray]);
 
@@ -224,24 +208,10 @@ export default function AdminPage() {
       const res = await apiClient.get('/admin/users', { params: { limit: 100, skip: 0 } });
       const list = extractArray(res.data, ['users', 'items']);
       setUsers(list);
-      if (list.length > 0) {
-        return;
-      }
-
-      const meRes = await apiClient.get('/users/me');
-      const mePayload = meRes.data as Record<string, unknown> | null;
-      const me = (mePayload?.user as Record<string, unknown> | undefined) ?? mePayload ?? undefined;
-      setUsers(me ? [me] : []);
-    } catch {
-      try {
-        const meRes = await apiClient.get('/users/me');
-        const mePayload = meRes.data as Record<string, unknown> | null;
-        const me = (mePayload?.user as Record<string, unknown> | undefined) ?? mePayload ?? undefined;
-        setUsers(me ? [me] : []);
-      } catch {
-        setUsers([]);
-        toast.error('Unable to fetch users. Check admin permissions for this account.');
-      }
+    } catch (e: unknown) {
+      setUsers([]);
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || 'Unable to fetch users. Please re-login with an admin account.');
     }
     finally { setLoadingUsers(false); }
   }, [extractArray]);
