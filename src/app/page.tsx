@@ -198,9 +198,11 @@ export default function LandingPage() {
                 className="space-y-10"
               >
                 <div className="text-center space-y-3 max-w-2xl mx-auto">
-                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50">
-                    <Heart size={14} className="text-emerald-600 dark:text-emerald-400" />
-                    <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Active Causes</span>
+                  <div className="inline-flex items-center gap-2.5">
+                    <span className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm">
+                      <Heart size={14} />
+                    </span>
+                    <span className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-300">Active Causes</span>
                   </div>
                   <h2 className="text-2xl sm:text-3xl font-bold text-[var(--text-main)]">
                     Give where it counts
@@ -262,9 +264,11 @@ export default function LandingPage() {
                 className="space-y-10"
               >
                 <div className="text-center space-y-3 max-w-2xl mx-auto">
-                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50">
-                    <TrendingUp size={14} className="text-blue-600 dark:text-blue-400" />
-                    <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">Investment Projects</span>
+                  <div className="inline-flex items-center gap-2.5">
+                    <span className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-sm">
+                      <TrendingUp size={14} />
+                    </span>
+                    <span className="text-[11px] font-black uppercase tracking-[0.2em] text-blue-700 dark:text-blue-300">Investment Projects</span>
                   </div>
                   <h2 className="text-2xl sm:text-3xl font-bold text-[var(--text-main)]">
                     Back businesses that grow

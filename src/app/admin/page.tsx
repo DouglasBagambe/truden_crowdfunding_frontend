@@ -38,14 +38,27 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function StatCard({ label, value, icon, color }: { label: string; value: number; icon: React.ReactNode; color: string }) {
+function StatCard({
+  label,
+  value,
+  icon,
+  tone,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  tone: { bar: string; iconBox: string; value: string };
+}) {
   return (
-    <div className="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] space-y-3">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color}`}>
-        {icon}
+    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] overflow-hidden shadow-sm">
+      <div className={`h-1.5 w-full ${tone.bar}`} />
+      <div className="p-6 space-y-3">
+        <div className={`w-11 h-11 rounded-xl border flex items-center justify-center ${tone.iconBox}`}>
+          {icon}
+        </div>
+        <p className={`text-3xl font-black ${tone.value}`}>{value}</p>
+        <p className="text-[11px] text-[var(--text-muted)] font-black uppercase tracking-[0.18em]">{label}</p>
       </div>
-      <p className="text-3xl font-black">{value}</p>
-      <p className="text-xs text-[var(--text-muted)] font-bold uppercase tracking-widest">{label}</p>
     </div>
   );
 }
@@ -299,19 +312,64 @@ export default function AdminPage() {
               <div className="space-y-8">
                 <h2 className="text-2xl font-black">Platform Overview</h2>
 
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  <StatCard label="Total Campaigns" value={allProjects.length} icon={<FolderOpen size={18} />} color="bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300" />
-                  <StatCard label="Pending Review" value={pendingCount} icon={<Clock size={18} />} color="bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300" />
-                  <StatCard label="Approved / Live" value={approvedCount} icon={<CheckCircle size={18} />} color="bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300" />
-                  <StatCard label="Total Users" value={users.length} icon={<Users size={18} />} color="bg-violet-100 text-violet-700 dark:bg-violet-950/30 dark:text-violet-300" />
-                  <StatCard label="Pending Payouts" value={payouts.length} icon={<RotateCcw size={18} />} color="bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                  <StatCard
+                    label="Total Campaigns"
+                    value={allProjects.length}
+                    icon={<FolderOpen size={18} />}
+                    tone={{
+                      bar: 'bg-blue-600',
+                      iconBox: 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/30 dark:border-blue-900/40 dark:text-blue-300',
+                      value: 'text-blue-700 dark:text-blue-300',
+                    }}
+                  />
+                  <StatCard
+                    label="Pending Review"
+                    value={pendingCount}
+                    icon={<Clock size={18} />}
+                    tone={{
+                      bar: 'bg-amber-500',
+                      iconBox: 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950/30 dark:border-amber-900/40 dark:text-amber-300',
+                      value: 'text-amber-700 dark:text-amber-300',
+                    }}
+                  />
+                  <StatCard
+                    label="Approved / Live"
+                    value={approvedCount}
+                    icon={<CheckCircle size={18} />}
+                    tone={{
+                      bar: 'bg-emerald-600',
+                      iconBox: 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-900/40 dark:text-emerald-300',
+                      value: 'text-emerald-700 dark:text-emerald-300',
+                    }}
+                  />
+                  <StatCard
+                    label="Total Users"
+                    value={users.length}
+                    icon={<Users size={18} />}
+                    tone={{
+                      bar: 'bg-violet-600',
+                      iconBox: 'bg-violet-50 border-violet-200 text-violet-700 dark:bg-violet-950/30 dark:border-violet-900/40 dark:text-violet-300',
+                      value: 'text-violet-700 dark:text-violet-300',
+                    }}
+                  />
+                  <StatCard
+                    label="Pending Payouts"
+                    value={payouts.length}
+                    icon={<RotateCcw size={18} />}
+                    tone={{
+                      bar: 'bg-rose-600',
+                      iconBox: 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-950/30 dark:border-rose-900/40 dark:text-rose-300',
+                      value: 'text-rose-700 dark:text-rose-300',
+                    }}
+                  />
                 </div>
 
                 {/* Pending campaigns quick list */}
                 <div className="bg-[var(--card)] rounded-3xl border border-[var(--border)] overflow-hidden">
                   <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
                     <h3 className="font-black flex items-center gap-2">
-                      <Bell size={16} className="text-amber-400" /> Awaiting Review ({pendingCount})
+                      <Bell size={16} className="text-amber-700 dark:text-amber-300" /> Awaiting Review ({pendingCount})
                     </h3>
                     <button onClick={() => setActiveTab('projects')} className="text-xs font-black text-[var(--primary)] hover:underline flex items-center gap-1">
                       Manage All <ChevronRight size={12} />
@@ -346,13 +404,33 @@ export default function AdminPage() {
 
                 {/* Status breakdown */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                    {[
-                    { label: 'Draft', count: allProjects.filter(p => p.status === 'DRAFT').length, color: 'text-slate-700 dark:text-slate-300' },
-                    { label: 'Pending', count: pendingCount, color: 'text-amber-700 dark:text-amber-300' },
-                    { label: 'Approved', count: approvedCount, color: 'text-emerald-700 dark:text-emerald-300' },
-                    { label: 'Rejected', count: rejectedCount, color: 'text-rose-700 dark:text-rose-300' },
+                  {[
+                    {
+                      label: 'Draft',
+                      count: allProjects.filter(p => p.status === 'DRAFT').length,
+                      color: 'text-slate-700 dark:text-slate-300',
+                      card: 'bg-slate-50 border-slate-200 dark:bg-slate-900/20 dark:border-slate-800/40',
+                    },
+                    {
+                      label: 'Pending',
+                      count: pendingCount,
+                      color: 'text-amber-700 dark:text-amber-300',
+                      card: 'bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/40',
+                    },
+                    {
+                      label: 'Approved',
+                      count: approvedCount,
+                      color: 'text-emerald-700 dark:text-emerald-300',
+                      card: 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900/40',
+                    },
+                    {
+                      label: 'Rejected',
+                      count: rejectedCount,
+                      color: 'text-rose-700 dark:text-rose-300',
+                      card: 'bg-rose-50 border-rose-200 dark:bg-rose-950/20 dark:border-rose-900/40',
+                    },
                   ].map(s => (
-                    <div key={s.label} className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 text-center">
+                    <div key={s.label} className={`rounded-2xl p-4 text-center border ${s.card}`}>
                       <p className={`text-2xl font-black ${s.color}`}>{s.count}</p>
                       <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mt-1">{s.label}</p>
                     </div>
