@@ -222,7 +222,7 @@ export default function CreateProjectPage() {
             await queryClient.invalidateQueries({ queryKey: ['my-projects'] });
             await queryClient.invalidateQueries({ queryKey: ['projects'] });
 
-            router.push(`/projects/${projectId}`);
+            router.push('/dashboard');
         } catch (err: any) {
             const msg = Array.isArray(err.response?.data?.message)
                 ? err.response.data.message.join(', ')

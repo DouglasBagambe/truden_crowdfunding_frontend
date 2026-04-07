@@ -141,13 +141,12 @@ export default function CreateProjectWizard({ isOpen, onClose }: CreateProjectWi
 
       const res = await projectService.createProject(projectData);
 
-      // Success - redirect to the new project detail page
       const newProjectId = (res as any).id || (res as any)._id;
-      if (newProjectId) {
-        router.push(`/projects/${newProjectId}`);
-      } else {
-        router.push('/dashboard');
+      if (!newProjectId) {
+        throw new Error('Project created but no ID returned from server');
       }
+
+      router.push('/dashboard');
       onClose();
     } catch (error: any) {
       const errorMessage = error.response?.data?.message;
