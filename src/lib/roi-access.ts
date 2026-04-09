@@ -13,6 +13,11 @@ function normalize(value?: string | null) {
   return typeof value === 'string' ? value.trim().toUpperCase() : '';
 }
 
+function isPublicRoiAccessMode() {
+  const mode = normalize(process.env.NEXT_PUBLIC_ROI_ACCESS_MODE);
+  return mode === 'PUBLIC';
+}
+
 export function getAllowedRoiUserIds() {
   return (process.env.NEXT_PUBLIC_ROI_ALLOWED_USER_IDS || '')
     .split(',')
@@ -25,9 +30,14 @@ export function getUserId(user: MaybeUser) {
 }
 
 export function canAccessROI(user: MaybeUser) {
+  const allowedIds = getAllowedRoiUserIds();
+  if (isPublicRoiAccessMode() || allowedIds.includes('*')) {
+    return true;
+  }
+
   const userId = getUserId(user);
   if (!userId) return false;
-  return getAllowedRoiUserIds().includes(userId);
+  return allowedIds.includes(userId);
 }
 
 export function getProjectType(project: MaybeProject) {
