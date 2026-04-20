@@ -6,8 +6,10 @@ import { AlertCircle, Loader2, Wallet, X } from 'lucide-react';
 import { useAccount } from 'wagmi';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoiAccess } from '@/hooks/useRoiAccess';
+import { authService } from '@/lib/auth-service';
+import { buildVerifyEmailUrl, getCurrentLocationPath } from '@/lib/email-verification';
 import { isCharityProject, isROIProject } from '@/lib/roi-access';
-import { paymentService } from '@/lib/payment-service';
+import { DPOQuoteResponse, paymentService } from '@/lib/payment-service';
 import { openWeb3Modal } from '@/providers/Web3Provider';
 
 interface PaymentProject {
@@ -83,6 +85,8 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
     const [walletAddress, setWalletAddress] = useState('');
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [quote, setQuote] = useState<DPOQuoteResponse | null>(null);
+    const [isLoadingQuote, setIsLoadingQuote] = useState(false);
 
     useEffect(() => {
         if (!isOpen) {
@@ -91,6 +95,8 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
             setWalletAddress('');
             setError('');
             setIsSubmitting(false);
+            setQuote(null);
+            setIsLoadingQuote(false);
             return;
         }
 
@@ -106,6 +112,52 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
 
         setWalletAddress(preferredWalletAddress);
     }, [isOpen, isROI, preferredWalletAddress]);
+
+    useEffect(() => {
+        if (!isOpen || !projectId) {
+            return;
+        }
+
+        const normalizedAmount = Number(amount);
+        if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
+            setQuote(null);
+            setIsLoadingQuote(false);
+            return;
+        }
+
+        let cancelled = false;
+        const timer = window.setTimeout(async () => {
+            try {
+                setIsLoadingQuote(true);
+                const nextQuote = await paymentService.getDPOPaymentQuote({
+                    projectId,
+                    amount: normalizedAmount,
+                    currency,
+                });
+                if (!cancelled) {
+                    setError('');
+                    setQuote(nextQuote);
+                }
+            } catch (quoteError: unknown) {
+                if (!cancelled) {
+                    setQuote(null);
+                    const message =
+                        (quoteError as { response?: { data?: { message?: string } } })?.response?.data?.message
+                        || 'Unable to calculate the payable total right now.';
+                    setError(message);
+                }
+            } finally {
+                if (!cancelled) {
+                    setIsLoadingQuote(false);
+                }
+            }
+        }, 250);
+
+        return () => {
+            cancelled = true;
+            window.clearTimeout(timer);
+        };
+    }, [amount, currency, isOpen, projectId]);
 
     const handleClose = () => {
         if (isSubmitting) {
@@ -145,6 +197,10 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
             setError('Wallet address is required so your NFT can be minted.');
             return;
         }
+        if (!quote) {
+            setError('Please wait for the payment total to finish loading.');
+            return;
+        }
 
         try {
             setError('');
@@ -165,6 +221,18 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
                 (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message
                 || (err as { message?: string })?.message
                 || 'Failed to initialize payment. Please try again.';
+            if (message.toLowerCase().includes('not verified') && user?.email) {
+                try {
+                    await authService.resendCurrentVerificationEmail();
+                } catch {
+                    // Verification page still allows manual resend if delivery fails here.
+                }
+                window.location.href = buildVerifyEmailUrl({
+                    email: user.email,
+                    next: getCurrentLocationPath(),
+                });
+                return;
+            }
             setError(message);
             setIsSubmitting(false);
         }
@@ -268,7 +336,7 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
 
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
-                                        Amount ({currency})
+                                        Amount Project Receives ({currency})
                                     </label>
                                     <input
                                         type="number"
@@ -281,6 +349,40 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
                                         autoFocus
                                     />
                                 </div>
+
+                                {isLoadingQuote && (
+                                    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-muted)]">
+                                        <div className="flex items-center gap-2">
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            Calculating payable total...
+                                        </div>
+                                    </div>
+                                )}
+
+                                {quote && (
+                                    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 text-sm">
+                                        <div className="flex items-center justify-between py-1 text-[var(--text-muted)]">
+                                            <span>Project receives</span>
+                                            <span className="font-bold text-[var(--text-main)]">{quote.currency} {quote.projectNetAmount.toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between py-1 text-[var(--text-muted)]">
+                                            <span>DPO fee</span>
+                                            <span>{quote.currency} {quote.dpoFee.toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between py-1 text-[var(--text-muted)]">
+                                            <span>DPO VAT</span>
+                                            <span>{quote.currency} {quote.dpoVat.toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between py-1 text-[var(--text-muted)]">
+                                            <span>Keibo handling fee</span>
+                                            <span>{quote.currency} {quote.keiboFee.toLocaleString()}</span>
+                                        </div>
+                                        <div className="mt-2 flex items-center justify-between border-t border-[var(--border)] pt-3 text-[var(--text-main)]">
+                                            <span className="text-[10px] font-black uppercase tracking-widest">You Pay</span>
+                                            <span className="text-base font-black">{quote.currency} {quote.grossAmount.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="flex flex-wrap gap-2">
                                     {(isCharity ? donorQuickAmounts : investmentQuickAmounts).map((quickAmount) => (
@@ -320,7 +422,7 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
                                     <button
                                         type="button"
                                         onClick={handleSubmit}
-                                        disabled={isSubmitting}
+                                        disabled={isSubmitting || isLoadingQuote}
                                         className={`flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-[10px] font-black uppercase tracking-widest text-white transition disabled:opacity-50 ${
                                             isCharity ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-blue-600 hover:bg-blue-500'
                                         }`}

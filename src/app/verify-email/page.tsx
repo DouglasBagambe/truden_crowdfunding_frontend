@@ -4,7 +4,9 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, Loader2, AlertCircle, RefreshCw, Mail, ArrowRight } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
+import { authService } from '@/lib/auth-service';
 import Link from 'next/link';
 
 const CODE_LENGTH = 6;
@@ -13,9 +15,11 @@ const RESEND_COOLDOWN = 60; // seconds
 function VerifyEmailContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
+    const queryClient = useQueryClient();
 
     const emailParam = searchParams.get('email') || '';
     const codeParam = searchParams.get('code') || '';
+    const nextParam = searchParams.get('next') || '/dashboard';
 
     const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(''));
     const [email, setEmail] = useState(emailParam);
@@ -43,6 +47,7 @@ function VerifyEmailContent() {
         setStatus('verifying');
         try {
             await apiClient.post('/auth/verify-email', { code: c, email: e });
+            await queryClient.invalidateQueries({ queryKey: ['me'] });
             setStatus('success');
         } catch (err: any) {
             setStatus('error');
@@ -85,6 +90,7 @@ function VerifyEmailContent() {
         setErrorMsg('');
         try {
             await apiClient.post('/auth/verify-email', { code: fullCode, email: email.trim().toLowerCase() });
+            await queryClient.invalidateQueries({ queryKey: ['me'] });
             setStatus('success');
         } catch (err: any) {
             setStatus('error');
@@ -98,7 +104,13 @@ function VerifyEmailContent() {
         setIsSending(true);
         setErrorMsg('');
         try {
-            await apiClient.post('/auth/resend-email', { email: email.trim().toLowerCase() });
+            const normalizedEmail = email.trim().toLowerCase();
+            const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('token');
+            if (hasToken && normalizedEmail === emailParam.toLowerCase()) {
+                await authService.resendCurrentVerificationEmail();
+            } else {
+                await authService.resendVerificationEmail(normalizedEmail);
+            }
             setResendCooldown(RESEND_COOLDOWN);
             setCode(Array(CODE_LENGTH).fill(''));
             inputRefs.current[0]?.focus();
@@ -159,10 +171,10 @@ function VerifyEmailContent() {
                                 </p>
                             </div>
                             <button
-                                onClick={() => router.push('/dashboard')}
+                                onClick={() => router.push(nextParam)}
                                 className="w-full py-4 bg-[var(--primary)] text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:opacity-90 transition-all flex items-center justify-center gap-2"
                             >
-                                Go to Dashboard <ArrowRight size={16} />
+                                Continue <ArrowRight size={16} />
                             </button>
                         </motion.div>
                     )}

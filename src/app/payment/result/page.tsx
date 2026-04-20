@@ -1,228 +1,277 @@
 'use client';
 
-import { useEffect, useState, useRef, Suspense } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { CheckCircle2, XCircle, Loader2, ArrowRight, Home, Clock } from 'lucide-react';
+import {
+  ArrowRight,
+  CheckCircle2,
+  Clock,
+  Home,
+  Loader2,
+  RefreshCw,
+  XCircle,
+} from 'lucide-react';
 import { paymentService } from '@/lib/payment-service';
-import Link from 'next/link';
+
+type VerifyState = 'verifying' | 'paid' | 'failed' | 'cancelled' | 'pending';
+
+interface VerifyCardConfig {
+  icon: ReactNode;
+  title: string;
+  subtitle: string;
+  color: string;
+  border: string;
+}
+
+function getSafeExitHref(projectId: string): string {
+  return projectId ? `/projects/${projectId}` : '/';
+}
 
 function PaymentResultContent() {
-    const searchParams = useSearchParams();
+  const searchParams = useSearchParams();
+  const statusParam = searchParams.get('status');
+  const token =
+    searchParams.get('ID') ||
+    searchParams.get('TransactionToken') ||
+    searchParams.get('token');
+  const projectId = searchParams.get('projectId') || '';
 
-    // DPO card payment success: ?ID=<token>&projectId=...
-    // DPO mobile money redirect:  ?status=pending&ID=<token>&projectId=...
-    // DPO cancel:                 ?status=cancelled&projectId=...
-    const statusParam = searchParams.get('status');
-    const token = searchParams.get('ID') || searchParams.get('TransactionToken') || searchParams.get('token');
-    const projectId = searchParams.get('projectId') || '';
+  const [verifyState, setVerifyState] = useState<VerifyState>(() => {
+    if (statusParam === 'cancelled' && !token) {
+      return 'cancelled';
+    }
+    if (!token) {
+      return statusParam === 'success' ? 'paid' : 'cancelled';
+    }
+    return 'verifying';
+  });
+  const [message, setMessage] = useState('');
+  const [isManualRefresh, setIsManualRefresh] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollCount = useRef(0);
+  const maxPolls = 30;
 
-    type VerifyState = 'verifying' | 'paid' | 'failed' | 'cancelled' | 'pending';
+  const stopPolling = () => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  };
 
-    const [verifyState, setVerifyState] = useState<VerifyState>(() => {
-        if (statusParam === 'success') return 'paid';
-        if (statusParam === 'pending') return 'pending';
-        if (statusParam === 'cancelled') return 'cancelled';
-        if (!token) return 'cancelled';   // No token at all — nothing to verify
-        return 'verifying';
-    });
-    const [message, setMessage] = useState('');
-    const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-    const pollCount = useRef(0);
-    const MAX_POLLS = 20; // ~2 minutes at 6 second intervals
+  const verify = async (currentToken: string) => {
+    try {
+      const response = await paymentService.verifyDPOPayment(currentToken);
+      if (response.status === 'successful') {
+        stopPolling();
+        setVerifyState('paid');
+        setMessage('Your payment was confirmed successfully.');
+        return;
+      }
+      if (response.status === 'cancelled') {
+        stopPolling();
+        setVerifyState('cancelled');
+        setMessage(response.verify.message || 'This payment was cancelled before confirmation.');
+        return;
+      }
+      if (response.status === 'failed') {
+        stopPolling();
+        setVerifyState('failed');
+        setMessage(response.verify.message || 'Payment could not be verified.');
+        return;
+      }
 
-    const stopPolling = () => {
-        if (pollRef.current) {
-            clearInterval(pollRef.current);
-            pollRef.current = null;
-        }
-    };
+      setVerifyState('pending');
+      setMessage(
+        response.verify.message ||
+          'Your payment is still processing. Do not pay again; refresh this page in a moment.',
+      );
+    } catch (error: unknown) {
+      setVerifyState('pending');
+      setMessage(
+        'We could not confirm the payment yet. Do not pay again; use refresh in a moment.',
+      );
+    } finally {
+      setIsManualRefresh(false);
+    }
+  };
 
-    const verify = async (t: string) => {
-        try {
-            const res = await paymentService.verifyDPOPayment(t);
-            if (res.status === 'successful' || res.verify?.status === '000') {
-                stopPolling();
-                setVerifyState('paid');
-                setMessage('Your payment was confirmed successfully.');
-            } else if (
-                res.status === 'pending' ||
-                res.verify?.status === '801' ||
-                res.verify?.status === '804' ||
-                res.verify?.status === '900' ||
-                res.verify?.status === '001'
-            ) {
-                // Still pending — keep polling
-                setVerifyState('pending');
-                setMessage('Your mobile money payment is being processed. This usually takes 1–2 minutes.');
-            } else {
-                stopPolling();
-                setVerifyState('failed');
-                setMessage(res.verify?.message || 'Payment could not be verified.');
-            }
-        } catch {
-            // Network error during verify — keep polling
-            setVerifyState('pending');
-        }
-    };
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
 
-    useEffect(() => {
-        if (statusParam === 'success') {
-            setVerifyState('paid');
-            setMessage('Your payment was confirmed successfully.');
-            return;
-        }
+    void verify(token);
+    pollRef.current = setInterval(() => {
+      pollCount.current += 1;
+      if (pollCount.current >= maxPolls) {
+        stopPolling();
+        setVerifyState((current) => (current === 'paid' ? 'paid' : 'pending'));
+        setMessage(
+          `Payment is still processing. Do not pay again. Keep this reference for support: ${token}`,
+        );
+        return;
+      }
+      void verify(token);
+    }, 6000);
 
-        if (!token || statusParam === 'cancelled') return;
+    return () => stopPolling();
+  }, [token]);
 
-        verify(token);
+  const config: Record<VerifyState, VerifyCardConfig> = {
+    verifying: {
+      icon: <Loader2 size={64} className="animate-spin text-blue-400" />,
+      title: 'Verifying Payment…',
+      subtitle: 'Please wait while we confirm your payment with DPO.',
+      color: 'from-blue-600/20 to-indigo-600/20',
+      border: 'border-blue-500/30',
+    },
+    pending: {
+      icon: <Clock size={64} className="animate-pulse text-amber-400" />,
+      title: 'Processing Payment…',
+      subtitle:
+        message ||
+        'Your payment is still processing. Do not pay again while the transaction is settling.',
+      color: 'from-amber-600/20 to-yellow-600/20',
+      border: 'border-amber-500/30',
+    },
+    paid: {
+      icon: <CheckCircle2 size={64} className="text-emerald-400" />,
+      title: 'Payment Successful',
+      subtitle:
+        message ||
+        'Your contribution has been recorded successfully.',
+      color: 'from-emerald-600/20 to-teal-600/20',
+      border: 'border-emerald-500/30',
+    },
+    failed: {
+      icon: <XCircle size={64} className="text-red-400" />,
+      title: 'Payment Failed',
+      subtitle: message || 'Something went wrong while verifying your payment.',
+      color: 'from-red-600/20 to-rose-600/20',
+      border: 'border-red-500/30',
+    },
+    cancelled: {
+      icon: <XCircle size={64} className="text-orange-400" />,
+      title: 'Payment Cancelled',
+      subtitle: message || 'This payment was cancelled before completion.',
+      color: 'from-orange-600/20 to-amber-600/20',
+      border: 'border-orange-500/30',
+    },
+  };
 
-        // Poll every 6 seconds for Mobile Money pending payments
-        pollRef.current = setInterval(() => {
-            pollCount.current += 1;
-            if (pollCount.current >= MAX_POLLS) {
-                stopPolling();
-                setVerifyState((prev) =>
-                    prev === 'paid' ? 'paid' : 'failed'
-                );
-                setMessage('Payment verification timed out. If money was deducted, please contact support with your transaction token: ' + token);
-                return;
-            }
-            verify(token);
-        }, 6000);
+  const currentConfig = config[verifyState];
 
-        return () => stopPolling();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [token, statusParam]);
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#0a0a0f] p-6">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-1/2 top-1/3 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-indigo-600/10 blur-3xl" />
+      </div>
 
-    const config: Record<VerifyState, {
-        icon: ReactNode;
-        title: string;
-        subtitle: string;
-        color: string;
-        border: string;
-    }> = {
-        verifying: {
-            icon: <Loader2 size={64} className="text-blue-400 animate-spin" />,
-            title: 'Verifying Payment…',
-            subtitle: 'Please wait while we confirm your payment with DPO.',
-            color: 'from-blue-600/20 to-indigo-600/20',
-            border: 'border-blue-500/30',
-        },
-        pending: {
-            icon: <Clock size={64} className="text-amber-400 animate-pulse" />,
-            title: 'Processing Payment…',
-            subtitle: message || 'Your mobile money payment is being processed. Do NOT close this page.',
-            color: 'from-amber-600/20 to-yellow-600/20',
-            border: 'border-amber-500/30',
-        },
-        paid: {
-            icon: <CheckCircle2 size={64} className="text-emerald-400" />,
-            title: 'Payment Successful! 🎉',
-            subtitle: message || 'Your contribution has been recorded. Thank you for supporting this project!',
-            color: 'from-emerald-600/20 to-teal-600/20',
-            border: 'border-emerald-500/30',
-        },
-        failed: {
-            icon: <XCircle size={64} className="text-red-400" />,
-            title: 'Payment Failed',
-            subtitle: message || 'Something went wrong with your payment. Please try again.',
-            color: 'from-red-600/20 to-rose-600/20',
-            border: 'border-red-500/30',
-        },
-        cancelled: {
-            icon: <XCircle size={64} className="text-orange-400" />,
-            title: 'Payment Cancelled',
-            subtitle: 'You cancelled the payment. No funds were charged.',
-            color: 'from-orange-600/20 to-amber-600/20',
-            border: 'border-orange-500/30',
-        },
-    };
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className={`relative w-full max-w-md rounded-3xl border ${currentConfig.border} bg-gradient-to-br ${currentConfig.color} p-10 text-center shadow-2xl backdrop-blur-xl`}
+      >
+        <motion.div
+          key={verifyState}
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: 'spring', stiffness: 200 }}
+          className="mb-6 flex justify-center"
+        >
+          {currentConfig.icon}
+        </motion.div>
 
-    const cfg = config[verifyState];
+        <h1 className="mb-3 text-3xl font-black tracking-tight text-white">
+          {currentConfig.title}
+        </h1>
+        <p className="mb-8 font-medium leading-relaxed text-gray-400">
+          {currentConfig.subtitle}
+        </p>
 
-    return (
-        <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-6">
-            {/* Background glow */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-indigo-600/10 blur-3xl" />
-            </div>
+        {token && verifyState !== 'paid' && (
+          <p className="mb-6 break-all font-mono text-xs text-gray-600">Ref: {token}</p>
+        )}
 
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className={`relative w-full max-w-md bg-gradient-to-br ${cfg.color} backdrop-blur-xl border ${cfg.border} rounded-3xl p-10 text-center shadow-2xl`}
-            >
-                {/* Icon */}
-                <motion.div
-                    key={verifyState}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 200 }}
-                    className="flex justify-center mb-6"
-                >
-                    {cfg.icon}
-                </motion.div>
-
-                {/* Title */}
-                <h1 className="text-3xl font-black text-white mb-3 tracking-tight">{cfg.title}</h1>
-                <p className="text-gray-400 font-medium mb-8 leading-relaxed">{cfg.subtitle}</p>
-
-                {/* Token reference for support */}
-                {token && verifyState !== 'paid' && verifyState !== 'cancelled' && (
-                    <p className="text-xs text-gray-600 mb-6 font-mono break-all">Ref: {token}</p>
-                )}
-
-                {/* DPO badge */}
-                <div className="flex items-center justify-center gap-2 mb-8">
-                    <span className="text-xs text-gray-500 font-medium">Secured by</span>
-                    <span className="text-xs font-black text-white bg-white/10 px-3 py-1 rounded-full border border-white/10">
-                        DPO Pay
-                    </span>
-                </div>
-
-                {/* Actions */}
-                <div className="flex flex-col gap-3">
-                    {projectId && verifyState === 'paid' && (
-                        <Link
-                            href={`/projects/${projectId}`}
-                            className="flex items-center justify-center gap-2 bg-white text-black font-bold py-3.5 px-6 rounded-xl hover:bg-gray-100 transition-all"
-                        >
-                            View Project <ArrowRight size={18} />
-                        </Link>
-                    )}
-                    {(verifyState === 'failed' || verifyState === 'cancelled') && projectId && (
-                        <Link
-                            href={`/projects/${projectId}`}
-                            className="flex items-center justify-center gap-2 bg-white text-black font-bold py-3.5 px-6 rounded-xl hover:bg-gray-100 transition-all"
-                        >
-                            Try Again <ArrowRight size={18} />
-                        </Link>
-                    )}
-                    {verifyState !== 'verifying' && verifyState !== 'pending' && (
-                        <Link
-                            href="/dashboard"
-                            className="flex items-center justify-center gap-2 bg-white/10 text-white font-bold py-3.5 px-6 rounded-xl hover:bg-white/20 transition-all border border-white/10"
-                        >
-                            <Home size={18} /> Go to Dashboard
-                        </Link>
-                    )}
-                </div>
-            </motion.div>
+        <div className="mb-8 flex items-center justify-center gap-2">
+          <span className="text-xs font-medium text-gray-500">Secured by</span>
+          <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-black text-white">
+            DPO Pay
+          </span>
         </div>
-    );
+
+        <div className="flex flex-col gap-3">
+          {verifyState === 'pending' && token && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsManualRefresh(true);
+                void verify(token);
+              }}
+              disabled={isManualRefresh}
+              className="flex items-center justify-center gap-2 rounded-xl bg-white py-3.5 px-6 font-bold text-black transition-all hover:bg-gray-100 disabled:opacity-60"
+            >
+              {isManualRefresh ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw size={18} />
+                  Refresh Status
+                </>
+              )}
+            </button>
+          )}
+
+          {projectId && verifyState === 'paid' && (
+            <Link
+              href={`/projects/${projectId}`}
+              className="flex items-center justify-center gap-2 rounded-xl bg-white py-3.5 px-6 font-bold text-black transition-all hover:bg-gray-100"
+            >
+              View Project <ArrowRight size={18} />
+            </Link>
+          )}
+
+          {(verifyState === 'failed' || verifyState === 'cancelled') && projectId && (
+            <Link
+              href={`/projects/${projectId}`}
+              className="flex items-center justify-center gap-2 rounded-xl bg-white py-3.5 px-6 font-bold text-black transition-all hover:bg-gray-100"
+            >
+              Try Again <ArrowRight size={18} />
+            </Link>
+          )}
+
+          {verifyState !== 'verifying' && (
+            <Link
+              href={getSafeExitHref(projectId)}
+              className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/10 py-3.5 px-6 font-bold text-white transition-all hover:bg-white/20"
+            >
+              <Home size={18} />
+              {projectId ? 'Back to Project' : 'Back Home'}
+            </Link>
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
 }
 
 export default function PaymentResultPage() {
-    return (
-        <Suspense fallback={
-            <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-                <Loader2 size={48} className="text-white animate-spin" />
-            </div>
-        }>
-            <PaymentResultContent />
-        </Suspense>
-    );
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#0a0a0f]">
+          <Loader2 size={48} className="animate-spin text-white" />
+        </div>
+      }
+    >
+      <PaymentResultContent />
+    </Suspense>
+  );
 }

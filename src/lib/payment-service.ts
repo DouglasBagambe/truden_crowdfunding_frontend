@@ -4,6 +4,7 @@ export interface DPOInitResponse {
     token: string;
     redirectUrl: string;
     status: string;
+    quote?: DPOQuoteResponse;
 }
 
 export interface DPOVerifyResponse {
@@ -14,7 +15,25 @@ export interface DPOVerifyResponse {
         transactionRef?: string;
         amount?: string;
         currency?: string;
+        companyRef?: string;
+        netAmount?: string;
+        vatAmount?: string;
     };
+}
+
+export interface DPOQuoteResponse {
+    projectId: string;
+    projectType: string;
+    projectName: string;
+    currency: string;
+    requestedAmount: number;
+    grossAmount: number;
+    dpoFee: number;
+    dpoVat: number;
+    keiboFee: number;
+    providerNetAmount: number;
+    projectNetAmount: number;
+    roundingAdjustment: number;
 }
 
 export const paymentService = {
@@ -41,6 +60,19 @@ export const paymentService = {
             description: params.description,
             donorName: params.donorName,
             walletAddress: params.walletAddress,
+        });
+        return response.data;
+    },
+
+    async getDPOPaymentQuote(params: {
+        projectId: string;
+        amount: number;
+        currency?: string;
+    }): Promise<DPOQuoteResponse> {
+        const response = await apiClient.post<DPOQuoteResponse>('/payments/dpo/quote', {
+            projectId: params.projectId,
+            amount: params.amount,
+            currency: params.currency ?? 'UGX',
         });
         return response.data;
     },

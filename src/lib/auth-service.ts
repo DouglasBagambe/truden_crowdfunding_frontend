@@ -1,16 +1,61 @@
 import { apiClient } from './api-client';
 
+export interface LoginRequest {
+  email: string;
+  password: string;
+  otp?: string;
+}
+
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface AuthUser {
+  email?: string;
+  firstName?: string;
+  profile?: {
+    firstName?: string;
+    lastName?: string;
+    displayName?: string;
+  };
+}
+
+export interface AuthResponse {
+  accessToken?: string;
+  access_token?: string;
+  refreshToken?: string;
+  refresh_token?: string;
+  user?: AuthUser;
+}
+
+export interface VerificationResponse {
+  message: string;
+}
+
 export const authService = {
-  async login(data: any) {
-    const response = await apiClient.post('/auth/login', data);
+  async login(data: LoginRequest): Promise<AuthResponse> {
+    const response = await apiClient.post<AuthResponse>('/auth/login', data);
     if (response.data.access_token) {
       localStorage.setItem('token', response.data.access_token);
     }
     return response.data;
   },
 
-  async register(data: any) {
-    const response = await apiClient.post('/auth/register', data);
+  async register(data: RegisterRequest): Promise<AuthResponse> {
+    const response = await apiClient.post<AuthResponse>('/auth/register', data);
+    return response.data;
+  },
+
+  async resendVerificationEmail(email: string): Promise<VerificationResponse> {
+    const response = await apiClient.post<VerificationResponse>('/auth/resend-email', { email });
+    return response.data;
+  },
+
+  async resendCurrentVerificationEmail(): Promise<VerificationResponse> {
+    const response = await apiClient.post<VerificationResponse>('/auth/resend-email/current');
     return response.data;
   },
 
@@ -27,5 +72,5 @@ export const authService = {
   logout() {
     localStorage.removeItem('token');
     window.location.href = '/login';
-  }
+  },
 };

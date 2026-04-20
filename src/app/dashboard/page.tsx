@@ -15,10 +15,13 @@ import { useProjects, useMyProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
 import { useInvestments } from '@/hooks/useInvestments';
 import { useRoiAccess } from '@/hooks/useRoiAccess';
+import { authService } from '@/lib/auth-service';
+import { buildVerifyEmailUrl } from '@/lib/email-verification';
 import { Search, LineChart, ArrowUpRight, Shield, PlusCircle, LayoutDashboard, Wallet, Briefcase, Activity, Image as ImageIcon, ShieldCheck, Bell, Mail, AlertTriangle, Heart, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { filterVisibleProjects, isCharityProject } from '@/lib/roi-access';
+import toast from 'react-hot-toast';
 
 interface Project {
     id: string;
@@ -57,9 +60,34 @@ export default function DashboardPage() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState<'investments' | 'donations' | 'campaigns' | 'nfts' | 'kyc'>('donations');
+    const [isStartingVerification, setIsStartingVerification] = useState(false);
 
     const handleTriggerCreate = () => {
         router.push('/dashboard/create-project');
+    };
+
+    const handleStartEmailVerification = async () => {
+        if (!user?.email || isStartingVerification) {
+            return;
+        }
+
+        try {
+            setIsStartingVerification(true);
+            await authService.resendCurrentVerificationEmail();
+            toast.success('A fresh verification code has been sent to your email.');
+        } catch (error: unknown) {
+            const message =
+                (error as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;
+            toast.error(Array.isArray(message) ? message.join('. ') : message || 'Unable to send a verification code right now.');
+        } finally {
+            setIsStartingVerification(false);
+            router.push(
+                buildVerifyEmailUrl({
+                    email: user.email,
+                    next: '/dashboard',
+                }),
+            );
+        }
     };
 
     useEffect(() => {
@@ -199,12 +227,14 @@ export default function DashboardPage() {
                                 Please verify your email address to unlock all features.
                             </span>
                         </div>
-                        <Link
-                            href={`/verify-email?email=${encodeURIComponent(user?.email || '')}`}
+                        <button
+                            type="button"
+                            onClick={handleStartEmailVerification}
+                            disabled={isStartingVerification}
                             className="flex-shrink-0 flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-black text-xs font-black px-4 py-2 rounded-lg transition-all uppercase tracking-wider"
                         >
-                            <Mail size={13} /> Verify Email
-                        </Link>
+                            <Mail size={13} /> {isStartingVerification ? 'Sending...' : 'Verify Email'}
+                        </button>
                     </div>
                 </div>
             )}
