@@ -373,10 +373,12 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
                                             <span>DPO VAT</span>
                                             <span>{quote.currency} {quote.dpoVat.toLocaleString()}</span>
                                         </div>
-                                        <div className="flex items-center justify-between py-1 text-[var(--text-muted)]">
-                                            <span>Keibo handling fee</span>
-                                            <span>{quote.currency} {quote.keiboFee.toLocaleString()}</span>
-                                        </div>
+                                        {quote.keiboFee > 0 && (
+                                            <div className="flex items-center justify-between py-1 text-[var(--text-muted)]">
+                                                <span>Keibo handling fee</span>
+                                                <span>{quote.currency} {quote.keiboFee.toLocaleString()}</span>
+                                            </div>
+                                        )}
                                         <div className="mt-2 flex items-center justify-between border-t border-[var(--border)] pt-3 text-[var(--text-main)]">
                                             <span className="text-[10px] font-black uppercase tracking-widest">You Pay</span>
                                             <span className="text-base font-black">{quote.currency} {quote.grossAmount.toLocaleString()}</span>
