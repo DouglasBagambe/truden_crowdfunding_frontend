@@ -34,6 +34,11 @@ export interface DPOQuoteResponse {
     providerNetAmount: number;
     projectNetAmount: number;
     roundingAdjustment: number;
+    /** Present for ROI projects only. Used by UI to display testing-mode banner. */
+    roi?: {
+        bypassActive: boolean;
+        nftMintingEnabled: boolean;
+    };
 }
 
 export const paymentService = {

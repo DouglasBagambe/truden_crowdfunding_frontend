@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertCircle, Loader2, Wallet, X } from 'lucide-react';
+import { AlertCircle, Clock, Info, Loader2, Wallet, X } from 'lucide-react';
 import { useAccount } from 'wagmi';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoiAccess } from '@/hooks/useRoiAccess';
@@ -61,6 +61,45 @@ function getPreferredWalletAddress(user: unknown, connectedAddress?: string): st
         || currentUser?.primaryWallet
         || currentUser?.linkedWallets?.[0]
         || '';
+}
+
+/** Maps a raw backend error string to a short, readable alert heading. */
+function resolveErrorLabel(errorText: string): { label: string; icon: React.ReactNode } {
+    const lower = errorText.toLowerCase();
+    if (lower.includes('not yet been provisioned') || lower.includes('provisioned on-chain')) {
+        return {
+            label: 'Project not yet ready for investment',
+            icon: <Clock className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />,
+        };
+    }
+    if (lower.includes('provisioning previously failed')) {
+        return {
+            label: 'On-chain provisioning failed — admin action required',
+            icon: <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-rose-700" />,
+        };
+    }
+    if (lower.includes('linked wallet')) {
+        return {
+            label: 'Creator wallet not linked',
+            icon: <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-rose-700" />,
+        };
+    }
+    if (lower.includes('kyc')) {
+        return {
+            label: 'KYC verification required',
+            icon: <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600" />,
+        };
+    }
+    if (lower.includes('email') && lower.includes('verif')) {
+        return {
+            label: 'Email verification required',
+            icon: <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600" />,
+        };
+    }
+    return {
+        label: 'Investment blocked',
+        icon: <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-rose-700" />,
+    };
 }
 
 export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPaymentModalProps) {
@@ -384,6 +423,26 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
                                             <span className="text-base font-black">{quote.currency} {quote.grossAmount.toLocaleString()}</span>
                                         </div>
                                     </div>
+                                )}\n
+                                {/* Testing-mode bypass banner — shown when backend has ROI_REQUIRE_ONCHAIN_PROVISIONING=false */}
+                                {quote?.roi?.bypassActive && (
+                                    <div
+                                        role="status"
+                                        aria-live="polite"
+                                        className="flex items-start gap-2.5 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+                                    >
+                                        <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
+                                        <div className="space-y-0.5">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">
+                                                Testing mode active
+                                            </p>
+                                            <p className="font-medium leading-5">
+                                                ROI provisioning checks are bypassed on this platform instance.
+                                                {!quote.roi.nftMintingEnabled && ' NFT minting is also disabled.'}
+                                                {' '}Your investment will be recorded but may not be backed by an on-chain NFT until production provisioning is complete.
+                                            </p>
+                                        </div>
+                                    </div>
                                 )}
 
                                 <div className="flex flex-wrap gap-2">
@@ -403,24 +462,46 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
                                     ))}
                                 </div>
 
-                                {error && (
-                                    <div
-                                        role="alert"
-                                        className="rounded-2xl border border-rose-300 bg-rose-100 px-4 py-3 text-sm text-rose-900 shadow-sm"
-                                    >
-                                        <div className="flex items-start gap-2.5">
-                                            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-rose-700" />
-                                            <div className="space-y-1">
-                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-700">
-                                                    Investment blocked
-                                                </p>
-                                                <p className="font-semibold leading-6 text-rose-950">
-                                                    {error}
-                                                </p>
+                                {error && (() => {
+                                    const { label, icon } = resolveErrorLabel(error);
+                                    const isProvisioningError =
+                                        error.toLowerCase().includes('provisioned on-chain') ||
+                                        error.toLowerCase().includes('not yet been provisioned') ||
+                                        error.toLowerCase().includes('provisioning previously failed');
+
+                                    return (
+                                        <div
+                                            role="alert"
+                                            className={`rounded-2xl border px-4 py-3 text-sm shadow-sm ${
+                                                isProvisioningError
+                                                    ? 'border-amber-300 bg-amber-50 text-amber-900'
+                                                    : 'border-rose-300 bg-rose-100 text-rose-900'
+                                            }`}
+                                        >
+                                            <div className="flex items-start gap-2.5">
+                                                {icon}
+                                                <div className="space-y-1">
+                                                    <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${
+                                                        isProvisioningError ? 'text-amber-700' : 'text-rose-700'
+                                                    }`}>
+                                                        {label}
+                                                    </p>
+                                                    <p className={`font-semibold leading-6 ${
+                                                        isProvisioningError ? 'text-amber-950' : 'text-rose-950'
+                                                    }`}>
+                                                        {error}
+                                                    </p>
+                                                    {isProvisioningError && (
+                                                        <p className="text-xs text-amber-700 mt-1">
+                                                            This project is approved but its blockchain record has not been set up yet.
+                                                            Contact the platform admin to complete the setup.
+                                                        </p>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                )}
+                                    );
+                                })()}
 
                                 <div className="flex gap-3 pt-1">
                                     <button
