@@ -404,10 +404,20 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
                                 </div>
 
                                 {error && (
-                                    <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-200">
-                                        <div className="flex items-start gap-2">
-                                            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                                            <span>{error}</span>
+                                    <div
+                                        role="alert"
+                                        className="rounded-2xl border border-rose-300 bg-rose-100 px-4 py-3 text-sm text-rose-900 shadow-sm"
+                                    >
+                                        <div className="flex items-start gap-2.5">
+                                            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-rose-700" />
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-700">
+                                                    Investment blocked
+                                                </p>
+                                                <p className="font-semibold leading-6 text-rose-950">
+                                                    {error}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
