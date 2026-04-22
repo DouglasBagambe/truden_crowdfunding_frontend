@@ -375,7 +375,7 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
 
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
-                                        Amount Project Receives ({currency})
+                                        {isCharity ? 'Donation Amount' : 'Investment Amount'} ({currency})
                                     </label>
                                     <input
                                         type="number"
@@ -401,29 +401,23 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
                                 {quote && (
                                     <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 text-sm">
                                         <div className="flex items-center justify-between py-1 text-[var(--text-muted)]">
-                                            <span>Project receives</span>
+                                            <span>{isCharity ? 'Donation amount' : 'Investment amount'}</span>
                                             <span className="font-bold text-[var(--text-main)]">{quote.currency} {quote.projectNetAmount.toLocaleString()}</span>
                                         </div>
                                         <div className="flex items-center justify-between py-1 text-[var(--text-muted)]">
-                                            <span>DPO fee</span>
-                                            <span>{quote.currency} {quote.dpoFee.toLocaleString()}</span>
+                                            <span>Transaction fees</span>
+                                            <span>{quote.currency} {(quote.dpoFee + quote.keiboFee).toLocaleString()}</span>
                                         </div>
                                         <div className="flex items-center justify-between py-1 text-[var(--text-muted)]">
-                                            <span>DPO VAT</span>
+                                            <span>Taxes</span>
                                             <span>{quote.currency} {quote.dpoVat.toLocaleString()}</span>
                                         </div>
-                                        {quote.keiboFee > 0 && (
-                                            <div className="flex items-center justify-between py-1 text-[var(--text-muted)]">
-                                                <span>Keibo handling fee</span>
-                                                <span>{quote.currency} {quote.keiboFee.toLocaleString()}</span>
-                                            </div>
-                                        )}
                                         <div className="mt-2 flex items-center justify-between border-t border-[var(--border)] pt-3 text-[var(--text-main)]">
-                                            <span className="text-[10px] font-black uppercase tracking-widest">You Pay</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest">Total</span>
                                             <span className="text-base font-black">{quote.currency} {quote.grossAmount.toLocaleString()}</span>
                                         </div>
                                     </div>
-                                )}\n
+                                )}
                                 {/* Testing-mode bypass banner — shown when backend has ROI_REQUIRE_ONCHAIN_PROVISIONING=false */}
                                 {quote?.roi?.bypassActive && (
                                     <div
