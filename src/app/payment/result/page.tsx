@@ -64,6 +64,12 @@ function PaymentResultContent() {
   const verify = async (currentToken: string) => {
     try {
       const response = await paymentService.verifyDPOPayment(currentToken);
+      if (response.verify?.status === '000') {
+        stopPolling();
+        setVerifyState('paid');
+        setMessage(response.verify.message || 'Your payment was confirmed successfully.');
+        return;
+      }
       if (response.status === 'successful') {
         stopPolling();
         setVerifyState('paid');
