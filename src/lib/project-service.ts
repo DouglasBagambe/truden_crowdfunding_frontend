@@ -76,12 +76,15 @@ export const projectService = {
    * Get project details (works for all statuses including DRAFT)
    */
   async getProject(id: string) {
-    try {
-      const ownerResponse = await apiClient.get(`/projects/${id}/owner`);
-      return ownerResponse.data;
-    } catch (error: any) {
-      if (error?.response?.status && error.response.status !== 401 && error.response.status !== 403) {
-        throw error;
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (token) {
+      try {
+        const ownerResponse = await apiClient.get(`/projects/${id}/owner`);
+        return ownerResponse.data;
+      } catch (error: any) {
+        if (error?.response?.status && error.response.status !== 401 && error.response.status !== 403) {
+          throw error;
+        }
       }
     }
 
