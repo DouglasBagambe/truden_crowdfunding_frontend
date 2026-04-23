@@ -17,6 +17,13 @@ interface Investment {
   nftProjectId?: number | null;
   nftTokenAmount?: number | null;
   nftTxHash?: string | null;
+  nft?: {
+    projectId?: number | null;
+    tokenAmount?: number | null;
+    txHash?: string | null;
+    minted?: boolean;
+    listed?: boolean;
+  };
   status: string;
   createdAt: string;
   project?: { id: string; title?: string; type?: string };
@@ -158,7 +165,7 @@ export function NFTPortfolio() {
       const data = await investmentService.getMyInvestments();
       // Filter to only ROI investments that have been minted
       const nftInvestments = (data as any[]).filter(
-        (inv: any) => inv.nftMinted || inv.nftProjectId
+        (inv: any) => inv.nftMinted || inv.nftProjectId || inv.nft?.minted || inv.nft?.projectId
       );
       setInvestments(nftInvestments as Investment[]);
     } catch {
@@ -211,14 +218,21 @@ export function NFTPortfolio() {
       )}
 
       <div className="space-y-3">
-        {investments.map(inv => (
+        {investments.map(inv => {
+          const projectTokenId = inv.nftProjectId ?? inv.nft?.projectId ?? null;
+          const tokenAmount = inv.nftTokenAmount ?? inv.nft?.tokenAmount ?? null;
+          const mintTxHash = inv.nftTxHash ?? inv.nft?.txHash ?? null;
+          const nftMinted = inv.nftMinted ?? inv.nft?.minted ?? false;
+          const listed = inv.listed ?? inv.nft?.listed ?? false;
+
+          return (
           <div
             key={inv.id}
             className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 transition-all hover:border-blue-400/60 hover:shadow-lg"
           >
             {/* Status badge */}
             <div className="absolute top-3 right-3">
-              {inv.listed ? (
+              {listed ? (
                 <span className="chip-base chip-warning">
                   Listed
                 </span>
@@ -237,24 +251,24 @@ export function NFTPortfolio() {
 
               <div className="flex-1 min-w-0 pr-16">
                 <p className="truncate font-semibold text-[var(--text-main)]">
-                  {inv.project?.title || `Project #${inv.nftProjectId}`}
+                  {inv.project?.title || `Project #${projectTokenId}`}
                 </p>
                 <p className="mt-0.5 text-sm text-[var(--text-muted)]">
-                  {inv.nftTokenAmount?.toLocaleString() ?? '?'} tokens
+                  {tokenAmount?.toLocaleString() ?? '?'} tokens
                   &nbsp;·&nbsp;
                   <span className="text-blue-800 dark:text-blue-300 font-semibold">
                     {inv.currency ?? 'UGX'} {inv.amount.toLocaleString()} invested
                   </span>
                 </p>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">
-                  {inv.nftTxHash ? (
+                  {mintTxHash ? (
                     <a
-                      href={`https://sepolia.basescan.org/tx/${inv.nftTxHash}`}
+                      href={`https://sepolia.basescan.org/tx/${mintTxHash}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="transition hover:text-blue-600 dark:hover:text-blue-300"
                     >
-                      Tx: {inv.nftTxHash.slice(0, 10)}…
+                      Tx: {mintTxHash.slice(0, 10)}…
                     </a>
                   ) : (
                     'Minting pending'
@@ -264,7 +278,7 @@ export function NFTPortfolio() {
             </div>
 
             {/* Actions */}
-            {isConnected && marketplaceEnabled && !inv.listed && inv.nftMinted && (
+            {isConnected && marketplaceEnabled && !listed && nftMinted && (
               <button
                 onClick={() => setSelectedInvestment(inv)}
                 className="mt-3 w-full py-2 rounded-xl border border-violet-300 bg-violet-50 text-violet-700 text-sm font-medium hover:bg-violet-100 dark:border-violet-900/30 dark:bg-violet-950/20 dark:text-violet-300 transition"
@@ -273,13 +287,13 @@ export function NFTPortfolio() {
               </button>
             )}
 
-            {isConnected && !marketplaceEnabled && inv.nftMinted && (
+            {isConnected && !marketplaceEnabled && nftMinted && (
               <p className="mt-3 text-xs text-[var(--text-muted)]">
                 Marketplace trading is temporarily disabled while settlement verification is being hardened.
               </p>
             )}
           </div>
-        ))}
+        )})}
       </div>
 
       {selectedInvestment && address && (
