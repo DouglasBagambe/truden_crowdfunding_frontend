@@ -29,6 +29,38 @@ interface DPOPaymentModalProps {
     project: PaymentProject;
 }
 
+function normalizeErrorMessage(
+    value: unknown,
+    fallback: string,
+): string {
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        return trimmed || fallback;
+    }
+
+    if (Array.isArray(value)) {
+        const parts = value
+            .map((item) => normalizeErrorMessage(item, ''))
+            .filter(Boolean);
+        return parts.join(', ') || fallback;
+    }
+
+    if (value && typeof value === 'object') {
+        const record = value as Record<string, unknown>;
+        if (typeof record.message === 'string') {
+            return normalizeErrorMessage(record.message, fallback);
+        }
+        if (Array.isArray(record.message)) {
+            return normalizeErrorMessage(record.message, fallback);
+        }
+        if (typeof record.error === 'string') {
+            return normalizeErrorMessage(record.error, fallback);
+        }
+    }
+
+    return fallback;
+}
+
 function getDisplayName(user: unknown): string {
     const currentUser = user as {
         profile?: { firstName?: string; lastName?: string; displayName?: string };
@@ -180,9 +212,12 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
             } catch (quoteError: unknown) {
                 if (!cancelled) {
                     setQuote(null);
-                    const message =
-                        (quoteError as { response?: { data?: { message?: string } } })?.response?.data?.message
-                        || 'Unable to calculate the payable total right now.';
+                    const message = normalizeErrorMessage(
+                        (quoteError as { response?: { data?: { message?: unknown; error?: unknown } } })?.response?.data?.message
+                        ?? (quoteError as { response?: { data?: { error?: unknown } } })?.response?.data?.error
+                        ?? quoteError,
+                        'Unable to calculate the payable total right now.',
+                    );
                     setError(message);
                 }
             } finally {
@@ -256,10 +291,13 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
 
             window.location.href = result.redirectUrl;
         } catch (err: unknown) {
-            const message =
-                (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message
-                || (err as { message?: string })?.message
-                || 'Failed to initialize payment. Please try again.';
+            const message = normalizeErrorMessage(
+                (err as { response?: { data?: { message?: unknown; error?: unknown } }; message?: unknown })?.response?.data?.message
+                ?? (err as { response?: { data?: { error?: unknown } } })?.response?.data?.error
+                ?? (err as { message?: unknown })?.message
+                ?? err,
+                'Failed to initialize payment. Please try again.',
+            );
             if (message.toLowerCase().includes('not verified') && user?.email) {
                 try {
                     await authService.resendCurrentVerificationEmail();
