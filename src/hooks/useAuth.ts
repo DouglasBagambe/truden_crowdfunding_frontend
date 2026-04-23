@@ -40,6 +40,8 @@ export function useAuth() {
   const loginMutation = useMutation<AuthResponse, AxiosError<ApiErrorBody>, LoginRequest>({
     mutationFn: (data) => authService.login(data),
     onSuccess: (data) => {
+      queryClient.clear();
+
       const token = data.accessToken || data.access_token;
       const refreshToken = data.refreshToken || data.refresh_token;
 
@@ -101,6 +103,7 @@ export function useAuth() {
   });
 
   const logout = () => {
+    queryClient.clear();
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     try {

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { projectService } from '@/lib/project-service';
+import { useAuth } from './useAuth';
 
 export function useProjects(params?: any) {
   return useQuery({
@@ -17,9 +18,13 @@ export function useProject(id: string) {
 }
 
 export function useMyProjects() {
+  const { user, isAuthenticated } = useAuth();
+  const userId = user?.id || user?._id || null;
+
   return useQuery({
-    queryKey: ['my-projects'],
+    queryKey: ['my-projects', userId],
     queryFn: () => projectService.getMyProjects(),
+    enabled: !!isAuthenticated && !!userId,
     staleTime: 30_000,
   });
 }
