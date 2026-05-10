@@ -336,10 +336,10 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.96, y: 20 }}
                         transition={{ type: 'spring', stiffness: 280, damping: 28 }}
-                        className="fixed inset-0 z-[51] flex items-center justify-center px-4"
+                        className="fixed inset-0 z-[51] flex items-center justify-center px-4 py-4 sm:py-6"
                     >
-                        <div className="w-full max-w-md overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-2xl">
-                            <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-5">
+                        <div className="flex w-full max-w-md max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-2xl sm:max-h-[calc(100dvh-3rem)]">
+                            <div className="flex flex-shrink-0 items-center justify-between border-b border-[var(--border)] px-6 py-5">
                                 <div>
                                     <h2 className="text-lg font-black text-[var(--text-main)]">
                                         {isCharity ? 'Donate to Project' : 'Invest in Project'}
@@ -357,7 +357,7 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
                                 </button>
                             </div>
 
-                            <div className="space-y-5 px-6 py-6">
+                            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-6 py-6">
                                 {isCharity && (
                                     <div className="space-y-2">
                                         <div className="flex items-center justify-between">
@@ -535,35 +535,36 @@ export default function DPOPaymentModal({ isOpen, onClose, project }: DPOPayment
                                     );
                                 })()}
 
-                                <div className="flex gap-3 pt-1">
-                                    <button
-                                        type="button"
-                                        onClick={handleClose}
-                                        disabled={isSubmitting}
-                                        className="flex-1 rounded-2xl border border-[var(--border)] py-3 text-[10px] font-black uppercase tracking-widest transition hover:bg-white/5 disabled:opacity-50"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleSubmit}
-                                        disabled={isSubmitting || isLoadingQuote}
-                                        className={`flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-[10px] font-black uppercase tracking-widest text-white transition disabled:opacity-50 ${
-                                            isCharity ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-blue-600 hover:bg-blue-500'
-                                        }`}
-                                    >
-                                        {isSubmitting ? (
-                                            <>
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                Redirecting...
-                                            </>
-                                        ) : (
-                                            <>
-                                                {isCharity ? 'Donate' : 'Invest'}
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
+                            </div>
+
+                            <div className="flex flex-shrink-0 gap-3 border-t border-[var(--border)] bg-[var(--card)] px-6 py-4">
+                                <button
+                                    type="button"
+                                    onClick={handleClose}
+                                    disabled={isSubmitting}
+                                    className="flex-1 rounded-2xl border border-[var(--border)] py-3 text-[10px] font-black uppercase tracking-widest transition hover:bg-white/5 disabled:opacity-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleSubmit}
+                                    disabled={isSubmitting || isLoadingQuote}
+                                    className={`flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-[10px] font-black uppercase tracking-widest text-white transition disabled:opacity-50 ${
+                                        isCharity ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-blue-600 hover:bg-blue-500'
+                                    }`}
+                                >
+                                    {isSubmitting ? (
+                                        <>
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            Redirecting...
+                                        </>
+                                    ) : (
+                                        <>
+                                            {isCharity ? 'Donate' : 'Invest'}
+                                        </>
+                                    )}
+                                </button>
                             </div>
                         </div>
                     </motion.div>
