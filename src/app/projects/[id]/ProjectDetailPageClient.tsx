@@ -18,6 +18,31 @@ import { isCharityProject, isROIProject } from '@/lib/roi-access';
 import toast from 'react-hot-toast';
 import DPOPaymentModal from '@/components/payments/DPOPaymentModal';
 
+function ExpandableStory({ story }: { story: string }) {
+    const [expanded, setExpanded] = useState(false);
+    const trimmedStory = story.trim();
+    const isLong = trimmedStory.length > 900;
+    const visibleStory = !isLong || expanded ? trimmedStory : `${trimmedStory.slice(0, 900).trimEnd()}...`;
+
+    return (
+        <div className="bg-[var(--card)] p-8 rounded-3xl border border-[var(--border)] leading-loose text-lg space-y-4">
+            {visibleStory.split('\n').map((para: string, i: number) => (
+                <p key={i} className="text-[var(--text-main)] break-words whitespace-pre-wrap">{para}</p>
+            ))}
+            {isLong && (
+                <button
+                    type="button"
+                    onClick={() => setExpanded((value) => !value)}
+                    className="mt-2 rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-black uppercase tracking-widest text-[var(--primary)] transition-all hover:bg-[var(--secondary)] focus:outline-none focus:ring-4 focus:ring-[var(--primary)]/20"
+                    aria-expanded={expanded}
+                >
+                    {expanded ? 'Read Less' : 'Read More'}
+                </button>
+            )}
+        </div>
+    );
+}
+
 export default function ProjectDetailPageClient() {
     const params = useParams();
     const router = useRouter();
@@ -367,14 +392,13 @@ export default function ProjectDetailPageClient() {
                                         animate={{ opacity: 1, y: 0 }}
                                         className="space-y-8"
                                     >
-                                        <div className="bg-[var(--card)] p-8 rounded-3xl border border-[var(--border)] leading-loose text-lg space-y-4">
-                                            {project.story
-                                                ? project.story.split('\n').map((para: string, i: number) => (
-                                                    <p key={i} className="text-[var(--text-main)] break-words whitespace-pre-wrap">{para}</p>
-                                                ))
-                                                : <p className="text-[var(--text-muted)]">No story provided yet.</p>
-                                            }
-                                        </div>
+                                        {project.story
+                                            ? <ExpandableStory story={project.story} />
+                                            : (
+                                                <div className="bg-[var(--card)] p-8 rounded-3xl border border-[var(--border)] leading-loose text-lg space-y-4">
+                                                    <p className="text-[var(--text-muted)]">No story provided yet.</p>
+                                                </div>
+                                            )}
 
                                         {/* Use of Funds */}
                                         {project.useOfFunds && project.useOfFunds.length > 0 && (
