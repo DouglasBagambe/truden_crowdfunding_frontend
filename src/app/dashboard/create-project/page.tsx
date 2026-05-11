@@ -77,6 +77,8 @@ const isProbablyUrl = (value: unknown): value is string => {
     }
 };
 
+type FieldErrors = Partial<Record<keyof CreateProjectParams | 'location' | 'milestones', string>>;
+
 export default function CreateProjectPage() {
     const router = useRouter();
     const queryClient = useQueryClient();
@@ -86,6 +88,7 @@ export default function CreateProjectPage() {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
     const [coverPreviewUrl, setCoverPreviewUrl] = useState('');
 
     useEffect(() => {
@@ -126,6 +129,60 @@ export default function CreateProjectPage() {
         }
     }, [formData.type, hasRoiAccess]);
 
+    const clearFieldError = (field: keyof FieldErrors) => {
+        setFieldErrors((current) => {
+            if (!current[field]) return current;
+            const next = { ...current };
+            delete next[field];
+            return next;
+        });
+    };
+
+    const getInputClass = (field: keyof FieldErrors, baseClass: string) =>
+        `${baseClass} ${fieldErrors[field] ? 'border-rose-500 bg-rose-50 focus:border-rose-500 focus:ring-rose-100' : ''}`;
+
+    const renderFieldError = (field: keyof FieldErrors) => fieldErrors[field] ? (
+        <p className="mt-2 text-xs font-bold text-rose-600">{fieldErrors[field]}</p>
+    ) : null;
+
+    const validateStep = (): FieldErrors => {
+        const errors: FieldErrors = {};
+        if (step === 2) {
+            if (!formData.name.trim() || formData.name.trim().length < 4) {
+                errors.name = 'Enter a project name with at least 4 characters.';
+            }
+            if (!formData.summary.trim() || formData.summary.trim().length < 4) {
+                errors.summary = 'Enter a summary with at least 4 characters.';
+            }
+            if (!formData.country.trim() || formData.country.trim().length < 2) {
+                errors.country = 'Enter the country of operation.';
+            }
+            if (!formData.beneficiary.trim() || formData.beneficiary.trim().length < 2) {
+                errors.beneficiary = 'Enter who will receive or manage the funds.';
+            }
+            if (formData.location && formData.location.trim().length < 2) {
+                errors.location = 'Location must be at least 2 characters.';
+            }
+        }
+        if (step === 3) {
+            if (!formData.story.trim() || formData.story.trim().length < 10) {
+                errors.story = 'Tell the story in at least 10 characters.';
+            }
+            if (formData.website && !isProbablyUrl(formData.website)) {
+                errors.website = 'Enter a valid URL starting with http:// or https://.';
+            }
+        }
+        if (step === 4) {
+            if (!Number.isFinite(formData.targetAmount) || formData.targetAmount < 1) {
+                errors.targetAmount = 'Enter a funding target greater than 0.';
+            }
+            if (hasRoiAccess && formData.type === ProjectType.ROI && (!formData.milestones || formData.milestones.length === 0)) {
+                errors.milestones = 'Add at least one milestone for ROI projects.';
+            }
+        }
+        return errors;
+    };
+
     const nextStep = () => {
         // Step 1: Just choosing type, handled by the Confirmation Modal
         if (step === 1) {
@@ -133,41 +190,14 @@ export default function CreateProjectPage() {
             return;
         }
 
-        if (step === 2) {
-            if (!formData.name || formData.name.length < 4) {
-                setError('Project name must be at least 4 characters');
-                return;
-            }
-            if (!formData.summary || formData.summary.length < 4) {
-                setError('Summary must be at least 4 characters');
-                return;
-            }
-            if (!formData.country || formData.country.length < 2) {
-                setError('Country is required');
-                return;
-            }
-            if (!formData.beneficiary || formData.beneficiary.length < 2) {
-                setError('Beneficiary is required');
-                return;
-            }
-            if (formData.location && formData.location.length < 2) {
-                setError('Location must be at least 2 characters');
-                return;
-            }
-        }
-        if (step === 3) {
-            if (!formData.story || formData.story.length < 10) {
-                setError('Story must be at least 10 characters');
-                return;
-            }
-        }
-        if (step === 4) {
-            if (hasRoiAccess && formData.type === ProjectType.ROI && (!formData.milestones || formData.milestones.length === 0)) {
-                setError('At least one milestone is required for ROI projects.');
-                return;
-            }
+        const validationErrors = validateStep();
+        if (Object.keys(validationErrors).length > 0) {
+            setFieldErrors(validationErrors);
+            setError('Please fix the highlighted fields.');
+            return;
         }
 
+        setFieldErrors({});
         setError('');
         setStep(s => Math.min(s + 1, 6));
     };
@@ -233,6 +263,7 @@ export default function CreateProjectPage() {
     };
 
     const addMilestone = () => {
+        clearFieldError('milestones');
         setFormData({
             ...formData,
             milestones: [...(formData.milestones || []), { title: '', description: '', dueDate: '', payoutPercentage: 0 }]
@@ -469,10 +500,11 @@ export default function CreateProjectPage() {
                                     <input
                                         type="text"
                                         value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        onChange={(e) => { clearFieldError('name'); setFormData({ ...formData, name: e.target.value }); }}
                                         placeholder="e.g. Solar Energy for Rural Schools"
-                                        className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:bg-white focus:border-blue-600 transition-all outline-none font-bold text-gray-900"
+                                        className={getInputClass('name', 'w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:bg-white focus:border-blue-600 transition-all outline-none font-bold text-gray-900')}
                                     />
+                                    {renderFieldError('name')}
                                 </div>
                                 <div>
                                     <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">
@@ -516,11 +548,12 @@ export default function CreateProjectPage() {
                                         <input
                                             type="text"
                                             value={formData.country}
-                                            onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                                            className="w-full pl-12 pr-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-gray-900 outline-none focus:ring-4 focus:ring-blue-100"
+                                            onChange={(e) => { clearFieldError('country'); setFormData({ ...formData, country: e.target.value }); }}
+                                            className={getInputClass('country', 'w-full pl-12 pr-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-gray-900 outline-none focus:ring-4 focus:ring-blue-100')}
                                             placeholder="e.g. Uganda"
                                         />
                                     </div>
+                                    {renderFieldError('country')}
                                 </div>
                                 <div>
                                     <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">City / Location</label>
@@ -529,31 +562,34 @@ export default function CreateProjectPage() {
                                         <input
                                             type="text"
                                             value={formData.location}
-                                            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                            className="w-full pl-12 pr-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-gray-900 outline-none focus:ring-4 focus:ring-blue-100"
+                                            onChange={(e) => { clearFieldError('location'); setFormData({ ...formData, location: e.target.value }); }}
+                                            className={getInputClass('location', 'w-full pl-12 pr-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-gray-900 outline-none focus:ring-4 focus:ring-blue-100')}
                                             placeholder="e.g. Kampala"
                                         />
                                     </div>
+                                    {renderFieldError('location')}
                                 </div>
                                 <div className="md:col-span-2">
                                     <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Direct Beneficiary</label>
                                     <input
                                         type="text"
                                         value={formData.beneficiary}
-                                        onChange={(e) => setFormData({ ...formData, beneficiary: e.target.value })}
-                                        className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-gray-900 outline-none focus:ring-4 focus:ring-blue-100"
+                                        onChange={(e) => { clearFieldError('beneficiary'); setFormData({ ...formData, beneficiary: e.target.value }); }}
+                                        className={getInputClass('beneficiary', 'w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-gray-900 outline-none focus:ring-4 focus:ring-blue-100')}
                                         placeholder="e.g. St. Jude Primary School"
                                     />
+                                    {renderFieldError('beneficiary')}
                                 </div>
                                 <div className="md:col-span-2">
                                     <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Short Summary</label>
                                     <textarea
                                         maxLength={500}
                                         value={formData.summary}
-                                        onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
+                                        onChange={(e) => { clearFieldError('summary'); setFormData({ ...formData, summary: e.target.value }); }}
                                         placeholder="Briefly describe the impact of your project in 2 sentences..."
-                                        className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-100 h-28 font-medium text-gray-700 leading-relaxed"
+                                        className={getInputClass('summary', 'w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-100 h-28 font-medium text-gray-700 leading-relaxed')}
                                     />
+                                    {renderFieldError('summary')}
                                     <p className="text-right text-[10px] font-black text-gray-400 mt-2 px-1">{formData.summary.length}/500</p>
                                 </div>
                             </div>
@@ -584,10 +620,11 @@ export default function CreateProjectPage() {
                                     <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-3">Project Story (Minimum 10 chars)</label>
                                     <textarea
                                         value={formData.story}
-                                        onChange={(e) => setFormData({ ...formData, story: e.target.value })}
+                                        onChange={(e) => { clearFieldError('story'); setFormData({ ...formData, story: e.target.value }); }}
                                         placeholder="Tell the world why you started this, the challenges you face, and the exact difference you will make. Use paragraphs for readability..."
-                                        className="w-full px-6 py-6 bg-gray-50 border border-gray-200 rounded-3xl outline-none focus:ring-4 focus:ring-blue-100 focus:bg-white transition-all h-[400px] font-medium text-gray-800 leading-relaxed text-lg"
+                                        className={getInputClass('story', 'w-full px-6 py-6 bg-gray-50 border border-gray-200 rounded-3xl outline-none focus:ring-4 focus:ring-blue-100 focus:bg-white transition-all h-[400px] font-medium text-gray-800 leading-relaxed text-lg')}
                                     />
+                                    {renderFieldError('story')}
                                 </div>
 
                                 <div className="md:col-span-2">
@@ -597,11 +634,12 @@ export default function CreateProjectPage() {
                                         <input
                                             type="url"
                                             value={formData.website}
-                                            onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                                            className="w-full pl-12 pr-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-gray-900 outline-none"
+                                            onChange={(e) => { clearFieldError('website'); setFormData({ ...formData, website: e.target.value }); }}
+                                            className={getInputClass('website', 'w-full pl-12 pr-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-gray-900 outline-none')}
                                             placeholder="https://yourproject.com"
                                         />
                                     </div>
+                                    {renderFieldError('website')}
                                 </div>
                             </div>
                         </motion.div>
@@ -629,14 +667,15 @@ export default function CreateProjectPage() {
                                             <input
                                                 type="number"
                                                 value={formData.targetAmount || ''}
-                                                onChange={(e) => setFormData({ ...formData, targetAmount: Number(e.target.value) })}
+                                                onChange={(e) => { clearFieldError('targetAmount'); setFormData({ ...formData, targetAmount: Number(e.target.value) }); }}
                                                 placeholder="1000000"
                                                 inputMode="numeric"
                                                 min="0"
-                                                className="w-full min-w-0 bg-transparent border-none text-right text-2xl font-black leading-none tracking-tight text-blue-600 outline-none placeholder:text-gray-300 [appearance:textfield] md:text-3xl xl:text-4xl [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                                className={getInputClass('targetAmount', 'w-full min-w-0 bg-transparent border-none text-right text-2xl font-black leading-none tracking-tight text-blue-600 outline-none placeholder:text-gray-300 [appearance:textfield] md:text-3xl xl:text-4xl [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none')}
                                             />
                                         </div>
                                     </div>
+                                    {renderFieldError('targetAmount')}
                                 </div>
                                 <div className="bg-gray-50 rounded-3xl p-8 border border-gray-100">
                                     <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-4">Campaign End Date</label>
@@ -665,9 +704,10 @@ export default function CreateProjectPage() {
                                     </div>
 
                                     {(!formData.milestones || formData.milestones.length === 0) && (
-                                        <div className="text-center py-20 border-4 border-dashed border-gray-100 rounded-[2.5rem] flex flex-col items-center justify-center grayscale opacity-50">
+                                        <div className={`text-center py-20 border-4 border-dashed rounded-[2.5rem] flex flex-col items-center justify-center ${fieldErrors.milestones ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-gray-100 grayscale opacity-50'}`}>
                                             <Target className="w-16 h-16 text-gray-300 mb-4" />
                                             <p className="text-sm font-black text-gray-400 uppercase tracking-widest">At least one milestone required</p>
+                                            {renderFieldError('milestones')}
                                         </div>
                                     )}
 
