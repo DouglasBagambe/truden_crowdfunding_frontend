@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   ArrowRight,
@@ -32,6 +32,7 @@ function getSafeExitHref(projectId: string): string {
 
 function PaymentResultContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const statusParam = searchParams.get('status');
   const token =
     searchParams.get('ID') ||
@@ -49,6 +50,7 @@ function PaymentResultContent() {
     return 'verifying';
   });
   const [message, setMessage] = useState('');
+  const [redirectError, setRedirectError] = useState('');
   const [isManualRefresh, setIsManualRefresh] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollCount = useRef(0);
@@ -126,6 +128,22 @@ function PaymentResultContent() {
     return () => stopPolling();
   }, [token]);
 
+  useEffect(() => {
+    if (verifyState !== 'paid') return;
+
+    setRedirectError('');
+    const destination = projectId ? `/projects/${projectId}` : '/dashboard';
+    const timer = window.setTimeout(() => {
+      try {
+        router.push(destination);
+      } catch {
+        setRedirectError('Automatic redirect failed. Use the button below to continue.');
+      }
+    }, 4000);
+
+    return () => window.clearTimeout(timer);
+  }, [projectId, router, verifyState]);
+
   const config: Record<VerifyState, VerifyCardConfig> = {
     verifying: {
       icon: <Loader2 size={64} className="animate-spin text-blue-400" />,
@@ -147,8 +165,8 @@ function PaymentResultContent() {
       icon: <CheckCircle2 size={64} className="text-emerald-400" />,
       title: 'Payment Successful',
       subtitle:
-        message ||
-        'Your contribution has been recorded successfully.',
+        message ? `${message} Redirecting...` :
+        'Payment successful! Redirecting...',
       color: 'from-emerald-600/20 to-teal-600/20',
       border: 'border-emerald-500/30',
     },
@@ -198,6 +216,11 @@ function PaymentResultContent() {
         <p className="mb-8 font-medium leading-relaxed text-gray-400">
           {currentConfig.subtitle}
         </p>
+        {redirectError && (
+          <p className="mb-6 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-200">
+            {redirectError}
+          </p>
+        )}
 
         {token && verifyState !== 'paid' && (
           <p className="mb-6 break-all font-mono text-xs text-gray-600">Ref: {token}</p>
@@ -240,7 +263,7 @@ function PaymentResultContent() {
               href={`/projects/${projectId}`}
               className="flex items-center justify-center gap-2 rounded-xl bg-white py-3.5 px-6 font-bold text-black transition-all hover:bg-gray-100"
             >
-              View Project <ArrowRight size={18} />
+              Continue to Project <ArrowRight size={18} />
             </Link>
           )}
 
