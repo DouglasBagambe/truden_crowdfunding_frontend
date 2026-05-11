@@ -23,13 +23,17 @@ function ExplorePageContent() {
     const { hasRoiAccess } = useRoiAccess();
     const parseStatuses = (raw: string | null) => {
         if (!raw) return [];
-        const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
+        const parts = raw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
         return parts.length > 0 ? parts : [];
+    };
+    const normalizeCategory = (value: string | null) => {
+        if (!value || value === 'ALL') return 'ALL';
+        return value.trim().toLowerCase();
     };
 
     const initialApplied = useMemo(() => {
         const initialSearch = searchParams.get('search') || '';
-        const initialCategory = searchParams.get('category') || 'ALL';
+        const initialCategory = normalizeCategory(searchParams.get('category'));
         const rawType = searchParams.get('type') || 'ALL';
         const initialType = !hasRoiAccess && rawType === 'ROI' ? 'ALL' : rawType;
         const initialStatuses = parseStatuses(searchParams.get('statuses'));
@@ -122,7 +126,7 @@ function ExplorePageContent() {
 
     useEffect(() => {
         const nextSearch = searchParams.get('search') || '';
-        const nextCategory = searchParams.get('category') || 'ALL';
+        const nextCategory = normalizeCategory(searchParams.get('category'));
         const rawType = searchParams.get('type') || 'ALL';
         const nextType = !hasRoiAccess && rawType === 'ROI' ? 'ALL' : rawType;
         const nextStatuses = parseStatuses(searchParams.get('statuses'));
@@ -160,8 +164,9 @@ function ExplorePageContent() {
     const queryParams = useMemo(() => {
         return {
             search: appliedSearch || undefined,
-            category: appliedCategory !== 'ALL' ? appliedCategory : undefined,
             type: appliedProjectType !== 'ALL' ? appliedProjectType : undefined,
+            category: appliedProjectType === 'CHARITY' && appliedCategory !== 'ALL' ? appliedCategory : undefined,
+            industry: appliedProjectType === 'ROI' && appliedCategory !== 'ALL' ? appliedCategory : undefined,
             statuses: appliedStatusFilters.length > 0 ? appliedStatusFilters : undefined,
             sort: appliedSortBy !== 'newest' ? appliedSortBy : undefined,
         };
@@ -176,17 +181,31 @@ function ExplorePageContent() {
             id: project.id || project._id
         })).filter((p: any) => p.id),
         hasRoiAccess,
-    );
+    ).filter((project: any) => {
+        if (appliedCategory === 'ALL') return true;
+        const projectCategory = String(project.category || project.industry || '').toLowerCase();
+        return projectCategory === appliedCategory;
+    });
 
     const categories = [
         { id: 'ALL', label: 'All Categories' },
-        { id: 'TECHNOLOGY', label: 'Technology' },
-        { id: 'EDUCATION', label: 'Education' },
-        { id: 'HEALTH', label: 'Health' },
-        { id: 'AGRICULTURE', label: 'Agriculture' },
-        { id: 'ENERGY', label: 'Energy' },
-        { id: 'ENVIRONMENT', label: 'Environment' },
-        { id: 'COMMUNITY', label: 'Community' },
+        { id: 'school', label: 'School' },
+        { id: 'church', label: 'Church' },
+        { id: 'community_group', label: 'Community Group' },
+        { id: 'ngo', label: 'NGO' },
+        { id: 'individual', label: 'Individual' },
+        { id: 'family', label: 'Family' },
+        { id: 'technology', label: 'Technology' },
+        { id: 'education', label: 'Education' },
+        { id: 'health', label: 'Health' },
+        { id: 'agriculture', label: 'Agriculture' },
+        { id: 'energy', label: 'Energy' },
+        { id: 'environment', label: 'Environment' },
+        { id: 'financial_services', label: 'Financial Services' },
+        { id: 'manufacturing', label: 'Manufacturing' },
+        { id: 'real_estate', label: 'Real Estate' },
+        { id: 'transport', label: 'Transport' },
+        { id: 'other', label: 'Other' },
     ];
 
     const toggleStatus = (status: string) => {
@@ -328,7 +347,7 @@ function ExplorePageContent() {
                                         { id: 'APPROVED', label: 'Newly Posted' },
                                         { id: 'FUNDING', label: 'Open Projects' },
                                         { id: 'FUNDED', label: 'Funded' },
-                                        { id: 'COMPLETED', label: 'Completed' },
+                                        { id: 'CLOSED', label: 'Completed' },
                                     ].map((status) => (
                                         <label key={status.id} className="flex items-center gap-3 cursor-pointer group">
                                             <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${draftStatusFilters.includes(status.id) ? accent.checkboxOn : `border-[var(--border)] ${accent.checkboxOff}`}`}>
@@ -457,7 +476,7 @@ function ExplorePageContent() {
                                                 { id: 'APPROVED', label: 'Newly Posted' },
                                                 { id: 'FUNDING', label: 'Open Projects' },
                                                 { id: 'FUNDED', label: 'Funded' },
-                                                { id: 'COMPLETED', label: 'Completed' },
+                                                { id: 'CLOSED', label: 'Completed' },
                                             ].map((status) => (
                                                 <label key={status.id} className="flex items-center gap-3 cursor-pointer group">
                                                     <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${draftStatusFilters.includes(status.id) ? accent.checkboxOn : `border-[var(--border)] ${accent.checkboxOff}`}`}>
