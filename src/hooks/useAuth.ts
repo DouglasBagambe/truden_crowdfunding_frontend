@@ -98,6 +98,10 @@ export function useAuth() {
         return;
       }
 
+      if (errorMessage.toLowerCase().includes('mfa code required')) {
+        return;
+      }
+
       toast.error(errorMessage);
     },
   });

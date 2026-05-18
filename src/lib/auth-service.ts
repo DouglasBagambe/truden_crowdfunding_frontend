@@ -14,8 +14,15 @@ export interface RegisterRequest {
 }
 
 export interface AuthUser {
+  id?: string;
   email?: string;
   firstName?: string;
+  lastName?: string;
+  displayName?: string;
+  mfa?: {
+    enabled?: boolean;
+  };
+  mfaEnabled?: boolean;
   profile?: {
     firstName?: string;
     lastName?: string;
@@ -32,6 +39,16 @@ export interface AuthResponse {
 }
 
 export interface VerificationResponse {
+  message: string;
+}
+
+export interface MfaSetupResponse {
+  secret: string;
+  otpauthUrl?: string;
+  note?: string;
+}
+
+export interface MfaActionResponse {
   message: string;
 }
 
@@ -59,8 +76,18 @@ export const authService = {
     return response.data;
   },
 
-  async verifyMfa(data: { userId: string; code: string }) {
-    const response = await apiClient.post('/auth/mfa/verify', data);
+  async startMfaSetup(): Promise<MfaSetupResponse> {
+    const response = await apiClient.post<MfaSetupResponse>('/auth/mfa/setup');
+    return response.data;
+  },
+
+  async enableMfa(token: string): Promise<MfaActionResponse> {
+    const response = await apiClient.post<MfaActionResponse>('/auth/mfa/enable', { token });
+    return response.data;
+  },
+
+  async disableMfa(token: string): Promise<MfaActionResponse> {
+    const response = await apiClient.post<MfaActionResponse>('/auth/mfa/disable', { token });
     return response.data;
   },
 

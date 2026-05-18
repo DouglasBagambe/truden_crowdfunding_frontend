@@ -12,12 +12,27 @@ import {
 } from 'lucide-react';
 import { userService } from '@/lib/user-service';
 import { walletService, type WalletBalance } from '@/lib/wallet-service';
+import { authService, type MfaSetupResponse } from '@/lib/auth-service';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import toast from 'react-hot-toast';
 import { useRoiAccess } from '@/hooks/useRoiAccess';
+import { AxiosError } from 'axios';
 
 type Tab = 'profile' | 'wallet' | 'notifications' | 'appearance' | 'security';
+
+interface ApiErrorBody {
+  message?: string | string[];
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  const axiosError = error as AxiosError<ApiErrorBody>;
+  const message = axiosError.response?.data?.message;
+  if (Array.isArray(message)) {
+    return message.join('. ');
+  }
+  return message || fallback;
+}
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -45,6 +60,10 @@ export default function SettingsPage() {
   const [notifDonations, setNotifDonations] = useState(true);
   const [notifMilestones, setNotifMilestones] = useState(true);
   const [notifMarketing, setNotifMarketing] = useState(false);
+  const [mfaSetup, setMfaSetup] = useState<MfaSetupResponse | null>(null);
+  const [mfaSetupCode, setMfaSetupCode] = useState('');
+  const [mfaDisableCode, setMfaDisableCode] = useState('');
+  const [mfaLoading, setMfaLoading] = useState(false);
 
   useEffect(() => { setThemeReady(true); }, []);
 
@@ -106,6 +125,58 @@ export default function SettingsPage() {
   ];
 
   const ugxBalance = balance?.fiatBalance?.UGX ?? 0;
+  const mfaEnabled = Boolean(user?.mfa?.enabled || user?.mfaEnabled);
+
+  const startMfaSetup = async () => {
+    setMfaLoading(true);
+    try {
+      const setup = await authService.startMfaSetup();
+      setMfaSetup(setup);
+      setMfaSetupCode('');
+      toast.success('Authenticator setup started');
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Failed to start MFA setup'));
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  const enableMfa = async () => {
+    if (!mfaSetupCode.trim()) {
+      toast.error('Enter the authenticator code');
+      return;
+    }
+    setMfaLoading(true);
+    try {
+      await authService.enableMfa(mfaSetupCode.trim());
+      setMfaSetup(null);
+      setMfaSetupCode('');
+      await refetchUser();
+      toast.success('MFA enabled');
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Invalid MFA code'));
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  const disableMfa = async () => {
+    if (!mfaDisableCode.trim()) {
+      toast.error('Enter the authenticator code');
+      return;
+    }
+    setMfaLoading(true);
+    try {
+      await authService.disableMfa(mfaDisableCode.trim());
+      setMfaDisableCode('');
+      await refetchUser();
+      toast.success('MFA disabled');
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Invalid MFA code'));
+    } finally {
+      setMfaLoading(false);
+    }
+  };
 
   return (
     <div className="bg-[var(--background)] min-h-screen text-[var(--text-main)] pt-[68px] transition-colors duration-300">
@@ -480,14 +551,93 @@ export default function SettingsPage() {
                         </button>
                       </div>
 
-                      {/* 2FA */}
-                      {/* <div className="flex items-center justify-between p-5 rounded-2xl border border-[var(--border)] bg-[var(--secondary)]">
-                        <div className="space-y-0.5">
-                          <p className="font-semibold text-sm">Two-Factor Authentication</p>
-                          <p className="text-xs text-[var(--text-muted)]">Add an extra verification step when signing in.</p>
+                      <div className="p-5 rounded-2xl border border-[var(--border)] bg-[var(--secondary)] space-y-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="space-y-0.5">
+                            <p className="font-semibold text-sm">Two-Factor Authentication</p>
+                            <p className="text-xs text-[var(--text-muted)]">
+                              {mfaEnabled ? 'Authenticator verification is required when signing in.' : 'Add an authenticator app code to protect account access.'}
+                            </p>
+                          </div>
+                          <span className={`chip-base ${mfaEnabled ? 'chip-success' : 'chip-muted'} flex-shrink-0`}>
+                            {mfaEnabled ? <CheckCircle size={13} /> : <Shield size={13} />}
+                            {mfaEnabled ? 'On' : 'Off'}
+                          </span>
                         </div>
-                        <Toggle checked={!!user?.mfaEnabled} onChange={() => toast('2FA setup coming soon', { icon: '🔒' })} />
-                      </div> */}
+
+                        {!mfaEnabled && !mfaSetup && (
+                          <button
+                            type="button"
+                            onClick={startMfaSetup}
+                            disabled={mfaLoading}
+                            className="text-xs font-semibold px-4 py-2 rounded-xl bg-[var(--primary)] text-white hover:opacity-90 disabled:opacity-50 transition-all"
+                          >
+                            {mfaLoading ? 'Starting...' : 'Set Up Authenticator'}
+                          </button>
+                        )}
+
+                        {!mfaEnabled && mfaSetup && (
+                          <div className="space-y-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+                            <div className="space-y-1">
+                              <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Authenticator secret</p>
+                              <p className="break-all rounded-xl border border-[var(--border)] bg-[var(--secondary)] px-3 py-2 text-sm font-semibold">
+                                {mfaSetup.secret}
+                              </p>
+                            </div>
+                            {mfaSetup.otpauthUrl && (
+                              <div className="space-y-1">
+                                <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Manual setup URI</p>
+                                <p className="break-all rounded-xl border border-[var(--border)] bg-[var(--secondary)] px-3 py-2 text-xs text-[var(--text-muted)]">
+                                  {mfaSetup.otpauthUrl}
+                                </p>
+                              </div>
+                            )}
+                            <div className="flex flex-col sm:flex-row gap-3">
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                value={mfaSetupCode}
+                                onChange={(e) => setMfaSetupCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                                placeholder="Enter 6-digit code"
+                                className="input_field"
+                              />
+                              <button
+                                type="button"
+                                onClick={enableMfa}
+                                disabled={mfaLoading}
+                                className="text-xs font-semibold px-4 py-2 rounded-xl bg-emerald-600 text-white hover:opacity-90 disabled:opacity-50 transition-all"
+                              >
+                                {mfaLoading ? 'Verifying...' : 'Enable MFA'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {mfaEnabled && (
+                          <div className="flex flex-col sm:flex-row gap-3">
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={mfaDisableCode}
+                              onChange={(e) => setMfaDisableCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                              placeholder="Authenticator code to disable"
+                              className="input_field"
+                            />
+                            <button
+                              type="button"
+                              onClick={disableMfa}
+                              disabled={mfaLoading}
+                              className="text-xs font-semibold px-4 py-2 rounded-xl border border-rose-300 text-rose-700 dark:border-rose-900/40 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/20 disabled:opacity-50 transition-all"
+                            >
+                              {mfaLoading ? 'Disabling...' : 'Disable MFA'}
+                            </button>
+                          </div>
+                        )}
+
+                        <p className="text-xs text-[var(--text-muted)]">
+                          V1 supports authenticator-app codes. SMS, email factors, and recovery codes need backend endpoints before they can be safely enabled.
+                        </p>
+                      </div>
 
                       {/* KYC */}
                       {hasRoiAccess && (() => {

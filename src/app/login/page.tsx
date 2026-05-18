@@ -6,6 +6,20 @@ import Link from 'next/link';
 import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
+import { AxiosError } from 'axios';
+
+interface ApiErrorBody {
+  message?: string | string[];
+}
+
+function getLoginErrorMessage(error: unknown): string {
+  const axiosError = error as AxiosError<ApiErrorBody>;
+  const message = axiosError.response?.data?.message;
+  if (Array.isArray(message)) {
+    return message.join('. ');
+  }
+  return message || 'Login failed';
+}
 
 export default function LoginPage() {
   const { login, isLoggingIn, isAuthenticated } = useAuth();
@@ -13,6 +27,9 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  const [needsMfa, setNeedsMfa] = useState(false);
+  const [loginMessage, setLoginMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   // Redirect if already authenticated
@@ -24,7 +41,21 @@ export default function LoginPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    login({ email, password });
+    setLoginMessage('');
+    login(
+      { email, password, otp: needsMfa ? otp : undefined },
+      {
+        onError: (error) => {
+          const message = getLoginErrorMessage(error);
+          if (message.toLowerCase().includes('mfa code required')) {
+            setNeedsMfa(true);
+            setLoginMessage('Enter the 6-digit code from your authenticator app.');
+            return;
+          }
+          setLoginMessage(message);
+        },
+      },
+    );
   };
 
   return (
@@ -83,7 +114,31 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
+
+            {needsMfa && (
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-1">Authenticator Code</label>
+                <div className="relative group">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] transition-colors group-focus-within:text-[var(--primary)]" />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                    placeholder="123456"
+                    required={needsMfa}
+                    className="input_field pl-12"
+                  />
+                </div>
+              </div>
+            )}
           </div>
+
+          {loginMessage && (
+            <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+              {loginMessage}
+            </p>
+          )}
 
           <button
             type="submit"
