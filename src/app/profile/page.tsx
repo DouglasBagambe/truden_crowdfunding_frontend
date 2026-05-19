@@ -62,6 +62,8 @@ export default function SettingsPage() {
   const [notifMarketing, setNotifMarketing] = useState(false);
   const [mfaSetup, setMfaSetup] = useState<MfaSetupResponse | null>(null);
   const [mfaSetupCode, setMfaSetupCode] = useState('');
+  const [mfaEmailSetupStarted, setMfaEmailSetupStarted] = useState(false);
+  const [mfaEmailCode, setMfaEmailCode] = useState('');
   const [mfaDisableCode, setMfaDisableCode] = useState('');
   const [mfaLoading, setMfaLoading] = useState(false);
 
@@ -126,6 +128,7 @@ export default function SettingsPage() {
 
   const ugxBalance = balance?.fiatBalance?.UGX ?? 0;
   const mfaEnabled = Boolean(user?.mfa?.enabled || user?.mfaEnabled);
+  const emailMfaEnabled = Boolean(user?.mfa?.emailEnabled);
 
   const startMfaSetup = async () => {
     setMfaLoading(true);
@@ -160,9 +163,42 @@ export default function SettingsPage() {
     }
   };
 
+  const startEmailMfa = async () => {
+    setMfaLoading(true);
+    try {
+      await authService.startEmailMfa();
+      setMfaEmailSetupStarted(true);
+      setMfaEmailCode('');
+      toast.success('Email MFA code sent');
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Failed to send email MFA code'));
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  const enableEmailMfa = async () => {
+    if (!mfaEmailCode.trim()) {
+      toast.error('Enter the email MFA code');
+      return;
+    }
+    setMfaLoading(true);
+    try {
+      await authService.enableEmailMfa(mfaEmailCode.trim());
+      setMfaEmailSetupStarted(false);
+      setMfaEmailCode('');
+      await refetchUser();
+      toast.success('Email MFA enabled');
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Invalid email MFA code'));
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
   const disableMfa = async () => {
     if (!mfaDisableCode.trim()) {
-      toast.error('Enter the authenticator code');
+      toast.error('Enter an MFA code');
       return;
     }
     setMfaLoading(true);
@@ -556,7 +592,7 @@ export default function SettingsPage() {
                           <div className="space-y-0.5">
                             <p className="font-semibold text-sm">Two-Factor Authentication</p>
                             <p className="text-xs text-[var(--text-muted)]">
-                              {mfaEnabled ? 'Authenticator verification is required when signing in.' : 'Add an authenticator app code to protect account access.'}
+                              {mfaEnabled ? 'A second verification step is required when signing in.' : 'Add an authenticator app or email code to protect account access.'}
                             </p>
                           </div>
                           <span className={`chip-base ${mfaEnabled ? 'chip-success' : 'chip-muted'} flex-shrink-0`}>
@@ -565,15 +601,27 @@ export default function SettingsPage() {
                           </span>
                         </div>
 
-                        {!mfaEnabled && !mfaSetup && (
-                          <button
-                            type="button"
-                            onClick={startMfaSetup}
-                            disabled={mfaLoading}
-                            className="text-xs font-semibold px-4 py-2 rounded-xl bg-[var(--primary)] text-white hover:opacity-90 disabled:opacity-50 transition-all"
-                          >
-                            {mfaLoading ? 'Starting...' : 'Set Up Authenticator'}
-                          </button>
+                        {!mfaSetup && !mfaEmailSetupStarted && (
+                          <div className="flex flex-wrap gap-3">
+                            <button
+                              type="button"
+                              onClick={startMfaSetup}
+                              disabled={mfaLoading}
+                              className="text-xs font-semibold px-4 py-2 rounded-xl bg-[var(--primary)] text-white hover:opacity-90 disabled:opacity-50 transition-all"
+                            >
+                              {mfaLoading ? 'Starting...' : 'Set Up Authenticator'}
+                            </button>
+                            {!emailMfaEnabled && (
+                              <button
+                                type="button"
+                                onClick={startEmailMfa}
+                                disabled={mfaLoading}
+                                className="text-xs font-semibold px-4 py-2 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--secondary)] disabled:opacity-50 transition-all"
+                              >
+                                {mfaLoading ? 'Sending...' : 'Enable Email MFA'}
+                              </button>
+                            )}
+                          </div>
                         )}
 
                         {!mfaEnabled && mfaSetup && (
@@ -613,6 +661,32 @@ export default function SettingsPage() {
                           </div>
                         )}
 
+                        {!emailMfaEnabled && mfaEmailSetupStarted && (
+                          <div className="space-y-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+                            <p className="text-sm text-[var(--text-muted)]">
+                              We sent a 6-digit MFA code to your account email. Enter it below to enable email MFA.
+                            </p>
+                            <div className="flex flex-col sm:flex-row gap-3">
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                value={mfaEmailCode}
+                                onChange={(e) => setMfaEmailCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                                placeholder="Email MFA code"
+                                className="input_field"
+                              />
+                              <button
+                                type="button"
+                                onClick={enableEmailMfa}
+                                disabled={mfaLoading}
+                                className="text-xs font-semibold px-4 py-2 rounded-xl bg-emerald-600 text-white hover:opacity-90 disabled:opacity-50 transition-all"
+                              >
+                                {mfaLoading ? 'Verifying...' : 'Enable Email MFA'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
                         {mfaEnabled && (
                           <div className="flex flex-col sm:flex-row gap-3">
                             <input
@@ -620,7 +694,7 @@ export default function SettingsPage() {
                               inputMode="numeric"
                               value={mfaDisableCode}
                               onChange={(e) => setMfaDisableCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
-                              placeholder="Authenticator code to disable"
+                              placeholder="MFA code to disable"
                               className="input_field"
                             />
                             <button
@@ -635,7 +709,7 @@ export default function SettingsPage() {
                         )}
 
                         <p className="text-xs text-[var(--text-muted)]">
-                          V1 supports authenticator-app codes. SMS, email factors, and recovery codes need backend endpoints before they can be safely enabled.
+                          Supported now: authenticator-app codes and email codes. SMS requires a configured SMS provider before it can be enabled.
                         </p>
                       </div>
 

@@ -21,6 +21,8 @@ export interface AuthUser {
   displayName?: string;
   mfa?: {
     enabled?: boolean;
+    emailEnabled?: boolean;
+    authenticatorEnabled?: boolean;
   };
   mfaEnabled?: boolean;
   profile?: {
@@ -83,6 +85,16 @@ export const authService = {
 
   async enableMfa(token: string): Promise<MfaActionResponse> {
     const response = await apiClient.post<MfaActionResponse>('/auth/mfa/enable', { token });
+    return response.data;
+  },
+
+  async startEmailMfa(): Promise<MfaActionResponse> {
+    const response = await apiClient.post<MfaActionResponse>('/auth/mfa/email/start');
+    return response.data;
+  },
+
+  async enableEmailMfa(token: string): Promise<MfaActionResponse> {
+    const response = await apiClient.post<MfaActionResponse>('/auth/mfa/email/enable', { token });
     return response.data;
   },
 

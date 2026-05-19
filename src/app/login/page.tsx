@@ -49,7 +49,7 @@ export default function LoginPage() {
           const message = getLoginErrorMessage(error);
           if (message.toLowerCase().includes('mfa code required')) {
             setNeedsMfa(true);
-            setLoginMessage('Enter the 6-digit code from your authenticator app.');
+            setLoginMessage('Enter your authenticator code or the code sent to your email.');
             return;
           }
           setLoginMessage(message);
@@ -117,7 +117,7 @@ export default function LoginPage() {
 
             {needsMfa && (
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-1">Authenticator Code</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-1">MFA Code</label>
                 <div className="relative group">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] transition-colors group-focus-within:text-[var(--primary)]" />
                   <input
@@ -125,7 +125,7 @@ export default function LoginPage() {
                     inputMode="numeric"
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 8))}
-                    placeholder="123456"
+                    placeholder="Authenticator or email code"
                     required={needsMfa}
                     className="input_field pl-12"
                   />
