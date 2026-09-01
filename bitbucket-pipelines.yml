@@ -1,11 +1,22 @@
 # yaml-language-server: $schema=https://json.schemastore.org/bitbucket-pipelines.json
 image: atlassian/default-image:4
 
+clone:
+  depth: full
+
 definitions:
   services:
     docker:
       memory: 6144
   steps:
+    - step: &verify_frontend
+        name: Verify frontend (no deployment)
+        image: node:20-bookworm-slim
+        caches:
+          - node
+        script:
+          - npm ci --ignore-scripts --no-audit --no-fund
+          - npm run verify
     - step: &build_and_update_frontend
         size: 2x
         runs-on:
@@ -67,6 +78,8 @@ definitions:
 
 pipelines:
   branches:
+    "keibo/**":
+      - step: *verify_frontend
     dev:
       - step: *build_and_update_frontend
     prod:

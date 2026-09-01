@@ -6,7 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "bash scripts/lint-baseline.sh",
+    "lint:full": "eslint .",
+    "format:check": "bash scripts/format-baseline.sh",
+    "format:check:full": "prettier --check .",
+    "quality:changed": "bash scripts/quality-changed.sh",
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run lint && npm run format:check && npm run quality:changed && npm run typecheck && npm run build"
   },
   "dependencies": {
     "@tanstack/query-core": "^5.62.7",
@@ -35,6 +41,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.4",
+    "prettier": "^3.6.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
