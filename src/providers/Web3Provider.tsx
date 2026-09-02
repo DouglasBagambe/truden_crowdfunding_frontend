@@ -1,26 +1,32 @@
-'use client';
+"use client";
 
-import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react';
-import { WagmiProvider } from 'wagmi';
-import { baseSepolia, base } from 'viem/chains';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactNode, useEffect, useState } from 'react';
+import { createWeb3Modal, defaultWagmiConfig } from "@web3modal/wagmi/react";
+import { WagmiProvider } from "wagmi";
+import { baseSepolia, base } from "viem/chains";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactNode, useEffect, useState } from "react";
 
 // WalletConnect projectId — from cloud.walletconnect.com
-const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID || '8e562725807968565257eadae53a23a8';
+const configuredProjectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID?.trim();
+if (process.env.NODE_ENV === "production" && !configuredProjectId) {
+  throw new Error("NEXT_PUBLIC_WC_PROJECT_ID is required in production");
+}
+const projectId =
+  configuredProjectId || "walletconnect-disabled-in-development";
 
 const metadata = {
-  name: 'Truden',
-  description: 'Invest. Own. Trade. — Fiat-powered investment NFTs on Base.',
+  name: "Keibo",
+  description: "Connect a self-custody wallet to your Keibo account.",
   url:
-    typeof window !== 'undefined'
+    typeof window !== "undefined"
       ? window.location.origin
-      : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001',
-  icons: ['https://avatars.githubusercontent.com/u/37784886'],
+      : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  icons: ["/logo.jpeg"],
 };
 
 // Primary chain: Base Sepolia (testnet). Switch to `base` for mainnet.
 const chains = [baseSepolia, base] as const;
+const isBrowser = typeof window !== "undefined";
 let web3ModalInitialized = false;
 let web3ModalInstance: { open: () => void } | null = null;
 
@@ -28,10 +34,12 @@ export const wagmiConfig = defaultWagmiConfig({
   chains,
   projectId,
   metadata,
-  enableWalletConnect: true,
-  enableInjected: true,  // MetaMask etc.
-  enableEIP6963: true,
-  enableCoinbase: true,
+  ssr: true,
+  enableWalletConnect: isBrowser && Boolean(configuredProjectId),
+  enableInjected: isBrowser,
+  enableEIP6963: isBrowser,
+  enableCoinbase: isBrowser,
+  auth: isBrowser ? undefined : { email: false, socials: [] },
 });
 
 export function openWeb3Modal() {
@@ -39,29 +47,32 @@ export function openWeb3Modal() {
 }
 
 export function Web3Provider({ children }: { children: ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 5 * 60 * 1000,
-        gcTime: 10 * 60 * 1000,
-        refetchOnWindowFocus: false,
-        retry: 1,
-      },
-    },
-  }));
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 5 * 60 * 1000,
+            gcTime: 10 * 60 * 1000,
+            refetchOnWindowFocus: false,
+            retry: 1,
+          },
+        },
+      }),
+  );
 
   useEffect(() => {
-    if (web3ModalInitialized || typeof window === 'undefined') {
+    if (web3ModalInitialized || typeof window === "undefined") {
       return;
     }
 
     web3ModalInstance = createWeb3Modal({
       wagmiConfig,
       projectId,
-      themeMode: 'dark',
+      themeMode: "dark",
       themeVariables: {
-        '--w3m-accent': '#7c3aed',
-        '--w3m-border-radius-master': '12px',
+        "--w3m-accent": "#7c3aed",
+        "--w3m-border-radius-master": "12px",
       },
       defaultChain: baseSepolia,
     });
@@ -71,9 +82,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
 
   return (
     <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     </WagmiProvider>
   );
 }

@@ -1,15 +1,15 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 export function middleware(req: NextRequest) {
-  const token = req.cookies.get('token')?.value;
+  const token = req.cookies.get("keibo_access")?.value;
   const { pathname, search } = req.nextUrl;
 
   // Protect profile (private) while keeping all other routes public
-  if (pathname.startsWith('/profile') && !token) {
-    const loginUrl = new URL('/login', req.url);
-    const nextPath = `${pathname}${search || ''}`;
-    loginUrl.searchParams.set('next', nextPath);
+  if (pathname.startsWith("/profile") && !token) {
+    const loginUrl = new URL("/login", req.url);
+    const nextPath = `${pathname}${search || ""}`;
+    loginUrl.searchParams.set("next", nextPath);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -17,5 +17,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/profile/:path*'],
+  matcher: ["/profile/:path*"],
 };

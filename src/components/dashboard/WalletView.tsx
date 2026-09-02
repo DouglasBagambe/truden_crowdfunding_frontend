@@ -1,192 +1,27 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Activity, Wallet, TrendingUp, TrendingDown, Loader2, Send } from 'lucide-react';
-import { walletService, type WalletBalance } from '@/lib/wallet-service';
-import { motion } from 'framer-motion';
-import { useRouter } from 'next/navigation';
-import { useRoiAccess } from '@/hooks/useRoiAccess';
+import { AlertTriangle, Wallet } from "lucide-react";
 
 export function WalletView() {
-    const { hasRoiAccess } = useRoiAccess();
-    const [wallet, setWallet] = useState<any>(null);
-    const [balance, setBalance] = useState<WalletBalance | null>(null);
-    const [transactions, setTransactions] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const router = useRouter();
-
-    useEffect(() => {
-        loadWalletData();
-    }, []);
-
-    const loadWalletData = async () => {
-        try {
-            setLoading(true);
-            const [walletData, balanceData, txData] = await Promise.all([
-                walletService.getWallet(),
-                walletService.getBalance(),
-                walletService.getTransactions(),
-            ]);
-            setWallet(walletData);
-            setBalance(balanceData);
-            setTransactions(txData);
-        } catch {
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="py-24 flex items-center justify-center">
-                <Loader2 className="w-10 h-10 text-[var(--primary)] animate-spin" />
-            </div>
-        );
-    }
-
-    const charityBalance = balance?.fiatBalance?.UGX ?? 0;
-    const roiBalance = balance?.roiBalance?.UGX ?? 0;
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-8"
-        >
-            {/* Wallet Balance Card */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-sky-600 rounded-[2.5rem] p-10 text-white shadow-2xl border border-white/10">
-                {/* Decorative elements */}
-                <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full -translate-y-40 translate-x-40 blur-3xl"></div>
-                <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full translate-y-32 -translate-x-32 blur-2xl"></div>
-
-                <div className="relative z-10 flex flex-col md:flex-row gap-10">
-                    <div className="flex-1 space-y-8">
-                        <div>
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="p-3 bg-white/20 backdrop-blur-md rounded-2xl border border-white/20">
-                                    <Wallet className="w-6 h-6" />
-                                </div>
-                                <h2 className="text-2xl font-black tracking-tight">Keibo Wallet</h2>
-                            </div>
-
-                            <div className={`flex flex-col ${hasRoiAccess ? 'md:flex-row gap-6' : 'gap-4'}`}>
-                                <div className="space-y-1 flex-1">
-                                    <p className="text-white/70 text-xs font-black uppercase tracking-widest">Charity Balance</p>
-                                    <div className="flex items-baseline gap-2">
-                                        <span className="text-sm font-bold opacity-60">UGX</span>
-                                        <h3 className="text-4xl font-black">
-                                            {charityBalance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                                        </h3>
-                                    </div>
-                                    <p className="text-white/50 text-[10px] mt-1 pr-4">
-                                        Available funding from charity donations. Withdraw anytime directly to mobile money or bank.
-                                    </p>
-                                </div>
-
-                                {hasRoiAccess && (
-                                    <>
-                                        <div className="w-px bg-white/10 hidden md:block"></div>
-
-                                        <div className="space-y-1 flex-1">
-                                            <p className="text-white/70 text-xs font-black uppercase tracking-widest">ROI Investment Balance</p>
-                                            <div className="flex items-baseline gap-2">
-                                                <span className="text-sm font-bold opacity-60">UGX</span>
-                                                <h3 className="text-4xl font-black">
-                                                    {roiBalance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                                                </h3>
-                                            </div>
-                                            <p className="text-white/50 text-[10px] mt-1 pr-4">
-                                                Locked funding from your ROI projects. Withdrawable only from the Projects page upon 100% target completion.
-                                            </p>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-
-                        {hasRoiAccess && (
-                            <div className="pt-6 border-t border-white/10">
-                                <p className="text-white/70 text-[10px] font-black uppercase tracking-widest mb-4">Crypto Balances (Coming Soon)</p>
-                                <div className="flex gap-4">
-                                    <div className="bg-white/10 rounded-xl p-3 flex-1 backdrop-blur-sm border border-white/5 opacity-50">
-                                        <p className="text-white/50 text-[10px] uppercase font-bold tracking-wider mb-1">USDT (TRC20)</p>
-                                        <p className="font-black">0.00</p>
-                                    </div>
-                                    <div className="bg-white/10 rounded-xl p-3 flex-1 backdrop-blur-sm border border-white/5 opacity-50">
-                                        <p className="text-white/50 text-[10px] uppercase font-bold tracking-wider mb-1">USDC (ERC20)</p>
-                                        <p className="font-black">0.00</p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="flex flex-col gap-3 justify-center min-w-[200px]">
-                        <button
-                            onClick={() => router.push('/dashboard/withdraw')}
-                            className="w-full flex items-center justify-center gap-3 p-4 bg-white/20 backdrop-blur-md text-white rounded-2xl font-black border border-white/20 hover:bg-white/30 transition-all"
-                        >
-                            <Send className="w-5 h-5" />
-                            <span>WITHDRAW</span>
-                        </button>
-                        <p className="text-center text-xs text-white/40">2% Keibo platform fee applies</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Transactions Section */}
-            <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-black tracking-tight flex items-center gap-2">
-                        <Activity size={20} className="text-blue-500" />
-                        Recent Activity
-                    </h3>
-                    <button onClick={loadWalletData} className="text-xs text-[var(--primary)] hover:underline font-bold">Refresh</button>
-                </div>
-
-                {transactions.length === 0 ? (
-                    <div className="py-16 text-center bg-[var(--card)] rounded-3xl border border-[var(--border)] border-dashed">
-                        <p className="text-[var(--text-muted)] font-medium">No transactions yet.</p>
-                        <p className="text-xs text-[var(--text-muted)] mt-1 opacity-70">Funds you receive will appear here.</p>
-                    </div>
-                ) : (
-                    <div className="space-y-3">
-                        {transactions.slice(0, 10).map((tx: any) => (
-                            <div
-                                key={tx._id}
-                                className="flex items-center justify-between p-5 bg-[var(--card)] border border-[var(--border)] rounded-2xl hover:border-[var(--primary)]/30 transition-all group"
-                            >
-                                <div className="flex items-center gap-4">
-                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${tx.amount > 0
-                                        ? 'bg-emerald-100 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white dark:bg-emerald-950/30 dark:text-emerald-300'
-                                        : 'bg-rose-100 text-rose-700 group-hover:bg-rose-600 group-hover:text-white dark:bg-rose-950/30 dark:text-rose-300'
-                                        }`}>
-                                        {tx.amount > 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-[var(--text-main)]">
-                                            {tx.amount < 0
-                                                ? 'Withdrawal'
-                                                : tx.type === 'INVESTMENT' ? 'Investment Received' : 'Donation Received'}
-                                        </p>
-                                        <p className="text-xs text-[var(--text-muted)] font-medium">
-                                            {new Date(tx.createdAt).toLocaleDateString()} at {new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <p className={`text-lg font-black ${tx.amount > 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'}`}>
-                                        {tx.amount > 0 ? '+' : ''}{tx.currency} {Math.abs(tx.amount).toLocaleString()}
-                                    </p>
-                                    <span className="chip-base chip-compact chip-neutral rounded-md">
-                                        {tx.status}
-                                    </span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-        </motion.div>
-    );
+  return (
+    <section className="mx-auto max-w-2xl rounded-3xl border border-amber-300/40 bg-amber-50/70 p-8 text-center dark:bg-amber-950/10">
+      <Wallet className="mx-auto h-12 w-12 text-amber-600" />
+      <h2 className="mt-5 text-2xl font-black text-[var(--text-main)]">
+        Wallet temporarily unavailable
+      </h2>
+      <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+        Legacy wallet balances are not financial truth. Deposits, balance
+        spending, and withdrawals remain disabled until the PostgreSQL ledger
+        and provider payout adapters are configured and reconciled for this
+        environment.
+      </p>
+      <div className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-300/50 bg-white/60 p-4 text-left text-sm text-amber-900 dark:bg-black/20 dark:text-amber-200">
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+        <p>
+          No balance or transaction shown here should be inferred from legacy
+          Mongo records.
+        </p>
+      </div>
+    </section>
+  );
 }

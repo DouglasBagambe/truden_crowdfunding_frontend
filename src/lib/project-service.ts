@@ -1,17 +1,34 @@
-import { apiClient } from './api-client';
+import { apiClient } from "./api-client";
+
+type QueryParams = Record<string, string | number | boolean | undefined>;
+
+function hasHttpStatus(error: unknown, statuses: number[]): boolean {
+  if (
+    typeof error !== "object" ||
+    error === null ||
+    !("response" in error) ||
+    typeof error.response !== "object" ||
+    error.response === null ||
+    !("status" in error.response) ||
+    typeof error.response.status !== "number"
+  ) {
+    return false;
+  }
+  return statuses.includes(error.response.status);
+}
 
 export enum ProjectType {
-  ROI = 'ROI',
-  CHARITY = 'CHARITY',
+  ROI = "ROI",
+  CHARITY = "CHARITY",
 }
 
 export enum ProjectStatus {
-  DRAFT = 'DRAFT',
-  PENDING_REVIEW = 'PENDING_REVIEW',
-  ACTIVE = 'ACTIVE',
-  FUNDED = 'FUNDED',
-  COMPLETED = 'COMPLETED',
-  REJECTED = 'REJECTED',
+  DRAFT = "DRAFT",
+  PENDING_REVIEW = "PENDING_REVIEW",
+  ACTIVE = "ACTIVE",
+  FUNDED = "FUNDED",
+  COMPLETED = "COMPLETED",
+  REJECTED = "REJECTED",
 }
 
 export interface ProjectMilestone {
@@ -62,29 +79,29 @@ export const projectService = {
   /**
    * List projects with filters
    */
-  async getProjects(params?: any) {
-    const response = await apiClient.get('/projects', { params });
+  async getProjects(params?: QueryParams) {
+    const response = await apiClient.get("/projects", { params });
     const data = response.data;
     // Normalize to { items: [...] }
     if (Array.isArray(data)) return { items: data };
     if (data?.items) return data;
     if (data?.projects) return { ...data, items: data.projects };
-    return { items: data?.data ?? [], ...((data && typeof data === 'object') ? data : {}) };
+    return {
+      items: data?.data ?? [],
+      ...(data && typeof data === "object" ? data : {}),
+    };
   },
 
   /**
    * Get project details (works for all statuses including DRAFT)
    */
   async getProject(id: string) {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    if (token) {
-      try {
-        const ownerResponse = await apiClient.get(`/projects/${id}/owner`);
-        return ownerResponse.data;
-      } catch (error: any) {
-        if (error?.response?.status && error.response.status !== 401 && error.response.status !== 403) {
-          throw error;
-        }
+    try {
+      const ownerResponse = await apiClient.get(`/projects/${id}/owner`);
+      return ownerResponse.data;
+    } catch (error: unknown) {
+      if (!hasHttpStatus(error, [401, 403])) {
+        throw error;
       }
     }
 
@@ -95,8 +112,8 @@ export const projectService = {
   /**
    * Get public projects for explore page
    */
-  async getPublicProjects(params?: any) {
-    const response = await apiClient.get('/projects', { params });
+  async getPublicProjects(params?: QueryParams) {
+    const response = await apiClient.get("/projects", { params });
     const data = response.data;
     if (Array.isArray(data)) return { items: data };
     if (data?.items) return data;
@@ -108,7 +125,7 @@ export const projectService = {
    * Create a new project draft
    */
   async createProject(data: CreateProjectParams) {
-    const response = await apiClient.post('/projects', data);
+    const response = await apiClient.post("/projects", data);
     return response.data;
   },
 
@@ -128,7 +145,10 @@ export const projectService = {
     return response.data;
   },
 
-  async donateToCharity(id: string, dto: { amount: number; donorName?: string; message?: string }) {
+  async donateToCharity(
+    id: string,
+    dto: { amount: number; donorName?: string; message?: string },
+  ) {
     const response = await apiClient.post(`/projects/${id}/donate`, {
       amount: String(dto.amount),
       donorName: dto.donorName,
@@ -143,17 +163,23 @@ export const projectService = {
   },
 
   async adminListPending() {
-    const response = await apiClient.get('/admin/projects/pending');
+    const response = await apiClient.get("/admin/projects/pending");
     return response.data;
   },
 
   async adminListAll() {
-    const response = await apiClient.get('/admin/projects/all');
+    const response = await apiClient.get("/admin/projects/all");
     return response.data;
   },
 
-  async adminDecision(id: string, dto: { finalStatus: string; reason?: string }) {
-    const response = await apiClient.post(`/admin/projects/${id}/decision`, dto);
+  async adminDecision(
+    id: string,
+    dto: { finalStatus: string; reason?: string },
+  ) {
+    const response = await apiClient.post(
+      `/admin/projects/${id}/decision`,
+      dto,
+    );
     return response.data;
   },
 
@@ -161,7 +187,7 @@ export const projectService = {
    * Get current user's own projects (including drafts)
    */
   async getMyProjects() {
-    const response = await apiClient.get('/projects/me');
+    const response = await apiClient.get("/projects/me");
     const data = response.data;
     if (Array.isArray(data)) return data;
     if (data?.projects) return data.projects;
@@ -174,23 +200,26 @@ export const projectService = {
    */
   async uploadMedia(file: File) {
     const formData = new FormData();
-    formData.append('file', file);
-    const response = await apiClient.post('/projects/upload', formData, {
+    formData.append("file", file);
+    const response = await apiClient.post("/projects/upload", formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     });
     const data = response.data || {};
-    const apiBase = String(apiClient.defaults.baseURL || '').replace(/\/+$/, '');
-    const origin = apiBase.replace(/\/api$/, '');
+    const apiBase = String(apiClient.defaults.baseURL || "").replace(
+      /\/+$/,
+      "",
+    );
+    const origin = apiBase.replace(/\/api$/, "");
 
     const toAbsoluteUrl = (value?: string) => {
-      if (!value || typeof value !== 'string') return '';
+      if (!value || typeof value !== "string") return "";
       if (/^https?:\/\//i.test(value)) return value;
-      if (value.startsWith('/api/')) return `${origin}${value}`;
-      if (value.startsWith('/projects/files/')) return `${origin}/api${value}`;
-      if (value.startsWith('/')) return `${origin}${value}`;
-      return '';
+      if (value.startsWith("/api/")) return `${origin}${value}`;
+      if (value.startsWith("/projects/files/")) return `${origin}/api${value}`;
+      if (value.startsWith("/")) return `${origin}${value}`;
+      return "";
     };
 
     return {
@@ -200,7 +229,7 @@ export const projectService = {
         toAbsoluteUrl(data.fileUrl) ||
         toAbsoluteUrl(data.path) ||
         toAbsoluteUrl(data.location) ||
-        (data.fileId ? `${origin}/api/projects/files/${data.fileId}` : ''),
+        (data.fileId ? `${origin}/api/projects/files/${data.fileId}` : ""),
     };
   },
 
@@ -209,6 +238,8 @@ export const projectService = {
    */
   async invest(data: { projectId: string; amount: number; txHash?: string }) {
     void data;
-    throw new Error('Direct investment creation is disabled. Use the DPO checkout flow.');
-  }
+    throw new Error(
+      "Direct investment creation is disabled. Use the DPO checkout flow.",
+    );
+  },
 };

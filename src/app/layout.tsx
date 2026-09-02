@@ -7,8 +7,8 @@ import { ToastProvider } from "@/components/common/ToastProvider";
 import { BlockchainEventMonitor } from "@/components/common/BlockchainEventMonitor";
 
 export const metadata: Metadata = {
-  title: "Keibo | Decentralized Crowdfunding",
-  description: "Secure, transparent, and borderless funding for global innovation.",
+  title: "KEIBO | Crowdfunding",
+  description: "Campaign funding with verified payment and milestone records.",
 };
 
 export default function RootLayout({

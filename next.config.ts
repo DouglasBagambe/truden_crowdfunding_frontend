@@ -3,15 +3,11 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   images: {
-    dangerouslyAllowLocalIP: true,
+    dangerouslyAllowLocalIP: false,
     remotePatterns: [
       {
-        protocol: 'http',
-        hostname: '**',
-      },
-      {
-        protocol: 'https',
-        hostname: '**',
+        protocol: "https",
+        hostname: "images.unsplash.com",
       },
     ],
   },

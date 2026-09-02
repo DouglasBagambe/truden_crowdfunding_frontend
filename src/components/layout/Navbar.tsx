@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import React, { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
-import { useAuth } from '@/hooks/useAuth';
-import { canAccessROI } from '@/lib/roi-access';
-import { Logo } from '../common/Logo';
+import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
+import { canAccessROI } from "@/lib/roi-access";
+import { Logo } from "../common/Logo";
 import {
   LayoutDashboard,
   LogOut,
@@ -19,21 +19,26 @@ import {
   ShieldCheck,
   Store,
   Wallet,
-} from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useAccount } from 'wagmi';
-import { openWeb3Modal } from '@/providers/Web3Provider';
+} from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { useAccount } from "wagmi";
+import { openWeb3Modal } from "@/providers/Web3Provider";
 
-function getNavbarWalletAddress(user: unknown, connectedAddress?: string): string {
+function getNavbarWalletAddress(
+  user: unknown,
+  connectedAddress?: string,
+): string {
   const currentUser = user as {
     primaryWallet?: string;
     linkedWallets?: string[];
   } | null;
 
-  return connectedAddress
-    || currentUser?.primaryWallet
-    || currentUser?.linkedWallets?.[0]
-    || '';
+  return (
+    connectedAddress ||
+    currentUser?.primaryWallet ||
+    currentUser?.linkedWallets?.[0] ||
+    ""
+  );
 }
 
 function formatWalletAddress(address: string): string {
@@ -47,26 +52,24 @@ function formatWalletAddress(address: string): string {
 const Navbar = () => {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const { address, isConnected } = useAccount();
-
-  const ADMIN_USER_ID = process.env.NEXT_PUBLIC_ADMIN_USER_ID || '';
 
   const isAdmin = React.useMemo(() => {
     if (!user) return false;
-    const uid = user.id || user._id || '';
     const hasAdminRole = (user.roles || []).some((r: string) =>
-      ['ADMIN', 'admin', 'SUPER_ADMIN'].includes(r)
+      ["ADMIN", "SUPERADMIN"].includes(r.toUpperCase()),
     );
-    return (ADMIN_USER_ID && uid === ADMIN_USER_ID) || hasAdminRole;
-  }, [user, ADMIN_USER_ID]);
+    return hasAdminRole;
+  }, [user]);
 
   const hasRoiAccess = React.useMemo(() => canAccessROI(user), [user]);
   const walletAddress = React.useMemo(
     () => getNavbarWalletAddress(user, isConnected ? address : undefined),
-    [address, isConnected, user]
+    [address, isConnected, user],
   );
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const searchWrapRef = useRef<HTMLDivElement | null>(null);
@@ -74,52 +77,59 @@ const Navbar = () => {
 
   // Close mobile menu on route change
   useEffect(() => {
-    setMobileMenuOpen(false);
-    setMobileSearchOpen(false);
-  }, [router]);
+    queueMicrotask(() => {
+      setMobileMenuOpen(false);
+      setMobileSearchOpen(false);
+    });
+  }, [pathname]);
 
   // Close mobile menu on outside click
   useEffect(() => {
     const onDocDown = (e: MouseEvent) => {
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target as Node)) {
+      if (
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(e.target as Node)
+      ) {
         setMobileMenuOpen(false);
       }
     };
-    document.addEventListener('mousedown', onDocDown);
-    return () => document.removeEventListener('mousedown', onDocDown);
+    document.addEventListener("mousedown", onDocDown);
+    return () => document.removeEventListener("mousedown", onDocDown);
   }, []);
 
   // Prevent body scroll when mobile menu open
   useEffect(() => {
     if (mobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     }
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [mobileMenuOpen]);
 
   const submitSearch = () => {
     const sp = new URLSearchParams();
-    if (searchQuery.trim()) sp.set('search', searchQuery.trim());
+    if (searchQuery.trim()) sp.set("search", searchQuery.trim());
     const qs = sp.toString();
-    router.push(qs ? `/explore?${qs}` : '/explore');
+    router.push(qs ? `/explore?${qs}` : "/explore");
     setMobileSearchOpen(false);
     setMobileMenuOpen(false);
   };
 
   const navCategories = [
-    { href: '/explore', label: 'All Projects' },
-    { href: '/explore?category=HEALTH', label: 'Health' },
-    { href: '/explore?category=EDUCATION', label: 'Education' },
-    { href: '/explore?category=ENVIRONMENT', label: 'Environment' },
-    { href: '/explore?category=COMMUNITY', label: 'Community' },
+    { href: "/explore", label: "All Projects" },
+    { href: "/explore?category=HEALTH", label: "Health" },
+    { href: "/explore?category=EDUCATION", label: "Education" },
+    { href: "/explore?category=ENVIRONMENT", label: "Environment" },
+    { href: "/explore?category=COMMUNITY", label: "Community" },
     ...(hasRoiAccess
       ? [
-          { href: '/explore?industry=REAL_ESTATE', label: 'Real Estate' },
-          { href: '/explore?industry=TECHNOLOGY', label: 'Technology' },
-          { href: '/explore?industry=AGRICULTURE', label: 'Agriculture' },
-          { href: '/explore?industry=ENERGY', label: 'Energy' },
+          { href: "/explore?industry=REAL_ESTATE", label: "Real Estate" },
+          { href: "/explore?industry=TECHNOLOGY", label: "Technology" },
+          { href: "/explore?industry=AGRICULTURE", label: "Agriculture" },
+          { href: "/explore?industry=ENERGY", label: "Energy" },
         ]
       : []),
   ];
@@ -128,10 +138,12 @@ const Navbar = () => {
     <>
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[var(--card)]/90 backdrop-blur-md border-b border-[var(--border)] transition-colors duration-300">
         <div className="container mx-auto px-4 sm:px-6 h-[68px] flex items-center justify-between relative">
-
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <Link href="/" className="hover:opacity-80 transition-opacity flex-shrink-0">
+            <Link
+              href="/"
+              className="hover:opacity-80 transition-opacity flex-shrink-0"
+            >
               <Logo size={26} />
             </Link>
           </div>
@@ -149,24 +161,46 @@ const Navbar = () => {
               </Link>
               <div className="absolute left-0 top-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                 <div className="w-56 bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden py-2">
-                  <p className="px-4 pt-1 pb-2 text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)]">Browse by type</p>
-                  <Link href="/explore" className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-[var(--secondary)] transition-colors">
-                    <span className="w-6 h-6 rounded-lg bg-[var(--secondary)] flex items-center justify-center text-[var(--text-muted)] text-xs">★</span>
+                  <p className="px-4 pt-1 pb-2 text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                    Browse by type
+                  </p>
+                  <Link
+                    href="/explore"
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-[var(--secondary)] transition-colors"
+                  >
+                    <span className="w-6 h-6 rounded-lg bg-[var(--secondary)] flex items-center justify-center text-[var(--text-muted)] text-xs">
+                      ★
+                    </span>
                     All Projects
                   </Link>
-                  <Link href="/explore?type=CHARITY" className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-[var(--secondary)] transition-colors">
-                    <span className="w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center text-emerald-700 dark:text-emerald-300 text-xs">♥</span>
+                  <Link
+                    href="/explore?type=CHARITY"
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-[var(--secondary)] transition-colors"
+                  >
+                    <span className="w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center text-emerald-700 dark:text-emerald-300 text-xs">
+                      ♥
+                    </span>
                     Charity Causes
                   </Link>
                   {hasRoiAccess && (
-                    <Link href="/explore?type=ROI" className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-[var(--secondary)] transition-colors">
-                      <span className="w-6 h-6 rounded-lg bg-blue-100 dark:bg-blue-950/30 flex items-center justify-center text-blue-700 dark:text-blue-300 text-xs">↑</span>
+                    <Link
+                      href="/explore?type=ROI"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-[var(--secondary)] transition-colors"
+                    >
+                      <span className="w-6 h-6 rounded-lg bg-blue-100 dark:bg-blue-950/30 flex items-center justify-center text-blue-700 dark:text-blue-300 text-xs">
+                        ↑
+                      </span>
                       Investments
                     </Link>
                   )}
                   <div className="border-t border-[var(--border)] mx-3 my-1" />
-                  <Link href="/dashboard/create-project" className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-colors">
-                    <span className="w-6 h-6 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] text-xs font-black">+</span>
+                  <Link
+                    href="/dashboard/create-project"
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-colors"
+                  >
+                    <span className="w-6 h-6 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] text-xs font-black">
+                      +
+                    </span>
                     Start a Campaign
                   </Link>
                 </div>
@@ -189,7 +223,9 @@ const Navbar = () => {
                 <input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') submitSearch(); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") submitSearch();
+                  }}
                   placeholder="Search causes..."
                   className="w-full bg-[var(--secondary)] border border-[var(--border)] rounded-2xl h-11 pl-11 pr-24 text-sm font-semibold outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all"
                 />
@@ -221,7 +257,9 @@ const Navbar = () => {
                     className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-xs font-semibold transition-all hover:opacity-90"
                   >
                     <Wallet size={14} />
-                    {walletAddress ? formatWalletAddress(walletAddress) : 'Connect Wallet'}
+                    {walletAddress
+                      ? formatWalletAddress(walletAddress)
+                      : "Connect Wallet"}
                   </button>
                 ) : (
                   <Link
@@ -236,14 +274,23 @@ const Navbar = () => {
                     <User size={20} />
                   </button>
                   <div className="absolute right-0 mt-2 w-52 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                    <Link href="/dashboard" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold hover:bg-[var(--secondary)] transition-colors">
+                    <Link
+                      href="/dashboard"
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold hover:bg-[var(--secondary)] transition-colors"
+                    >
                       <LayoutDashboard size={16} /> Dashboard
                     </Link>
-                    <Link href="/profile" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold hover:bg-[var(--secondary)] transition-colors">
+                    <Link
+                      href="/profile"
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold hover:bg-[var(--secondary)] transition-colors"
+                    >
                       <Settings size={16} /> Settings
                     </Link>
                     {isAdmin && (
-                      <Link href="/admin" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-colors border-t border-[var(--border)] mt-1 pt-2">
+                      <Link
+                        href="/admin"
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-colors border-t border-[var(--border)] mt-1 pt-2"
+                      >
                         <ShieldCheck size={16} /> Admin Dashboard
                       </Link>
                     )}
@@ -258,10 +305,16 @@ const Navbar = () => {
               </div>
             ) : (
               <div className="flex items-center gap-3">
-                <Link href="/login" className="text-sm font-bold text-[var(--text-main)] hover:text-[var(--primary)] transition-colors px-3">
+                <Link
+                  href="/login"
+                  className="text-sm font-bold text-[var(--text-main)] hover:text-[var(--primary)] transition-colors px-3"
+                >
                   Sign In
                 </Link>
-                <Link href="/register" className="button_primary py-2 px-5 text-sm">
+                <Link
+                  href="/register"
+                  className="button_primary py-2 px-5 text-sm"
+                >
                   Get Started
                 </Link>
               </div>
@@ -271,21 +324,26 @@ const Navbar = () => {
           {/* Mobile Right: Search icon + Hamburger */}
           <div className="flex md:hidden items-center gap-2">
             <button
-              onClick={() => { setMobileSearchOpen(!mobileSearchOpen); setMobileMenuOpen(false); }}
+              onClick={() => {
+                setMobileSearchOpen(!mobileSearchOpen);
+                setMobileMenuOpen(false);
+              }}
               className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--secondary)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all"
               aria-label="Search"
             >
               <Search size={18} />
             </button>
             <button
-              onClick={() => { setMobileMenuOpen(!mobileMenuOpen); setMobileSearchOpen(false); }}
+              onClick={() => {
+                setMobileMenuOpen(!mobileMenuOpen);
+                setMobileSearchOpen(false);
+              }}
               className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--secondary)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all"
-              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           </div>
-
         </div>
 
         {/* Mobile Search Bar (sliding) */}
@@ -297,7 +355,9 @@ const Navbar = () => {
                 autoFocus
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') submitSearch(); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") submitSearch();
+                }}
                 placeholder="Search causes..."
                 className="w-full bg-[var(--secondary)] border border-[var(--border)] rounded-2xl h-12 pl-11 pr-24 text-sm font-semibold outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
               />
@@ -322,7 +382,6 @@ const Navbar = () => {
           />
           {/* Slide-in drawer from right */}
           <div className="absolute top-[68px] right-0 bottom-0 w-[85%] max-w-sm bg-[var(--card)] border-l border-[var(--border)] shadow-2xl flex flex-col overflow-y-auto">
-
             {/* User section */}
             <div className="p-5 border-b border-[var(--border)]">
               {user ? (
@@ -332,14 +391,20 @@ const Navbar = () => {
                   </div>
                   <div className="min-w-0">
                     <p className="font-black text-sm text-[var(--text-main)] truncate">
-                      {user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email}
+                      {user.firstName && user.lastName
+                        ? `${user.firstName} ${user.lastName}`
+                        : user.email}
                     </p>
-                    <p className="text-xs text-[var(--text-muted)] truncate">{user.email}</p>
+                    <p className="text-xs text-[var(--text-muted)] truncate">
+                      {user.email}
+                    </p>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <p className="font-black text-sm text-[var(--text-muted)] uppercase tracking-widest">Welcome to Keibo</p>
+                  <p className="font-black text-sm text-[var(--text-muted)] uppercase tracking-widest">
+                    Welcome to Keibo
+                  </p>
                   <div className="flex gap-3">
                     <Link
                       href="/login"
@@ -387,7 +452,9 @@ const Navbar = () => {
                   {isAdmin && (
                     <MobileNavLink
                       href="/admin"
-                      icon={<ShieldCheck size={18} className="text-amber-500" />}
+                      icon={
+                        <ShieldCheck size={18} className="text-amber-500" />
+                      }
                       label="Admin Dashboard"
                       onClick={() => setMobileMenuOpen(false)}
                     />
@@ -398,7 +465,9 @@ const Navbar = () => {
                 </>
               )}
 
-              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] px-3 py-1">Explore</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] px-3 py-1">
+                Explore
+              </p>
 
               {navCategories.map((cat) => (
                 <MobileNavLink
@@ -428,7 +497,10 @@ const Navbar = () => {
             {user && (
               <div className="p-4 border-t border-[var(--border)]">
                 <button
-                  onClick={() => { logout(); setMobileMenuOpen(false); }}
+                  onClick={() => {
+                    logout();
+                    setMobileMenuOpen(false);
+                  }}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all border border-rose-500/20"
                 >
                   <LogOut size={16} /> Sign Out

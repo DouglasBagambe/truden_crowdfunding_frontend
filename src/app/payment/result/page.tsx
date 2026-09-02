@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { Suspense, useEffect, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { motion } from "framer-motion";
 import {
   ArrowRight,
   CheckCircle2,
@@ -13,10 +13,10 @@ import {
   Loader2,
   RefreshCw,
   XCircle,
-} from 'lucide-react';
-import { paymentService } from '@/lib/payment-service';
+} from "lucide-react";
+import { paymentService } from "@/lib/payment-service";
 
-type VerifyState = 'verifying' | 'paid' | 'failed' | 'cancelled' | 'pending';
+type VerifyState = "verifying" | "paid" | "failed" | "cancelled" | "pending";
 
 interface VerifyCardConfig {
   icon: ReactNode;
@@ -27,84 +27,79 @@ interface VerifyCardConfig {
 }
 
 function getSafeExitHref(projectId: string): string {
-  return projectId ? `/projects/${projectId}` : '/';
+  return projectId ? `/projects/${projectId}` : "/";
 }
 
 function PaymentResultContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const statusParam = searchParams.get('status');
+  const statusParam = searchParams.get("status");
   const token =
-    searchParams.get('ID') ||
-    searchParams.get('TransactionToken') ||
-    searchParams.get('token');
-  const projectId = searchParams.get('projectId') || '';
+    searchParams.get("ID") ||
+    searchParams.get("TransactionToken") ||
+    searchParams.get("token");
+  const projectId = searchParams.get("projectId") || "";
 
   const [verifyState, setVerifyState] = useState<VerifyState>(() => {
-    if (statusParam === 'cancelled' && !token) {
-      return 'cancelled';
+    if (statusParam === "cancelled" && !token) {
+      return "cancelled";
     }
     if (!token) {
-      return statusParam === 'success' ? 'paid' : 'cancelled';
+      return statusParam === "success" ? "pending" : "cancelled";
     }
-    return 'verifying';
+    return "verifying";
   });
-  const [message, setMessage] = useState('');
-  const [redirectError, setRedirectError] = useState('');
+  const [message, setMessage] = useState("");
+  const [redirectError, setRedirectError] = useState("");
   const [isManualRefresh, setIsManualRefresh] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollCount = useRef(0);
   const maxPolls = 30;
 
-  const stopPolling = () => {
+  const stopPolling = useCallback(() => {
     if (pollRef.current) {
       clearInterval(pollRef.current);
       pollRef.current = null;
     }
-  };
+  }, []);
 
-  const verify = async (currentToken: string) => {
-    try {
-      const response = await paymentService.verifyDPOPayment(currentToken);
-      if (response.verify?.status === '000') {
-        stopPolling();
-        setVerifyState('paid');
-        setMessage(response.verify.message || 'Your payment was confirmed successfully.');
-        return;
-      }
-      if (response.status === 'successful') {
-        stopPolling();
-        setVerifyState('paid');
-        setMessage('Your payment was confirmed successfully.');
-        return;
-      }
-      if (response.status === 'cancelled') {
-        stopPolling();
-        setVerifyState('cancelled');
-        setMessage(response.verify.message || 'This payment was cancelled before confirmation.');
-        return;
-      }
-      if (response.status === 'failed') {
-        stopPolling();
-        setVerifyState('failed');
-        setMessage(response.verify.message || 'Payment could not be verified.');
-        return;
-      }
+  const verify = useCallback(
+    async (currentToken: string) => {
+      try {
+        const response = await paymentService.verifyDPOPayment(currentToken);
+        if (["captured", "settled", "released"].includes(response.status)) {
+          stopPolling();
+          setVerifyState("paid");
+          setMessage(
+            "Verified provider evidence has been recorded in the KEIBO ledger.",
+          );
+          return;
+        }
+        if (response.status === "failed") {
+          stopPolling();
+          setVerifyState("failed");
+          setMessage(
+            response.verify.message || "Payment could not be verified.",
+          );
+          return;
+        }
 
-      setVerifyState('pending');
-      setMessage(
-        response.verify.message ||
-          'Your payment is still processing. Do not pay again; refresh this page in a moment.',
-      );
-    } catch (error: unknown) {
-      setVerifyState('pending');
-      setMessage(
-        'We could not confirm the payment yet. Do not pay again; use refresh in a moment.',
-      );
-    } finally {
-      setIsManualRefresh(false);
-    }
-  };
+        setVerifyState("pending");
+        setMessage(
+          response.verify.message ||
+            "Your payment is still processing. Do not pay again; refresh this page in a moment.",
+        );
+      } catch {
+        setVerifyState("pending");
+        setMessage(
+          "We could not confirm the payment yet. Do not pay again; use refresh in a moment.",
+        );
+      } finally {
+        setIsManualRefresh(false);
+      }
+    },
+    [stopPolling],
+  );
 
   useEffect(() => {
     if (!token) {
@@ -116,7 +111,7 @@ function PaymentResultContent() {
       pollCount.current += 1;
       if (pollCount.current >= maxPolls) {
         stopPolling();
-        setVerifyState((current) => (current === 'paid' ? 'paid' : 'pending'));
+        setVerifyState((current) => (current === "paid" ? "paid" : "pending"));
         setMessage(
           `Payment is still processing. Do not pay again. Keep this reference for support: ${token}`,
         );
@@ -126,18 +121,20 @@ function PaymentResultContent() {
     }, 6000);
 
     return () => stopPolling();
-  }, [token]);
+  }, [stopPolling, token, verify]);
 
   useEffect(() => {
-    if (verifyState !== 'paid') return;
+    if (verifyState !== "paid") return;
 
-    setRedirectError('');
-    const destination = projectId ? `/projects/${projectId}` : '/dashboard';
+    setRedirectError("");
+    const destination = projectId ? `/projects/${projectId}` : "/dashboard";
     const timer = window.setTimeout(() => {
       try {
         router.push(destination);
       } catch {
-        setRedirectError('Automatic redirect failed. Use the button below to continue.');
+        setRedirectError(
+          "Automatic redirect failed. Use the button below to continue.",
+        );
       }
     }, 4000);
 
@@ -147,42 +144,42 @@ function PaymentResultContent() {
   const config: Record<VerifyState, VerifyCardConfig> = {
     verifying: {
       icon: <Loader2 size={64} className="animate-spin text-blue-400" />,
-      title: 'Verifying Payment…',
-      subtitle: 'Please wait while we confirm your payment with DPO.',
-      color: 'from-blue-600/20 to-indigo-600/20',
-      border: 'border-blue-500/30',
+      title: "Verifying Payment…",
+      subtitle: "Please wait while we confirm your payment with DPO.",
+      color: "from-blue-600/20 to-indigo-600/20",
+      border: "border-blue-500/30",
     },
     pending: {
       icon: <Clock size={64} className="animate-pulse text-amber-400" />,
-      title: 'Processing Payment…',
+      title: "Processing Payment…",
       subtitle:
         message ||
-        'Your payment is still processing. Do not pay again while the transaction is settling.',
-      color: 'from-amber-600/20 to-yellow-600/20',
-      border: 'border-amber-500/30',
+        "Your payment is still processing. Do not pay again while the transaction is settling.",
+      color: "from-amber-600/20 to-yellow-600/20",
+      border: "border-amber-500/30",
     },
     paid: {
       icon: <CheckCircle2 size={64} className="text-emerald-400" />,
-      title: 'Payment Successful',
-      subtitle:
-        message ? `${message} Redirecting...` :
-        'Payment successful! Redirecting...',
-      color: 'from-emerald-600/20 to-teal-600/20',
-      border: 'border-emerald-500/30',
+      title: "Payment Confirmed",
+      subtitle: message
+        ? `${message} Redirecting...`
+        : "Payment evidence confirmed and recorded. Redirecting...",
+      color: "from-emerald-600/20 to-teal-600/20",
+      border: "border-emerald-500/30",
     },
     failed: {
       icon: <XCircle size={64} className="text-red-400" />,
-      title: 'Payment Failed',
-      subtitle: message || 'Something went wrong while verifying your payment.',
-      color: 'from-red-600/20 to-rose-600/20',
-      border: 'border-red-500/30',
+      title: "Payment Failed",
+      subtitle: message || "Something went wrong while verifying your payment.",
+      color: "from-red-600/20 to-rose-600/20",
+      border: "border-red-500/30",
     },
     cancelled: {
       icon: <XCircle size={64} className="text-orange-400" />,
-      title: 'Payment Cancelled',
-      subtitle: message || 'This payment was cancelled before completion.',
-      color: 'from-orange-600/20 to-amber-600/20',
-      border: 'border-orange-500/30',
+      title: "Payment Cancelled",
+      subtitle: message || "This payment was cancelled before completion.",
+      color: "from-orange-600/20 to-amber-600/20",
+      border: "border-orange-500/30",
     },
   };
 
@@ -204,7 +201,7 @@ function PaymentResultContent() {
           key={verifyState}
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          transition={{ type: 'spring', stiffness: 200 }}
+          transition={{ type: "spring", stiffness: 200 }}
           className="mb-6 flex justify-center"
         >
           {currentConfig.icon}
@@ -222,8 +219,10 @@ function PaymentResultContent() {
           </p>
         )}
 
-        {token && verifyState !== 'paid' && (
-          <p className="mb-6 break-all font-mono text-xs text-gray-600">Ref: {token}</p>
+        {token && verifyState !== "paid" && (
+          <p className="mb-6 break-all font-mono text-xs text-gray-600">
+            Ref: {token}
+          </p>
         )}
 
         <div className="mb-8 flex items-center justify-center gap-2">
@@ -234,7 +233,7 @@ function PaymentResultContent() {
         </div>
 
         <div className="flex flex-col gap-3">
-          {verifyState === 'pending' && token && (
+          {verifyState === "pending" && token && (
             <button
               type="button"
               onClick={() => {
@@ -258,7 +257,7 @@ function PaymentResultContent() {
             </button>
           )}
 
-          {projectId && verifyState === 'paid' && (
+          {projectId && verifyState === "paid" && (
             <Link
               href={`/projects/${projectId}`}
               className="flex items-center justify-center gap-2 rounded-xl bg-white py-3.5 px-6 font-bold text-black transition-all hover:bg-gray-100"
@@ -267,22 +266,23 @@ function PaymentResultContent() {
             </Link>
           )}
 
-          {(verifyState === 'failed' || verifyState === 'cancelled') && projectId && (
-            <Link
-              href={`/projects/${projectId}`}
-              className="flex items-center justify-center gap-2 rounded-xl bg-white py-3.5 px-6 font-bold text-black transition-all hover:bg-gray-100"
-            >
-              Try Again <ArrowRight size={18} />
-            </Link>
-          )}
+          {(verifyState === "failed" || verifyState === "cancelled") &&
+            projectId && (
+              <Link
+                href={`/projects/${projectId}`}
+                className="flex items-center justify-center gap-2 rounded-xl bg-white py-3.5 px-6 font-bold text-black transition-all hover:bg-gray-100"
+              >
+                Try Again <ArrowRight size={18} />
+              </Link>
+            )}
 
-          {verifyState !== 'verifying' && (
+          {verifyState !== "verifying" && (
             <Link
               href={getSafeExitHref(projectId)}
               className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/10 py-3.5 px-6 font-bold text-white transition-all hover:bg-white/20"
             >
               <Home size={18} />
-              {projectId ? 'Back to Project' : 'Back Home'}
+              {projectId ? "Back to Project" : "Back Home"}
             </Link>
           )}
         </div>

@@ -1,9 +1,9 @@
-import { AxiosError } from 'axios';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import toast from 'react-hot-toast';
-import { authService, AuthResponse, LoginRequest } from '../lib/auth-service';
-import { buildVerifyEmailUrl } from '../lib/email-verification';
-import { userService } from '../lib/user-service';
+import { AxiosError } from "axios";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
+import { authService, AuthResponse, LoginRequest } from "../lib/auth-service";
+import { buildVerifyEmailUrl } from "../lib/email-verification";
+import { userService } from "../lib/user-service";
 
 interface ApiErrorBody {
   message?: string | string[];
@@ -14,16 +14,20 @@ interface ApiErrorBody {
 function extractErrorMessage(error: AxiosError<ApiErrorBody> | null): string {
   const message = error?.response?.data?.message;
   if (Array.isArray(message)) {
-    return message.join('. ');
+    return message.join(". ");
   }
-  return message || 'Authentication failed';
+  return message || "Authentication failed";
 }
 
 export function useAuth() {
   const queryClient = useQueryClient();
 
-  const { data: user, isLoading, refetch } = useQuery({
-    queryKey: ['me'],
+  const {
+    data: user,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["me"],
     queryFn: async () => {
       try {
         return await userService.getMe();
@@ -37,38 +41,25 @@ export function useAuth() {
 
   const isAuthenticated = !!user;
 
-  const loginMutation = useMutation<AuthResponse, AxiosError<ApiErrorBody>, LoginRequest>({
+  const loginMutation = useMutation<
+    AuthResponse,
+    AxiosError<ApiErrorBody>,
+    LoginRequest
+  >({
     mutationFn: (data) => authService.login(data),
     onSuccess: (data) => {
       queryClient.clear();
 
-      const token = data.accessToken || data.access_token;
-      const refreshToken = data.refreshToken || data.refresh_token;
-
-      if (token) {
-        localStorage.setItem('token', token);
-      }
-      if (refreshToken) {
-        localStorage.setItem('refreshToken', refreshToken);
-      }
-      if (token) {
-        try {
-          const maxAge = 60 * 60 * 24 * 7;
-          document.cookie = `token=${token}; Max-Age=${maxAge}; Path=/`;
-        } catch {
-          // Ignore cookie sync failures in browsers that block it.
-        }
-      }
-      queryClient.invalidateQueries({ queryKey: ['me'] });
+      queryClient.invalidateQueries({ queryKey: ["me"] });
       toast.success(
-        `Welcome back, ${data.user?.firstName || data.user?.profile?.firstName || 'Legacy Builder'}!`,
+        `Welcome back, ${data.user?.firstName || data.user?.profile?.firstName || "Legacy Builder"}!`,
       );
       try {
         const sp = new URLSearchParams(window.location.search);
-        const next = sp.get('next') || '/';
-        window.location.href = next;
+        const next = sp.get("next") || "/";
+        window.location.replace(next);
       } catch {
-        window.location.href = '/';
+        window.location.replace("/");
       }
     },
     onError: async (error, variables) => {
@@ -76,11 +67,16 @@ export function useAuth() {
       const errorCode = error.response?.data?.code;
       const email = error.response?.data?.email || variables.email;
 
-      if (errorCode === 'EMAIL_NOT_VERIFIED' || errorMessage.toLowerCase().includes('not verified')) {
+      if (
+        errorCode === "EMAIL_NOT_VERIFIED" ||
+        errorMessage.toLowerCase().includes("not verified")
+      ) {
         try {
           if (email) {
             await authService.resendVerificationEmail(email);
-            toast.success('A fresh verification code has been sent to your email.');
+            toast.success(
+              "A fresh verification code has been sent to your email.",
+            );
           }
         } catch (resendError) {
           const resendMessage = extractErrorMessage(
@@ -90,15 +86,17 @@ export function useAuth() {
         }
 
         const sp = new URLSearchParams(window.location.search);
-        const next = sp.get('next') || '/';
-        window.location.href = buildVerifyEmailUrl({
-          email,
-          next,
-        });
+        const next = sp.get("next") || "/";
+        window.location.replace(
+          buildVerifyEmailUrl({
+            email,
+            next,
+          }),
+        );
         return;
       }
 
-      if (errorMessage.toLowerCase().includes('mfa code required')) {
+      if (errorMessage.toLowerCase().includes("mfa code required")) {
         return;
       }
 
@@ -106,18 +104,16 @@ export function useAuth() {
     },
   });
 
-  const logout = () => {
-    queryClient.clear();
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
+  const logout = async () => {
     try {
-      document.cookie = 'token=; Max-Age=0; Path=/';
+      await authService.logout();
     } catch {
-      // Ignore cookie cleanup failures in restricted browsers.
+      // Clear the local user view even when the server session has expired.
     }
-    queryClient.setQueryData(['me'], null);
-    toast.success('Securely signed out');
-    window.location.href = '/login';
+    queryClient.clear();
+    queryClient.setQueryData(["me"], null);
+    toast.success("Securely signed out");
+    window.location.replace("/login");
   };
 
   return {
