@@ -13,6 +13,14 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      NEXT_PUBLIC_API_URL: https://api.example.invalid/api
+      NEXT_PUBLIC_APP_URL: https://app.example.invalid
+      NEXT_PUBLIC_WC_PROJECT_ID: ci-public-walletconnect-id
+      NEXT_PUBLIC_ROI_ENABLED: "false"
+      NEXT_PUBLIC_ENABLE_NFT_MARKETPLACE: "false"
+      NEXT_PUBLIC_DEAL_ROOM_ENABLED: "false"
+      NEXT_PUBLIC_CRYPTO_ESCROW_ENABLED: "false"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -22,4 +30,17 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: npm run verify
+      - name: Lint
+        run: npm run lint
+      - name: Format check
+        run: npm run format:check
+      - name: Changed-file quality gate
+        run: npm run quality:changed
+      - name: Type check
+        run: npm run typecheck
+      - name: Prepare Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Validate Playwright test discovery
+        run: npm run test:browser-list
+      - name: Webpack production build
+        run: npm run build -- --webpack

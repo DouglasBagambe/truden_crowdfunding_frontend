@@ -28,6 +28,21 @@ Example:
 NEXT_PUBLIC_ROI_ALLOWED_USER_IDS=69aeb686a2dc63dd07760117
 ```
 
+## Staging verification and runtime contract
+
+Use Node 22 and `npm ci` for reproducible builds. CI runs lint, formatting,
+changed-file quality, TypeScript, Playwright test discovery, and a production
+Webpack build. Its `example.invalid` URLs and public WalletConnect identifier
+are disposable build inputs; CI does not contact providers or deploy the app.
+
+Production must inject `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_APP_URL`, and
+`NEXT_PUBLIC_WC_PROJECT_ID` at build time. Keep
+`NEXT_PUBLIC_ROI_ENABLED`, `NEXT_PUBLIC_ENABLE_NFT_MARKETPLACE`,
+`NEXT_PUBLIC_DEAL_ROOM_ENABLED`, and `NEXT_PUBLIC_CRYPTO_ESCROW_ENABLED` false
+until the corresponding backend, contract, provider, and operational gates are
+approved. Serve the immutable image as a non-root user with a health check,
+graceful termination, structured logs, and explicit CPU and memory limits.
+
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
 ## Learn More
