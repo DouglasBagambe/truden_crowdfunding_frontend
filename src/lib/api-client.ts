@@ -53,7 +53,8 @@ apiClient.interceptors.response.use(
       !original._sessionRetry &&
       !path.startsWith("/auth/login") &&
       !path.startsWith("/auth/register") &&
-      !path.startsWith("/auth/refresh");
+      !path.startsWith("/auth/refresh") &&
+      path !== "/users/me";
 
     if (!canRefresh) return Promise.reject(error);
 
