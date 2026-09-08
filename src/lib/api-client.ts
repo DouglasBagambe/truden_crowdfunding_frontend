@@ -5,7 +5,10 @@ if (process.env.NODE_ENV === "production" && !configuredApiUrl) {
   throw new Error("NEXT_PUBLIC_API_URL is required in production");
 }
 
-const API_URL = configuredApiUrl || "http://localhost:3000/api";
+const API_URL =
+  process.env.NODE_ENV === "production"
+    ? "/api"
+    : configuredApiUrl || "http://localhost:3000/api";
 const transport = axios.create({ baseURL: API_URL, withCredentials: true });
 
 export const apiClient = axios.create({
