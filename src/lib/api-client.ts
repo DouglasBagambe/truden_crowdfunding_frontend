@@ -56,8 +56,7 @@ apiClient.interceptors.response.use(
       !original._sessionRetry &&
       !path.startsWith("/auth/login") &&
       !path.startsWith("/auth/register") &&
-      !path.startsWith("/auth/refresh") &&
-      path !== "/users/me";
+      !path.startsWith("/auth/refresh");
 
     if (!canRefresh) return Promise.reject(error);
 
@@ -69,7 +68,8 @@ apiClient.interceptors.response.use(
       });
       return apiClient(original);
     } catch {
-      if (typeof window !== "undefined") window.location.replace("/login");
+      // Callers decide how to present an expired session. Redirecting here turns
+      // an expected guest 401 from a public route into an unrelated login jump.
       return Promise.reject(error);
     }
   },

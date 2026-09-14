@@ -5,8 +5,7 @@ export function middleware(req: NextRequest) {
   const token = req.cookies.get("keibo_access")?.value;
   const { pathname, search } = req.nextUrl;
 
-  // Protect profile (private) while keeping all other routes public
-  if (pathname.startsWith("/profile") && !token) {
+  if (!token) {
     const loginUrl = new URL("/login", req.url);
     const nextPath = `${pathname}${search || ""}`;
     loginUrl.searchParams.set("next", nextPath);
@@ -17,5 +16,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/profile/:path*"],
+  matcher: ["/profile/:path*", "/dashboard/:path*", "/admin/:path*"],
 };

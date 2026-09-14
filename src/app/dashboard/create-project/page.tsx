@@ -31,7 +31,6 @@ import {
 import { projectService, ProjectType, type CreateProjectParams } from '@/lib/project-service';
 import { useAuth } from '@/hooks/useAuth';
 import { useQueryClient } from '@tanstack/react-query';
-import { useRoiAccess } from '@/hooks/useRoiAccess';
 
 const CHARITY_CATEGORIES = [
     { label: 'School', value: 'school' },
@@ -82,8 +81,11 @@ type FieldErrors = Partial<Record<keyof CreateProjectParams | 'location' | 'mile
 export default function CreateProjectPage() {
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
-    const { hasRoiAccess } = useRoiAccess();
+    const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+    const capabilities = user?.capabilities as
+        | { createCharity?: boolean; createRoi?: boolean }
+        | undefined;
+    const canCreateRoi = capabilities?.createRoi === true;
     const [step, setStep] = useState(1);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -124,10 +126,10 @@ export default function CreateProjectPage() {
     });
 
     useEffect(() => {
-        if (!hasRoiAccess && formData.type === ProjectType.ROI) {
+        if (!canCreateRoi && formData.type === ProjectType.ROI) {
             setFormData((prev) => ({ ...prev, type: ProjectType.CHARITY }));
         }
-    }, [formData.type, hasRoiAccess]);
+    }, [formData.type, canCreateRoi]);
 
     const clearFieldError = (field: keyof FieldErrors) => {
         setFieldErrors((current) => {
@@ -176,7 +178,7 @@ export default function CreateProjectPage() {
             if (!Number.isFinite(formData.targetAmount) || formData.targetAmount < 1) {
                 errors.targetAmount = 'Enter a funding target greater than 0.';
             }
-            if (hasRoiAccess && formData.type === ProjectType.ROI && (!formData.milestones || formData.milestones.length === 0)) {
+            if (canCreateRoi && formData.type === ProjectType.ROI && (!formData.milestones || formData.milestones.length === 0)) {
                 errors.milestones = 'Add at least one milestone for ROI projects.';
             }
         }
@@ -215,7 +217,7 @@ export default function CreateProjectPage() {
         try {
             // Cleanup data before sending
             const payload: any = { ...formData };
-            if (!hasRoiAccess) {
+            if (!canCreateRoi) {
                 payload.type = ProjectType.CHARITY;
             }
             if (payload.type === ProjectType.CHARITY) {
@@ -398,7 +400,7 @@ export default function CreateProjectPage() {
                                 </p>
                             </div>
 
-                            <div className={`grid grid-cols-1 ${hasRoiAccess ? 'md:grid-cols-2' : ''} gap-10`}>
+                            <div className={`grid grid-cols-1 ${canCreateRoi ? 'md:grid-cols-2' : ''} gap-10`}>
                                 <button
                                     onClick={() => setFormData({ ...formData, type: ProjectType.CHARITY })}
                                     className={`relative p-8 md:p-10 rounded-[2.5rem] text-left transition-all duration-500 overflow-hidden group border-4 ${formData.type === ProjectType.CHARITY
@@ -435,7 +437,7 @@ export default function CreateProjectPage() {
                                     )}
                                 </button>
 
-                                {hasRoiAccess && (
+                                {canCreateRoi && (
                                     <button
                                         onClick={() => setFormData({ ...formData, type: ProjectType.ROI })}
                                         className={`relative p-8 md:p-10 rounded-[2.5rem] text-left transition-all duration-500 overflow-hidden group border-4 ${formData.type === ProjectType.ROI

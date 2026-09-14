@@ -97,16 +97,19 @@ export const projectService = {
    */
   async getProject(id: string) {
     try {
-      const ownerResponse = await apiClient.get(`/projects/${id}/owner`);
-      return ownerResponse.data;
+      const response = await apiClient.get(`/projects/${id}`);
+      return response.data;
     } catch (error: unknown) {
-      if (!hasHttpStatus(error, [401, 403])) {
+      // A draft is only visible through the authenticated owner view. Public
+      // projects must not start with that protected request because a guest
+      // 401 is an expected condition, not an authentication failure.
+      if (!hasHttpStatus(error, [404])) {
         throw error;
       }
     }
 
-    const response = await apiClient.get(`/projects/${id}`);
-    return response.data;
+    const ownerResponse = await apiClient.get(`/projects/${id}/owner`);
+    return ownerResponse.data;
   },
 
   /**

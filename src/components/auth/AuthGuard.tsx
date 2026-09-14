@@ -28,7 +28,7 @@ export function AuthGuard({ children, requiredRoles }: AuthGuardProps) {
   useEffect(() => {
     if (!isLoading) {
       if (!isAuthenticated) {
-        router.push(`/login?redirect=${pathname}`);
+        router.push(`/login?next=${encodeURIComponent(pathname)}`);
       } else if (requiredRoles && requiredRoles.length > 0) {
         const userRoles = Array.isArray(user?.roles) ? user.roles : user?.role ? [user.role] : [];
         const hasRequiredRole = 

@@ -12,8 +12,13 @@ function normalize(value?: string | null) {
 }
 
 export function canAccessROI(user?: unknown) {
-  void user;
-  return process.env.NEXT_PUBLIC_ROI_ENABLED === "true";
+  if (!user || typeof user !== "object") return false;
+  const capabilities = (user as { capabilities?: unknown }).capabilities;
+  return Boolean(
+    capabilities &&
+    typeof capabilities === "object" &&
+    (capabilities as { viewRoi?: unknown }).viewRoi === true,
+  );
 }
 
 export function getProjectType(project: MaybeProject) {
