@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   experimental: {
     webpackBuildWorker: false,
   },
+  serverExternalPackages: ["viem"],
   async rewrites() {
     return [
       {
