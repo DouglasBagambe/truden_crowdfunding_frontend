@@ -1,5 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 
+const REQUEST_TIMEOUT_MS = 8_000;
+
 const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
 if (process.env.NODE_ENV === "production" && !configuredApiUrl) {
   throw new Error("NEXT_PUBLIC_API_URL is required in production");
@@ -9,12 +11,17 @@ const API_URL =
   process.env.NODE_ENV === "production"
     ? "/api"
     : configuredApiUrl || "http://localhost:3000/api";
-const transport = axios.create({ baseURL: API_URL, withCredentials: true });
+const transport = axios.create({
+  baseURL: API_URL,
+  withCredentials: true,
+  timeout: REQUEST_TIMEOUT_MS,
+});
 
 export const apiClient = axios.create({
   baseURL: API_URL,
   headers: { "Content-Type": "application/json" },
   withCredentials: true,
+  timeout: REQUEST_TIMEOUT_MS,
 });
 
 function readCookie(name: string): string | undefined {

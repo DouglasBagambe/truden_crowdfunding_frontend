@@ -1,4 +1,4 @@
-import { AxiosError } from "axios";
+import { AxiosError, isAxiosError } from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { authService, AuthResponse, LoginRequest } from "../lib/auth-service";
@@ -19,19 +19,27 @@ function extractErrorMessage(error: AxiosError<ApiErrorBody> | null): string {
   return message || "Authentication failed";
 }
 
+function isUnauthenticated(error: unknown): boolean {
+  return isAxiosError(error) && error.response?.status === 401;
+}
+
 export function useAuth() {
   const queryClient = useQueryClient();
 
   const {
     data: user,
     isLoading,
+    error,
     refetch,
   } = useQuery({
     queryKey: ["me"],
     queryFn: async () => {
       try {
         return await userService.getMe();
-      } catch {
+      } catch (error) {
+        if (!isUnauthenticated(error)) {
+          throw error;
+        }
         return null;
       }
     },
@@ -40,6 +48,10 @@ export function useAuth() {
   });
 
   const isAuthenticated = !!user;
+  const authBootstrapError =
+    error && !isUnauthenticated(error)
+      ? "We could not verify your session. You can still sign in, or retry the connection."
+      : null;
 
   const loginMutation = useMutation<
     AuthResponse,
@@ -120,10 +132,12 @@ export function useAuth() {
     user: user?.user || user,
     isLoading,
     isAuthenticated,
+    authBootstrapError,
     login: loginMutation.mutate,
     isLoggingIn: loginMutation.isPending,
     loginError: loginMutation.error,
     logout,
     refetchUser: refetch,
+    retryAuth: refetch,
   };
 }

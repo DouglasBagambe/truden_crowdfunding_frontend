@@ -1,32 +1,49 @@
-'use client';
+"use client";
 
-import { useAuth } from '@/hooks/useAuth';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export function GuestGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, authBootstrapError, retryAuth } =
+    useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.push('/dashboard');
+      router.push("/dashboard");
     }
   }, [isLoading, isAuthenticated, router]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
-        <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
-        <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Accessing Gateway...</p>
-      </div>
-    );
-  }
 
   if (isAuthenticated) {
     return null;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <div className="mx-auto w-full max-w-xl px-4 pt-4" aria-live="polite">
+        {isLoading && (
+          <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600">
+            Checking your existing session. You can still sign in below.
+          </p>
+        )}
+        {authBootstrapError && (
+          <div
+            role="alert"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900"
+          >
+            <span>{authBootstrapError}</span>
+            <button
+              type="button"
+              onClick={() => void retryAuth()}
+              className="font-bold underline underline-offset-2"
+            >
+              Retry session check
+            </button>
+          </div>
+        )}
+      </div>
+      {children}
+    </>
+  );
 }
