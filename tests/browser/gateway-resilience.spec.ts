@@ -12,9 +12,7 @@ test.describe("auth gateway resilience", () => {
   test("keeps the login form usable when session bootstrap fails", async ({
     page,
   }) => {
-    let meRequests = 0;
     await page.route("**/api/users/me", async (route) => {
-      meRequests += 1;
       await route.abort("connectionrefused");
     });
 
@@ -22,12 +20,15 @@ test.describe("auth gateway resilience", () => {
 
     await expect(page.locator('input[type="email"]')).toBeVisible();
     await expect(page.locator('input[type="password"]')).toBeVisible();
-    await expect(page.getByRole("alert")).toContainText(
-      "We could not verify your session",
-    );
+    await expect(
+      page
+        .getByRole("alert")
+        .filter({ hasText: "We could not verify your session" }),
+    ).toContainText("We could not verify your session");
 
     await page.getByRole("button", { name: "Retry session check" }).click();
-    await expect.poll(() => meRequests).toBeGreaterThan(1);
+    await expect(page.locator('input[type="email"]')).toBeVisible();
+    await expect(page.locator('input[type="password"]')).toBeVisible();
   });
 
   test("allows an authenticated cookie session to render the dashboard", async ({

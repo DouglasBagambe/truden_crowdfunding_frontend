@@ -16,8 +16,6 @@ import {
     CheckCircle2,
     AlertCircle,
     FileText,
-    Image as ImageIcon,
-    DollarSign,
     Info,
     MapPin,
     Users,
@@ -77,6 +75,30 @@ const isProbablyUrl = (value: unknown): value is string => {
 };
 
 type FieldErrors = Partial<Record<keyof CreateProjectParams | 'location' | 'milestones', string>>;
+type ProjectMilestone = NonNullable<CreateProjectParams['milestones']>[number];
+type ProjectMilestoneField = keyof ProjectMilestone;
+
+const getErrorMessage = (error: unknown, fallback: string): string => {
+    if (
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error &&
+        typeof error.response === 'object' &&
+        error.response !== null &&
+        'data' in error.response &&
+        typeof error.response.data === 'object' &&
+        error.response.data !== null &&
+        'message' in error.response.data
+    ) {
+        const { message } = error.response.data;
+        if (Array.isArray(message) && message.every((item): item is string => typeof item === 'string')) {
+            return message.join(', ');
+        }
+        if (typeof message === 'string') return message;
+    }
+
+    return error instanceof Error ? error.message : fallback;
+};
 
 export default function CreateProjectPage() {
     const router = useRouter();
@@ -216,7 +238,7 @@ export default function CreateProjectPage() {
         setError('');
         try {
             // Cleanup data before sending
-            const payload: any = { ...formData };
+            const payload: CreateProjectParams = { ...formData };
             if (!canCreateRoi) {
                 payload.type = ProjectType.CHARITY;
             }
@@ -235,11 +257,11 @@ export default function CreateProjectPage() {
             if (!payload.risks) delete payload.risks;
             if (!payload.imageUrl) delete payload.imageUrl;
             if (payload.socialLinks) {
-                payload.socialLinks = payload.socialLinks.filter((l: any) => l.url && l.url.trim().length > 0);
+                payload.socialLinks = payload.socialLinks.filter((link) => link.url.trim().length > 0);
                 if (payload.socialLinks.length === 0) delete payload.socialLinks;
             }
             if (payload.galleryImages) {
-                payload.galleryImages = payload.galleryImages.filter((u: any) => isProbablyUrl(u));
+                payload.galleryImages = payload.galleryImages.filter(isProbablyUrl);
                 if (payload.galleryImages.length === 0) delete payload.galleryImages;
             }
             if (payload.videoUrls && payload.videoUrls.length === 0) delete payload.videoUrls;
@@ -255,11 +277,8 @@ export default function CreateProjectPage() {
             await queryClient.invalidateQueries({ queryKey: ['projects'] });
 
             router.push('/dashboard');
-        } catch (err: any) {
-            const msg = Array.isArray(err.response?.data?.message)
-                ? err.response.data.message.join(', ')
-                : err.response?.data?.message || 'Failed to create project. Please check all fields.';
-            setError(msg);
+        } catch (error: unknown) {
+            setError(getErrorMessage(error, 'Failed to create project. Please check all fields.'));
             setLoading(false);
         }
     };
@@ -272,9 +291,15 @@ export default function CreateProjectPage() {
         });
     };
 
-    const updateMilestone = (index: number, field: string, value: any) => {
+    const updateMilestone = (
+        index: number,
+        field: ProjectMilestoneField,
+        value: ProjectMilestone[ProjectMilestoneField],
+    ) => {
         const newMilestones = [...(formData.milestones || [])];
-        newMilestones[index] = { ...newMilestones[index], [field]: value };
+        const milestone = newMilestones[index];
+        if (!milestone) return;
+        newMilestones[index] = { ...milestone, [field]: value } as ProjectMilestone;
         setFormData({ ...formData, milestones: newMilestones });
     };
 
@@ -305,8 +330,8 @@ export default function CreateProjectPage() {
                     if (isProbablyUrl(candidateUrl)) {
                         urls.push(candidateUrl);
                     }
-                } catch (err: any) {
-                    const msg = err.response?.data?.message || err.message || files[i].name;
+                } catch (error: unknown) {
+                    const msg = getErrorMessage(error, files[i].name);
                     setError(`Failed to upload: ${msg}`);
                 }
             }
@@ -785,7 +810,7 @@ export default function CreateProjectPage() {
                                             }`}>
                                             {coverPreviewUrl || formData.imageUrl ? (
                                                 <div className="relative w-full h-full min-h-[140px]">
-                                                    <img src={coverPreviewUrl || formData.imageUrl} className="w-full h-full object-cover rounded-2xl shadow-lg" />
+                                                    <img src={coverPreviewUrl || formData.imageUrl} alt="Project cover preview" className="w-full h-full object-cover rounded-2xl shadow-lg" />
                                                     <div className="absolute inset-0 bg-black/20 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                                         <span className="text-white text-[10px] font-black uppercase tracking-widest">Change Cover</span>
                                                     </div>
@@ -843,7 +868,7 @@ export default function CreateProjectPage() {
                                         <div className="grid grid-cols-4 md:grid-cols-6 gap-4">
                                             {formData.galleryImages?.map((url, i) => (
                                                 <div key={i} className="relative aspect-square rounded-2xl overflow-hidden border-2 border-white shadow-md">
-                                                    <img src={url} className="w-full h-full object-cover" />
+                                                    <img src={url} alt={`Project gallery image ${i + 1}`} className="w-full h-full object-cover" />
                                                     <button
                                                         onClick={() => setFormData(p => ({ ...p, galleryImages: p.galleryImages?.filter((_, idx) => idx !== i) }))}
                                                         className="absolute top-1 right-1 bg-white/90 rounded-full p-1 text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm"
@@ -945,7 +970,7 @@ export default function CreateProjectPage() {
                                         <FileText className="w-6 h-6 text-blue-600" />
                                         <h4 className="font-black text-xl text-gray-900 tracking-tight">Executive Summary</h4>
                                     </div>
-                                    <p className="text-gray-600 leading-relaxed font-medium italic text-lg opacity-80">"{formData.summary}"</p>
+                                    <p className="text-gray-600 leading-relaxed font-medium italic text-lg opacity-80">&ldquo;{formData.summary}&rdquo;</p>
                                 </div>
 
                                 {error && (
@@ -1050,14 +1075,6 @@ export default function CreateProjectPage() {
         </div>
     );
 }
-
-// Utility SVGs as Components
-const TrendingUpWrapper = () => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-        <polyline points="17 6 23 6 23 12"></polyline>
-    </svg>
-);
 
 const CalendarWrapper = () => (
     <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-3 text-gray-400">
