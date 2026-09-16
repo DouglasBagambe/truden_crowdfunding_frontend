@@ -33,6 +33,7 @@ import {
 } from "@/lib/project-service";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
+import { userService } from "@/lib/user-service";
 
 const CHARITY_CATEGORIES = [
   { label: "School", value: "school" },
@@ -112,7 +113,12 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 export default function CreateProjectPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const {
+    user,
+    isAuthenticated,
+    isLoading: isAuthLoading,
+    refetchUser,
+  } = useAuth();
   const capabilities = user?.capabilities as
     { createCharity?: boolean; createRoi?: boolean } | undefined;
   const canCreateRoi = capabilities?.createRoi === true;
@@ -122,6 +128,7 @@ export default function CreateProjectPage() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [coverPreviewUrl, setCoverPreviewUrl] = useState("");
+  const [enrolling, setEnrolling] = useState(false);
 
   useEffect(() => {
     if (isAuthLoading) return;
@@ -313,6 +320,24 @@ export default function CreateProjectPage() {
     }
   };
 
+  const enrollAsCharityCreator = async () => {
+    setEnrolling(true);
+    setError("");
+    try {
+      await userService.enrollAsCharityCreator();
+      await refetchUser();
+    } catch (enrollmentError: unknown) {
+      setError(
+        getErrorMessage(
+          enrollmentError,
+          "We could not enroll your creator account.",
+        ),
+      );
+    } finally {
+      setEnrolling(false);
+    }
+  };
+
   const addMilestone = () => {
     clearFieldError("milestones");
     setFormData({
@@ -406,6 +431,35 @@ export default function CreateProjectPage() {
       setLoading(false);
     }
   };
+
+  if (
+    !isAuthLoading &&
+    isAuthenticated &&
+    capabilities?.createCharity !== true
+  ) {
+    return (
+      <main className="min-h-screen bg-gray-50 pt-28 px-4">
+        <section className="mx-auto max-w-xl rounded-3xl bg-white p-8 shadow-xl">
+          <h1 className="text-3xl font-black text-gray-900">
+            Become a Charity Creator
+          </h1>
+          <p className="mt-4 text-gray-600">
+            Enroll to create Charity campaigns. This does not approve investment
+            campaigns: ROI creation separately requires verified KYC, creator
+            verification, and backend eligibility approval.
+          </p>
+          {error && <p className="mt-4 text-rose-600">{error}</p>}
+          <button
+            onClick={enrollAsCharityCreator}
+            disabled={enrolling}
+            className="mt-6 rounded-xl bg-blue-600 px-6 py-3 font-bold text-white disabled:opacity-50"
+          >
+            {enrolling ? "Enrolling…" : "Become a Charity Creator"}
+          </button>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col pt-16">

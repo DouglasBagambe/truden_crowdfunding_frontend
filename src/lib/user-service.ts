@@ -8,6 +8,10 @@ export const userService = {
     const response = await apiClient.get("/users/me");
     return response.data;
   },
+  async enrollAsCharityCreator() {
+    const response = await apiClient.post("/users/me/creator-enrollment");
+    return response.data;
+  },
 
   async updateProfile(data: ProfileUpdate) {
     const response = await apiClient.patch("/users/me/profile", data);

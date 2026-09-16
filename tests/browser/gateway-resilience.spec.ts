@@ -50,4 +50,31 @@ test.describe("auth gateway resilience", () => {
     await page.goto("/dashboard");
     await expect(page).toHaveURL(/\/dashboard/);
   });
+
+  test("guides an authenticated investor through Charity Creator enrollment", async ({
+    page,
+  }) => {
+    await page.route("**/api/users/me", async (route) => {
+      await route.fulfill({
+        json: {
+          user: {
+            ...authenticatedUser.user,
+            capabilities: { createCharity: false, createRoi: false },
+          },
+        },
+      });
+    });
+
+    await page.goto("/dashboard/create-project");
+
+    await expect(
+      page.getByRole("heading", { name: "Become a Charity Creator" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Become a Charity Creator" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("ROI creation separately requires verified KYC"),
+    ).toBeVisible();
+  });
 });
