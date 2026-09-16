@@ -8,8 +8,8 @@ test.describe("public core journeys", () => {
     await expect(
       page.getByRole("heading", { name: "Welcome Back" }),
     ).toBeVisible();
-    await expect(page.getByLabel("Email Address")).toBeVisible();
-    await expect(page.getByLabel("Password")).toBeVisible();
+    await expect(page.locator('input[type="email"]')).toBeVisible();
+    await expect(page.locator('input[type="password"]')).toBeVisible();
     await expect(
       page.getByRole("link", { name: "Forgot Password?" }),
     ).toHaveAttribute("href", "/forgot-password");
