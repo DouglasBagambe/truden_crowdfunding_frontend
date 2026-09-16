@@ -52,6 +52,7 @@ test.describe("auth gateway resilience", () => {
   });
 
   test("guides an authenticated investor through Charity Creator enrollment", async ({
+    context,
     page,
   }) => {
     await page.route("**/api/users/me", async (route) => {
@@ -65,6 +66,14 @@ test.describe("auth gateway resilience", () => {
       });
     });
 
+    await page.goto("/");
+    await context.addCookies([
+      {
+        name: "keibo_access",
+        value: "browser-test-session",
+        url: new URL(page.url()).origin,
+      },
+    ]);
     await page.goto("/dashboard/create-project");
 
     await expect(
@@ -76,5 +85,116 @@ test.describe("auth gateway resilience", () => {
     await expect(
       page.getByText("ROI creation separately requires verified KYC"),
     ).toBeVisible();
+  });
+
+  test("enrolls a Charity Creator through the proxied API and refreshes the wizard", async ({
+    context,
+    page,
+  }) => {
+    let enrolled = false;
+    let enrollmentRequests = 0;
+    let releaseEnrollment: (() => void) | undefined;
+    const enrollmentStarted = new Promise<void>((resolve) => {
+      releaseEnrollment = resolve;
+    });
+
+    await page.route("**/api/auth/csrf", async (route) => {
+      await route.fulfill({ json: { csrfToken: "browser-test-csrf-token" } });
+    });
+    await page.route("**/api/users/me", async (route) => {
+      await route.fulfill({
+        json: {
+          user: {
+            ...authenticatedUser.user,
+            roles: enrolled ? ["INVESTOR", "INNOVATOR"] : ["INVESTOR"],
+            capabilities: {
+              createCharity: enrolled,
+              createRoi: false,
+            },
+          },
+        },
+      });
+    });
+    await page.route("**/api/users/me/creator-enrollment", async (route) => {
+      enrollmentRequests += 1;
+      await enrollmentStarted;
+      enrolled = true;
+      await route.fulfill({ json: {} });
+    });
+
+    await page.goto("/");
+    await context.addCookies([
+      {
+        name: "keibo_access",
+        value: "browser-test-session",
+        url: new URL(page.url()).origin,
+      },
+    ]);
+    await page.goto("/dashboard/create-project");
+    await page
+      .getByRole("button", { name: "Become a Charity Creator" })
+      .click();
+
+    await expect(
+      page.getByRole("button", { name: "Enrolling…" }),
+    ).toBeVisible();
+    expect(enrollmentRequests).toBe(1);
+
+    releaseEnrollment?.();
+
+    await expect(
+      page.getByRole("heading", { name: "Choose Your Funding Path" }),
+    ).toBeVisible();
+  });
+
+  test("keeps the pre-enrollment screen and shows a safe enrollment error", async ({
+    context,
+    page,
+  }) => {
+    let enrollmentRequests = 0;
+    await page.route("**/api/auth/csrf", async (route) => {
+      await route.fulfill({ json: { csrfToken: "browser-test-csrf-token" } });
+    });
+    await page.route("**/api/users/me", async (route) => {
+      await route.fulfill({
+        json: {
+          user: {
+            ...authenticatedUser.user,
+            capabilities: { createCharity: false, createRoi: false },
+          },
+        },
+      });
+    });
+    await page.route("**/api/users/me/creator-enrollment", async (route) => {
+      enrollmentRequests += 1;
+      await route.fulfill({
+        status: 403,
+        contentType: "application/json",
+        body: JSON.stringify({
+          message: "Verify your email before becoming a Charity Creator",
+        }),
+      });
+    });
+
+    await page.goto("/");
+    await context.addCookies([
+      {
+        name: "keibo_access",
+        value: "browser-test-session",
+        url: new URL(page.url()).origin,
+      },
+    ]);
+    await page.goto("/dashboard/create-project");
+    await page
+      .getByRole("button", { name: "Become a Charity Creator" })
+      .click();
+
+    await expect(
+      page.getByText("Verify your email before becoming a Charity Creator"),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Become a Charity Creator" }),
+    ).toBeVisible();
+    expect(enrollmentRequests).toBe(1);
   });
 });
