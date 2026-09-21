@@ -208,6 +208,9 @@ export default function ProjectDetailPageClient() {
     const isOwner = isAuthenticated && (user?.id || user?._id) && (project.creatorId === (user?.id || user?._id));
 
     const charityProject = project.projectType === 'CHARITY' || project.type === 'CHARITY';
+    const contributionEligible = charityProject
+        ? project.status === 'APPROVED'
+        : ['APPROVED', 'FUNDING'].includes(project.status);
     const accentBg = charityProject ? 'bg-emerald-600' : 'bg-blue-600';
     const accentShadow = charityProject ? 'shadow-emerald-500/20' : 'shadow-blue-500/20';
     const accentGlow = charityProject ? 'bg-emerald-500/10' : 'bg-blue-500/10';
@@ -547,7 +550,13 @@ export default function ProjectDetailPageClient() {
 
                                         {/* CTA */}
                                         <div className="space-y-3">
-                                            {!isCharity ? (
+                                            {!contributionEligible ? (
+                                                <div className="rounded-2xl border border-amber-300/50 bg-amber-50/70 px-4 py-3 text-sm font-semibold text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/20 dark:text-amber-200">
+                                                    {project.status === 'PENDING_REVIEW'
+                                                        ? 'Awaiting review. Contributions are unavailable until this campaign is approved.'
+                                                        : 'Contributions are unavailable for this campaign in its current status.'}
+                                                </div>
+                                            ) : !isCharity ? (
                                                 <button
                                                     onClick={openInvestModal}
                                                     className={`w-full py-4 ${accentBg} text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl ${accentShadow} hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2`}
