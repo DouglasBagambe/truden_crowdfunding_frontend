@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   ...(process.env.VERCEL ? {} : { output: "standalone" }),
   experimental: {
     webpackBuildWorker: false,
+    useTypeScriptCli: false,
   },
   serverExternalPackages: ["viem"],
   async rewrites() {
