@@ -429,14 +429,6 @@ const Navbar = () => {
             <div className="flex-1 p-4 space-y-1">
               {user && (
                 <>
-                  {hasRoiAccess && (
-                    <MobileNavLink
-                      href="/marketplace"
-                      icon={<Store size={18} className="text-purple-500" />}
-                      label="Marketplace"
-                      onClick={() => setMobileMenuOpen(false)}
-                    />
-                  )}
                   <MobileNavLink
                     href="/dashboard"
                     icon={<LayoutDashboard size={18} />}
