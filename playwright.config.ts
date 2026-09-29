@@ -13,7 +13,12 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? "github" : "list",
   use: {
-    baseURL: process.env.BASE_URL || "https://keibo01.vercel.app",
+    // CI's financial suite starts an isolated local Next server.  Keeping the
+    // deployed default here made those tests exercise an older Vercel build
+    // instead of the checked-out commit.
+    baseURL:
+      process.env.BASE_URL ||
+      (useLocalServer ? "http://127.0.0.1:3000" : "https://keibo01.vercel.app"),
     navigationTimeout: 60_000,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
