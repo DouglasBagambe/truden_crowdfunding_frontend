@@ -17,7 +17,6 @@ import {
   X,
   ArrowRight,
   ShieldCheck,
-  Store,
   Wallet,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
