@@ -94,7 +94,7 @@ test.describe("KEIBO financial fail-closed surfaces", () => {
     await page.route("**/api/wallet/withdraw", async (route) => {
       releaseRequests.push({
         body: route.request().postDataJSON(),
-        idempotencyKey: route.request().headerValue("Idempotency-Key"),
+        idempotencyKey: await route.request().headerValue("Idempotency-Key"),
       });
       await route.fulfill({ json: { id: "release-1" } });
     });
