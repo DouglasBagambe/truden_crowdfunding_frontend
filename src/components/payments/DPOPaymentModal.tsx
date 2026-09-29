@@ -16,6 +16,7 @@ import { isCharityProject, isROIProject } from "@/lib/roi-access";
 import { DPOQuoteResponse, paymentService } from "@/lib/payment-service";
 import { openWeb3Modal } from "@/providers/Web3Provider";
 import { createPaymentIntent } from "@/lib/financial-service";
+import { OnchainContributionButton } from "@/components/payments/OnchainContributionButton";
 
 interface PaymentProject {
   id?: string;
@@ -64,7 +65,7 @@ function normalizeErrorMessage(value: unknown, fallback: string): string {
 }
 
 function toMinorUnits(value: string, currency: string): string {
-  const scale = currency.toUpperCase() === "UGX" ? 0 : 2;
+  const scale = currency.toUpperCase() === "UGX" ? 0 : currency.toUpperCase() === "USDC" ? 6 : 2;
   const match = value.trim().match(/^(\d+)(?:\.(\d+))?$/);
   if (!match) throw new Error("Enter a valid amount.");
   const fraction = (match[2] ?? "").padEnd(scale, "0");
@@ -577,6 +578,16 @@ export default function DPOPaymentModal({
                       </p>
                     </div>
                   </div>
+                )}
+                {isROI && currency.toUpperCase() === "USDC" && (
+                  <OnchainContributionButton
+                    projectId={projectId}
+                    projectOnchainId={typeof project.projectOnchainId === "string" ? project.projectOnchainId : undefined}
+                    investorWallet={isConnected && address ? address : undefined}
+                    amountMinor={toMinorUnits(amount || "0", "USDC")}
+                    onError={setError}
+                    onSettled={() => { setError(""); setIsSubmitting(false); }}
+                  />
                 )}
 
                 <div className="flex flex-wrap gap-2">
