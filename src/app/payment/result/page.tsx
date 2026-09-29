@@ -15,6 +15,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { paymentService } from "@/lib/payment-service";
+import { ReceiptLifecycle } from "@/components/financial/ReceiptLifecycle";
 
 type VerifyState = "verifying" | "paid" | "failed" | "cancelled" | "pending";
 
@@ -52,6 +53,7 @@ function PaymentResultContent() {
   const [message, setMessage] = useState("");
   const [redirectError, setRedirectError] = useState("");
   const [isManualRefresh, setIsManualRefresh] = useState(false);
+  const [receiptSettlementId, setReceiptSettlementId] = useState("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollCount = useRef(0);
   const maxPolls = 30;
@@ -73,6 +75,9 @@ function PaymentResultContent() {
           setMessage(
             "Verified provider evidence has been recorded in the KEIBO ledger.",
           );
+          if (response.status === "settled") {
+            setReceiptSettlementId(response.paymentIntentId);
+          }
           return;
         }
         if (response.status === "failed") {
@@ -218,6 +223,7 @@ function PaymentResultContent() {
             {redirectError}
           </p>
         )}
+        {receiptSettlementId && <ReceiptLifecycle settlementId={receiptSettlementId} />}
 
         {token && verifyState !== "paid" && (
           <p className="mb-6 break-all font-mono text-xs text-gray-600">

@@ -1,59 +1,15 @@
-import { apiClient } from './api-client';
+import { apiClient } from "./api-client";
 
-export interface WalletBalance {
-    fiatBalance: {
-        UGX: number;
-        USD: number;
-    };
-    roiBalance?: {
-        UGX: number;
-        USD: number;
-    };
-    cryptoBalance: {
-        ETH: number;
-        USDC: number;
-    };
-    totalBalanceUSD: number;
+/** The legacy Mongo wallet is not financial truth in KEIBO. */
+export async function releaseCharityMilestoneFunds(input: {
+  projectId: string;
+  milestoneId: string;
+  idempotencyKey: string;
+}) {
+  const response = await apiClient.post(
+    "/wallet/withdraw",
+    { projectId: input.projectId, milestoneId: input.milestoneId },
+    { headers: { "Idempotency-Key": input.idempotencyKey } },
+  );
+  return response.data;
 }
-
-export interface AddWithdrawalMethodParams {
-    type: 'mobile_money' | 'bank_account';
-    provider: string;
-    accountNumber: string;
-    accountName: string;
-    isDefault?: boolean;
-}
-
-export const walletService = {
-    /**
-     * Get wallet balance
-     */
-    async getBalance(): Promise<WalletBalance> {
-        const response = await apiClient.get('/wallet/balance');
-        return response.data;
-    },
-
-    /**
-     * Get full wallet details
-     */
-    async getWallet() {
-        const response = await apiClient.get('/wallet');
-        return response.data;
-    },
-
-    /**
-     * Add withdrawal method
-     */
-    async addWithdrawalMethod(params: AddWithdrawalMethodParams) {
-        const response = await apiClient.post('/wallet/withdrawal-method', params);
-        return response.data;
-    },
-
-    /**
-     * Get wallet transactions
-     */
-    async getTransactions() {
-        const response = await apiClient.get('/wallet/transactions');
-        return response.data;
-    },
-};

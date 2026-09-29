@@ -2,7 +2,7 @@
 
 import { createWeb3Modal, defaultWagmiConfig } from "@web3modal/wagmi/react";
 import { WagmiProvider } from "wagmi";
-import { baseSepolia, base } from "viem/chains";
+import { sepolia } from "viem/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useEffect, useState } from "react";
 
@@ -24,8 +24,8 @@ const metadata = {
   icons: ["/logo.jpeg"],
 };
 
-// Primary chain: Base Sepolia (testnet). Switch to `base` for mainnet.
-const chains = [baseSepolia, base] as const;
+// Full-UAT uses Ethereum Sepolia. Never silently submit UAT actions elsewhere.
+const chains = [sepolia] as const;
 const isBrowser = typeof window !== "undefined";
 let web3ModalInitialized = false;
 let web3ModalInstance: { open: () => void } | null = null;
@@ -74,7 +74,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
         "--w3m-accent": "#7c3aed",
         "--w3m-border-radius-master": "12px",
       },
-      defaultChain: baseSepolia,
+      defaultChain: sepolia,
     });
 
     web3ModalInitialized = true;
