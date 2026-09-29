@@ -26,12 +26,7 @@ export interface PaymentIntentResponse {
 export type PayoutDestinationType = "bank" | "mobile_money";
 export type PayoutState = "pending" | "processing" | "paid" | "failed";
 export type ReceiptState =
-  | "AUTHORIZED"
-  | "PENDING"
-  | "SUBMITTED"
-  | "ISSUED"
-  | "FAILED"
-  | "REVOKED";
+  "AUTHORIZED" | "PENDING" | "SUBMITTED" | "ISSUED" | "FAILED" | "REVOKED";
 
 export interface PayoutDestination {
   id: string;
@@ -97,24 +92,43 @@ export async function createPayoutDestination(input: {
 }): Promise<PayoutDestination> {
   const response = await apiClient.post<PayoutDestination>(
     "/financial/payout-destinations",
-    { type: input.type, accountNumber: input.accountNumber, bankOrNetwork: input.bankOrNetwork, accountName: input.accountName || undefined },
+    {
+      type: input.type,
+      accountNumber: input.accountNumber,
+      bankOrNetwork: input.bankOrNetwork,
+      accountName: input.accountName || undefined,
+    },
     { headers: { "Idempotency-Key": input.idempotencyKey } },
   );
   return response.data;
 }
 
 export async function getPayoutDestinations(): Promise<PayoutDestination[]> {
-  const response = await apiClient.get<PayoutDestination[]>("/financial/payout-destinations");
+  const response = await apiClient.get<PayoutDestination[]>(
+    "/financial/payout-destinations",
+  );
   return response.data;
 }
 
-export async function disablePayoutDestination(id: string): Promise<PayoutDestination> {
-  const response = await apiClient.post<PayoutDestination>(`/financial/payout-destinations/${id}/disable`);
+export async function disablePayoutDestination(
+  id: string,
+): Promise<PayoutDestination> {
+  const response = await apiClient.post<PayoutDestination>(
+    `/financial/payout-destinations/${id}/disable`,
+  );
   return response.data;
 }
 
-export async function requestPayout(releaseId: string, destinationId: string, idempotencyKey: string): Promise<Payout> {
-  const response = await apiClient.post<Payout>(`/financial/releases/${releaseId}/payout`, { destinationId }, { headers: { "Idempotency-Key": idempotencyKey } });
+export async function requestPayout(
+  releaseId: string,
+  destinationId: string,
+  idempotencyKey: string,
+): Promise<Payout> {
+  const response = await apiClient.post<Payout>(
+    `/financial/releases/${releaseId}/payout`,
+    { destinationId },
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  );
   return response.data;
 }
 
@@ -129,17 +143,23 @@ export async function getPayout(id: string): Promise<Payout> {
 }
 
 export async function authorizeReceipt(settlementId: string) {
-  const response = await apiClient.post(`/financial/receipts/${settlementId}/authorize`);
+  const response = await apiClient.post(
+    `/financial/receipts/${settlementId}/authorize`,
+  );
   return response.data;
 }
 
 export async function issueReceipt(settlementId: string): Promise<Receipt> {
-  const response = await apiClient.post<Receipt>(`/financial/receipts/${settlementId}/issue`);
+  const response = await apiClient.post<Receipt>(
+    `/financial/receipts/${settlementId}/issue`,
+  );
   return response.data;
 }
 
 export async function getReceipt(settlementId: string): Promise<Receipt> {
-  const response = await apiClient.get<Receipt>(`/financial/receipts/${settlementId}`);
+  const response = await apiClient.get<Receipt>(
+    `/financial/receipts/${settlementId}`,
+  );
   return response.data;
 }
 
@@ -150,6 +170,9 @@ export async function submitOnchainContribution(input: {
   investorWallet: string;
   transactionHash: string;
 }) {
-  const response = await apiClient.post("/financial/onchain-contributions", input);
+  const response = await apiClient.post(
+    "/financial/onchain-contributions",
+    input,
+  );
   return response.data;
 }

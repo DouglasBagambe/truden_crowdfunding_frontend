@@ -223,7 +223,9 @@ function PaymentResultContent() {
             {redirectError}
           </p>
         )}
-        {receiptSettlementId && <ReceiptLifecycle settlementId={receiptSettlementId} />}
+        {receiptSettlementId && (
+          <ReceiptLifecycle settlementId={receiptSettlementId} />
+        )}
 
         {token && verifyState !== "paid" && (
           <p className="mb-6 break-all font-mono text-xs text-gray-600">

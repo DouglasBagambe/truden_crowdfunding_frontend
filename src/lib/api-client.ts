@@ -21,18 +21,31 @@ export const apiClient = axios.create({
   timeout: REQUEST_TIMEOUT_MS,
 });
 
-export function financialErrorMessage(error: unknown, fallback: string): string {
-  if (!error || typeof error !== "object" || !("response" in error)) return fallback;
+export function financialErrorMessage(
+  error: unknown,
+  fallback: string,
+): string {
+  if (!error || typeof error !== "object" || !("response" in error))
+    return fallback;
   const response = error.response;
   if (!response || typeof response !== "object") return fallback;
   const status = "status" in response ? response.status : undefined;
-  const data = "data" in response && response.data && typeof response.data === "object" ? response.data as Record<string, unknown> : {};
-  if (status === 410 && data.code === "KEIBO_LEGACY_ROUTE_DISABLED") return "This legacy feature has been replaced and is unavailable in KEIBO.";
+  const data =
+    "data" in response && response.data && typeof response.data === "object"
+      ? (response.data as Record<string, unknown>)
+      : {};
+  if (status === 410 && data.code === "KEIBO_LEGACY_ROUTE_DISABLED")
+    return "This legacy feature has been replaced and is unavailable in KEIBO.";
   if (status === 401) return "Your session has expired. Please sign in again.";
   if (status === 403) return "You are not eligible to perform this action.";
-  if (status === 409) return "This request has already been processed or conflicts with the current state.";
-  if (status === 400 || status === 422) return typeof data.message === "string" ? data.message : "Please check the submitted details.";
-  if (status === 503) return "This service is temporarily unavailable. No action was completed.";
+  if (status === 409)
+    return "This request has already been processed or conflicts with the current state.";
+  if (status === 400 || status === 422)
+    return typeof data.message === "string"
+      ? data.message
+      : "Please check the submitted details.";
+  if (status === 503)
+    return "This service is temporarily unavailable. No action was completed.";
   return typeof data.message === "string" ? data.message : fallback;
 }
 

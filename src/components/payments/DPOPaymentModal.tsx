@@ -65,7 +65,12 @@ function normalizeErrorMessage(value: unknown, fallback: string): string {
 }
 
 function toMinorUnits(value: string, currency: string): string {
-  const scale = currency.toUpperCase() === "UGX" ? 0 : currency.toUpperCase() === "USDC" ? 6 : 2;
+  const scale =
+    currency.toUpperCase() === "UGX"
+      ? 0
+      : currency.toUpperCase() === "USDC"
+        ? 6
+        : 2;
   const match = value.trim().match(/^(\d+)(?:\.(\d+))?$/);
   if (!match) throw new Error("Enter a valid amount.");
   const fraction = (match[2] ?? "").padEnd(scale, "0");
@@ -582,11 +587,20 @@ export default function DPOPaymentModal({
                 {isROI && currency.toUpperCase() === "USDC" && (
                   <OnchainContributionButton
                     projectId={projectId}
-                    projectOnchainId={typeof project.projectOnchainId === "string" ? project.projectOnchainId : undefined}
-                    investorWallet={isConnected && address ? address : undefined}
+                    projectOnchainId={
+                      typeof project.projectOnchainId === "string"
+                        ? project.projectOnchainId
+                        : undefined
+                    }
+                    investorWallet={
+                      isConnected && address ? address : undefined
+                    }
                     amountMinor={toMinorUnits(amount || "0", "USDC")}
                     onError={setError}
-                    onSettled={() => { setError(""); setIsSubmitting(false); }}
+                    onSettled={() => {
+                      setError("");
+                      setIsSubmitting(false);
+                    }}
                   />
                 )}
 

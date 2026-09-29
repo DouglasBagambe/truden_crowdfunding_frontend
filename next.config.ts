@@ -6,7 +6,10 @@ function backendApiOrigin(): string {
     if (process.env.NODE_ENV === "production") {
       throw new Error("BACKEND_API_ORIGIN is required in production");
     }
-    return process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "") || "http://localhost:3000";
+    return (
+      process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "") ||
+      "http://localhost:3000"
+    );
   }
   return configured.replace(/\/+$/, "");
 }
