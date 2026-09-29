@@ -14,9 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
+      BACKEND_API_ORIGIN: https://api.example.invalid
       NEXT_PUBLIC_API_URL: https://api.example.invalid/api
       NEXT_PUBLIC_APP_URL: https://app.example.invalid
       NEXT_PUBLIC_WC_PROJECT_ID: ci-public-walletconnect-id
+      NEXT_PUBLIC_KEIBO_ESCROW_ADDRESS: 0xA6ef13Ad706BF24F0B28506FD18a06FEac9abF93
       NEXT_PUBLIC_ROI_ENABLED: "false"
       NEXT_PUBLIC_ENABLE_NFT_MARKETPLACE: "false"
       NEXT_PUBLIC_DEAL_ROOM_ENABLED: "false"
@@ -42,5 +44,7 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Validate Playwright test discovery
         run: npm run test:browser-list
+      - name: Run mocked financial browser coverage
+        run: PLAYWRIGHT_LOCAL=true npx playwright test tests/browser/financial-flows.spec.ts
       - name: Webpack production build
         run: npm run build -- --webpack

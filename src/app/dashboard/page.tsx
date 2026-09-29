@@ -1,576 +1,815 @@
-'use client';
+"use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
-import Navbar from '@/components/layout/Navbar';
-import Footer from '@/components/layout/Footer';
-import ProjectCard from '@/components/dashboard/ProjectCard';
-import RightSidebar from '@/components/dashboard/RightSidebar';
-import CreateProjectWizard from '@/components/dashboard/CreateProjectWizard';
-import { NotificationsView } from '@/components/dashboard/NotificationsView';
-import { KYCView } from '@/components/dashboard/KYCView';
-import { WalletView } from '@/components/dashboard/WalletView';
-import { NFTPortfolio } from '@/components/dashboard/NFTPortfolio';
-import { motion } from 'framer-motion';
-import { useProjects, useMyProjects } from '@/hooks/useProjects';
-import { useAuth } from '@/hooks/useAuth';
-import { useInvestments } from '@/hooks/useInvestments';
-import { useRoiAccess } from '@/hooks/useRoiAccess';
-import { authService } from '@/lib/auth-service';
-import { buildVerifyEmailUrl } from '@/lib/email-verification';
-import { Search, LineChart, ArrowUpRight, Shield, PlusCircle, LayoutDashboard, Wallet, Briefcase, Activity, Image as ImageIcon, ShieldCheck, Bell, Mail, AlertTriangle, Heart, TrendingUp } from 'lucide-react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { filterVisibleProjects, isCharityProject } from '@/lib/roi-access';
-import toast from 'react-hot-toast';
+import React, { useState, useMemo, useEffect } from "react";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
+import ProjectCard from "@/components/dashboard/ProjectCard";
+import RightSidebar from "@/components/dashboard/RightSidebar";
+import CreateProjectWizard from "@/components/dashboard/CreateProjectWizard";
+import { NotificationsView } from "@/components/dashboard/NotificationsView";
+import { KYCView } from "@/components/dashboard/KYCView";
+import { WalletView } from "@/components/dashboard/WalletView";
+import { NFTPortfolio } from "@/components/dashboard/NFTPortfolio";
+import { motion } from "framer-motion";
+import { useProjects, useMyProjects } from "@/hooks/useProjects";
+import { useAuth } from "@/hooks/useAuth";
+import { useInvestments } from "@/hooks/useInvestments";
+import { useRoiAccess } from "@/hooks/useRoiAccess";
+import { authService } from "@/lib/auth-service";
+import { buildVerifyEmailUrl } from "@/lib/email-verification";
+import {
+  Search,
+  LineChart,
+  ArrowUpRight,
+  Shield,
+  PlusCircle,
+  LayoutDashboard,
+  Wallet,
+  Briefcase,
+  Activity,
+  Image as ImageIcon,
+  ShieldCheck,
+  Bell,
+  Mail,
+  AlertTriangle,
+  Heart,
+  TrendingUp,
+} from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { filterVisibleProjects, isCharityProject } from "@/lib/roi-access";
+import toast from "react-hot-toast";
 
 interface Project {
-    id: string;
-    _id?: string;
-    name?: string;
-    title?: string;
-    creatorId?: string;
-    [key: string]: any;
+  id: string;
+  _id?: string;
+  name?: string;
+  title?: string;
+  creatorId?: string;
+  category?: string;
+  projectType?: string;
+  type?: string;
+  raisedAmount?: number;
+  targetAmount?: number;
+  goalAmount?: number;
+  status?: string;
+  imageUrl?: string;
 }
 
+type DashboardTab = "investments" | "donations" | "campaigns" | "nfts" | "kyc";
+
 interface ProjectsData {
-    items: Project[];
+  items: Project[];
 }
 
 interface KPICardProps {
-    label: string;
-    value: string;
-    trend?: string;
-    icon: React.ReactNode;
+  label: string;
+  value: string;
+  trend?: string;
+  icon: React.ReactNode;
 }
 
 interface ActivityEntryProps {
-    label: string;
-    time: string;
-    desc: string;
-    type: 'finance' | 'governance' | 'success';
+  label: string;
+  time: string;
+  desc: string;
+  type: "finance" | "governance" | "success";
 }
 
 export default function DashboardPage() {
-    const { data: projectsData, isLoading } = useProjects();
-    const { data: investmentsData, isLoading: isLoadingInvestments } = useInvestments();
-    const { user, isAuthenticated } = useAuth();
-    const { hasRoiAccess } = useRoiAccess();
-    const router = useRouter();
+  const { data: projectsData, isLoading } = useProjects();
+  const { data: investmentsData, isLoading: isLoadingInvestments } =
+    useInvestments();
+  const { user, isAuthenticated } = useAuth();
+  const { hasRoiAccess } = useRoiAccess();
+  const router = useRouter();
 
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [activeTab, setActiveTab] = useState<'investments' | 'donations' | 'campaigns' | 'nfts' | 'kyc'>('donations');
-    const [isStartingVerification, setIsStartingVerification] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<DashboardTab>("donations");
+  const [isStartingVerification, setIsStartingVerification] = useState(false);
 
-    const handleTriggerCreate = () => {
-        router.push('/dashboard/create-project');
-    };
+  const handleTriggerCreate = () => {
+    router.push("/dashboard/create-project");
+  };
 
-    const handleStartEmailVerification = async () => {
-        if (!user?.email || isStartingVerification) {
-            return;
-        }
+  const handleStartEmailVerification = async () => {
+    if (!user?.email || isStartingVerification) {
+      return;
+    }
 
-        try {
-            setIsStartingVerification(true);
-            await authService.resendCurrentVerificationEmail();
-            toast.success('A fresh verification code has been sent to your email.');
-        } catch (error: unknown) {
-            const message =
-                (error as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;
-            toast.error(Array.isArray(message) ? message.join('. ') : message || 'Unable to send a verification code right now.');
-        } finally {
-            setIsStartingVerification(false);
-            router.push(
-                buildVerifyEmailUrl({
-                    email: user.email,
-                    next: '/dashboard',
-                }),
-            );
-        }
-    };
+    try {
+      setIsStartingVerification(true);
+      await authService.resendCurrentVerificationEmail();
+      toast.success("A fresh verification code has been sent to your email.");
+    } catch (error: unknown) {
+      const message = (
+        error as { response?: { data?: { message?: string | string[] } } }
+      )?.response?.data?.message;
+      toast.error(
+        Array.isArray(message)
+          ? message.join(". ")
+          : message || "Unable to send a verification code right now.",
+      );
+    } finally {
+      setIsStartingVerification(false);
+      router.push(
+        buildVerifyEmailUrl({
+          email: user.email,
+          next: "/dashboard",
+        }),
+      );
+    }
+  };
 
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('create') === 'true') {
-                setIsCreateModalOpen(true);
-                window.history.replaceState({}, '', '/dashboard');
-            }
-            if (hasRoiAccess && urlParams.get('tab') === 'kyc') {
-                setActiveTab('kyc');
-                window.history.replaceState({}, '', '/dashboard');
-            }
-        }
-    }, [hasRoiAccess]);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("create") === "true") {
+        setIsCreateModalOpen(true);
+        window.history.replaceState({}, "", "/dashboard");
+      }
+      if (hasRoiAccess && urlParams.get("tab") === "kyc") {
+        setActiveTab("kyc");
+        window.history.replaceState({}, "", "/dashboard");
+      }
+    }
+  }, [hasRoiAccess]);
 
-    useEffect(() => {
-        if (!hasRoiAccess && ['investments', 'nfts', 'kyc'].includes(activeTab)) {
-            setActiveTab('donations');
-        }
-    }, [activeTab, hasRoiAccess]);
+  useEffect(() => {
+    if (!hasRoiAccess && ["investments", "nfts", "kyc"].includes(activeTab)) {
+      setActiveTab("donations");
+    }
+  }, [activeTab, hasRoiAccess]);
 
-    const allFetchedProjects = projectsData?.items || [];
+  const allFetchedProjects = (projectsData?.items || []) as Project[];
 
-    // My campaigns: use the dedicated /projects/me endpoint that includes DRAFTs
-    const { data: myProjectsData, isLoading: isLoadingMyProjects } = useMyProjects();
+  // My campaigns: use the dedicated /projects/me endpoint that includes DRAFTs
+  const { data: myProjectsData, isLoading: isLoadingMyProjects } =
+    useMyProjects();
 
-    const myCampaigns = useMemo(() => {
-        const campaigns = Array.isArray(myProjectsData) ? myProjectsData : [];
-        return filterVisibleProjects(campaigns, hasRoiAccess);
-    }, [hasRoiAccess, myProjectsData]);
+  const myCampaigns = useMemo(() => {
+    const campaigns = (
+      Array.isArray(myProjectsData) ? myProjectsData : []
+    ) as Project[];
+    return filterVisibleProjects(campaigns, hasRoiAccess);
+  }, [hasRoiAccess, myProjectsData]);
 
-    // Get projects user has interacted with
-    const myInvestmentProjects = useMemo(() => {
-        if (!investmentsData || investmentsData.length === 0) return [];
+  // Get projects user has interacted with
+  const myInvestmentProjects = useMemo(() => {
+    if (!investmentsData || investmentsData.length === 0) return [];
 
-        const projectMap = new Map(allFetchedProjects.map((p: any) => [String(p.id || p._id), p]));
-
-        const projects = investmentsData.map((inv: any) => {
-            const invProjectId = String(inv.projectId || inv.project?.id || inv.project?._id);
-            const p = projectMap.get(invProjectId);
-
-            // Prioritize fetched project but fallback to populated inv.project
-            if (p) return { ...p, ...inv.project };
-            if (inv.project) {
-                return {
-                    id: invProjectId,
-                    _id: invProjectId,
-                    name: inv.project.title || inv.project.name || 'Untitled',
-                    title: inv.project.title || inv.project.name || 'Untitled',
-                    category: inv.project.category || 'Uncategorized',
-                    projectType: (inv.project.type || inv.project.projectType || 'ROI').toUpperCase(),
-                    type: (inv.project.type || inv.project.projectType || 'ROI').toUpperCase(),
-                    raisedAmount: Number(inv.project.raisedAmount || 0),
-                    targetAmount: Number(inv.project.targetAmount || 0),
-                    status: inv.project.status || 'ACTIVE',
-                    creatorId: inv.project.creatorId,
-                    imageUrl: inv.project.imageUrl,
-                };
-            }
-            return null;
-        }).filter(Boolean);
-
-        const uniqueIds = new Set();
-        return projects.filter((p: any) => {
-            const id = p.id || p._id;
-            if (uniqueIds.has(id)) return false;
-            uniqueIds.add(id);
-            return true;
-        });
-    }, [allFetchedProjects, investmentsData]);
-
-    const visibleInvestmentProjects = useMemo(
-        () => filterVisibleProjects(myInvestmentProjects, hasRoiAccess),
-        [hasRoiAccess, myInvestmentProjects],
+    const projectMap = new Map(
+      allFetchedProjects.map((project) => [
+        String(project.id || project._id),
+        project,
+      ]),
     );
 
-    const myDonations = useMemo(() => visibleInvestmentProjects.filter((p: any) => {
-        const type = (p?.projectType || p?.type || '').toUpperCase();
-        return type === 'CHARITY';
-    }), [visibleInvestmentProjects]);
+    const projects = investmentsData
+      .map((inv) => {
+        const invProjectId = String(
+          inv.projectId || inv.project?.id || inv.project?._id,
+        );
+        const p = projectMap.get(invProjectId);
 
-    const myInvestments = useMemo(() => visibleInvestmentProjects.filter((p: any) => {
-        const type = (p?.projectType || p?.type || '').toUpperCase();
-        return type !== 'CHARITY';
-    }), [visibleInvestmentProjects]);
+        // Prioritize fetched project but fallback to populated inv.project
+        if (p) return { ...p, ...inv.project };
+        if (inv.project) {
+          return {
+            id: invProjectId,
+            _id: invProjectId,
+            name: inv.project.title || inv.project.name || "Untitled",
+            title: inv.project.title || inv.project.name || "Untitled",
+            category: inv.project.category || "Uncategorized",
+            projectType: (
+              inv.project.type ||
+              inv.project.projectType ||
+              "ROI"
+            ).toUpperCase(),
+            type: (
+              inv.project.type ||
+              inv.project.projectType ||
+              "ROI"
+            ).toUpperCase(),
+            raisedAmount: Number(inv.project.raisedAmount || 0),
+            targetAmount: Number(inv.project.targetAmount || 0),
+            status: inv.project.status || "ACTIVE",
+            creatorId: inv.project.creatorId,
+            imageUrl: inv.project.imageUrl,
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
 
-    const filteredCampaigns = useMemo(() => {
-        if (!searchQuery.trim()) return myCampaigns;
-        return myCampaigns.filter(p => {
-            const name = p.name || p.title || '';
-            return name.toLowerCase().includes(searchQuery.toLowerCase());
-        });
-    }, [myCampaigns, searchQuery]);
+    const uniqueIds = new Set();
+    return projects.filter((project): project is Project => {
+      if (!project) return false;
+      const id = project.id || project._id;
+      if (uniqueIds.has(id)) return false;
+      uniqueIds.add(id);
+      return true;
+    });
+  }, [allFetchedProjects, investmentsData]);
 
-    const displayedProjects = useMemo(() => {
-        if (activeTab === 'investments') return myInvestments;
-        if (activeTab === 'donations') return myDonations;
-        return filteredCampaigns;
-    }, [activeTab, myInvestments, myDonations, filteredCampaigns]);
-    const isDataLoading = isLoading || isLoadingInvestments;
+  const visibleInvestmentProjects = useMemo(
+    () => filterVisibleProjects(myInvestmentProjects, hasRoiAccess),
+    [hasRoiAccess, myInvestmentProjects],
+  );
 
-    // Calculate portfolio and donation stats
-    const stats = useMemo(() => {
-        if (!Array.isArray(investmentsData)) return { invested: 0, donated: 0, pos: 0, don: 0 };
-        return investmentsData.reduce((acc, inv) => {
-            const type = String(
-                inv?.project?.type ?? ''
-            ).toUpperCase();
-            const amount = Number(inv?.amount ?? 0);
-            if (!Number.isFinite(amount)) return acc;
-            if (!hasRoiAccess || type === 'CHARITY') {
-                acc.donated += amount;
-                acc.don += 1;
-            } else {
-                acc.invested += amount;
-                acc.pos += 1;
-            }
-            return acc;
-        }, { invested: 0, donated: 0, pos: 0, don: 0 });
-    }, [hasRoiAccess, investmentsData]);
+  const myDonations = useMemo(
+    () =>
+      visibleInvestmentProjects.filter((project) => {
+        const type = (project.projectType || project.type || "").toUpperCase();
+        return type === "CHARITY";
+      }),
+    [visibleInvestmentProjects],
+  );
 
-    const campaignsCreated = myCampaigns?.length || 0;
-    const totalRaised = myCampaigns?.reduce((sum: number, p: any) => sum + (p.raisedAmount || 0), 0) || 0;
+  const myInvestments = useMemo(
+    () =>
+      visibleInvestmentProjects.filter((project) => {
+        const type = (project.projectType || project.type || "").toUpperCase();
+        return type !== "CHARITY";
+      }),
+    [visibleInvestmentProjects],
+  );
 
-    return (
-        <div className="bg-[var(--background)] min-h-screen text-[var(--text-main)] pt-[68px] transition-colors duration-300">
-            <Navbar />
+  const filteredCampaigns = useMemo(() => {
+    if (!searchQuery.trim()) return myCampaigns;
+    return myCampaigns.filter((p) => {
+      const name = p.name || p.title || "";
+      return name.toLowerCase().includes(searchQuery.toLowerCase());
+    });
+  }, [myCampaigns, searchQuery]);
 
-            {/* Email Verification Banner */}
-            {isAuthenticated && user && !user.emailVerifiedAt && (
-                <div className="bg-amber-50 border-b border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/30 px-4 py-3">
-                    <div className="container mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                        <div className="flex items-start gap-3">
-                            <AlertTriangle size={16} className="text-amber-700 dark:text-amber-300 flex-shrink-0 mt-0.5" />
-                            <span className="text-sm text-amber-900 dark:text-amber-100 font-medium">
-                                Please verify your email address to unlock all features.
-                            </span>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={handleStartEmailVerification}
-                            disabled={isStartingVerification}
-                            className="flex-shrink-0 flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-black text-xs font-black px-4 py-2 rounded-lg transition-all uppercase tracking-wider"
-                        >
-                            <Mail size={13} /> {isStartingVerification ? 'Sending...' : 'Verify Email'}
-                        </button>
-                    </div>
-                </div>
-            )}
+  const displayedProjects = useMemo(() => {
+    if (activeTab === "investments") return myInvestments;
+    if (activeTab === "donations") return myDonations;
+    return filteredCampaigns;
+  }, [activeTab, myInvestments, myDonations, filteredCampaigns]);
+  const isDataLoading = isLoading || isLoadingInvestments;
 
-            <main className="container mx-auto p-4 sm:p-6 lg:p-10">
-                <div className="flex flex-col lg:flex-row gap-8">
+  // Calculate portfolio and donation stats
+  const stats = useMemo(() => {
+    if (!Array.isArray(investmentsData))
+      return { invested: 0, donated: 0, pos: 0, don: 0 };
+    return investmentsData.reduce(
+      (acc, inv) => {
+        const type = String(inv?.project?.type ?? "").toUpperCase();
+        const amount = Number(inv?.amount ?? 0);
+        if (!Number.isFinite(amount)) return acc;
+        if (!hasRoiAccess || type === "CHARITY") {
+          acc.donated += amount;
+          acc.don += 1;
+        } else {
+          acc.invested += amount;
+          acc.pos += 1;
+        }
+        return acc;
+      },
+      { invested: 0, donated: 0, pos: 0, don: 0 },
+    );
+  }, [hasRoiAccess, investmentsData]);
 
-                    <div className="flex-1 space-y-6">
-                        {/* KYC Banner */}
-                        {hasRoiAccess && isAuthenticated && user && user.kycStatus !== 'VERIFIED' && user.kycStatus !== 'PENDING' && (
-                            <div className="bg-blue-50 border border-blue-200 dark:bg-blue-950/20 dark:border-blue-900/30 rounded-2xl px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                                <div className="flex items-start gap-3">
-                                    <ShieldCheck size={18} className="text-blue-700 dark:text-blue-300 flex-shrink-0 mt-0.5" />
-                                    <div>
-                                        <p className="text-sm font-bold text-blue-900 dark:text-blue-100">Identity Verification Required</p>
-                                        <p className="text-xs text-[var(--text-muted)] mt-0.5">Complete KYC to invest in ROI projects and access all platform features.</p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => setActiveTab('kyc')}
-                                    className="flex-shrink-0 flex items-center gap-1.5 bg-blue-500 hover:bg-blue-400 text-white text-xs font-black px-5 py-2.5 rounded-xl transition-all uppercase tracking-wider"
-                                >
-                                    <ShieldCheck size={13} /> Verify Now
-                                </button>
-                            </div>
-                        )}
+  const campaignsCreated = myCampaigns?.length || 0;
+  const totalRaised = myCampaigns.reduce(
+    (sum, project) => sum + (project.raisedAmount || 0),
+    0,
+  );
 
-                        <div className={`grid grid-cols-2 ${hasRoiAccess ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4`}>
-                            {hasRoiAccess && (
-                                <KPICard
-                                    label="Total Invested (UGX)"
-                                    value={`${(stats.invested || 0).toLocaleString()}`}
-                                    icon={<LayoutDashboard size={16} className="text-blue-500" />}
-                                />
-                            )}
-                            <KPICard
-                                label="Total Donated (UGX)"
-                                value={`${(stats.donated || 0).toLocaleString()}`}
-                                icon={<Activity size={16} className="text-emerald-500" />}
-                            />
-                            {hasRoiAccess && (
-                                <KPICard
-                                    label="Active Investments"
-                                    value={stats.pos.toString()}
-                                    icon={<LayoutDashboard size={16} className="text-blue-500" />}
-                                />
-                            )}
-                            <KPICard
-                                label="Charity Donations Made"
-                                value={stats.don.toString()}
-                                icon={<Heart size={16} className="text-emerald-500" />}
-                            />
-                        </div>
+  return (
+    <div className="bg-[var(--background)] min-h-screen text-[var(--text-main)] pt-[68px] transition-colors duration-300">
+      <Navbar />
 
-                        {/* Secondary KPI Row */}
-                        <div className="grid grid-cols-1 gap-4">
-                            <div className="bg-[var(--card)] p-5 rounded-2xl border border-[var(--border)] flex items-center justify-between shadow-sm">
-                                <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-1">Total Raised from My Campaigns</p>
-                                    <h4 className="text-2xl font-black text-[var(--text-main)]">UGX {totalRaised.toLocaleString()}</h4>
-                                </div>
-                                <div className="w-12 h-12 bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300 rounded-xl flex items-center justify-center">
-                                    <Activity size={20} />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Main Dashboard Container */}
-                        <div className="bg-[var(--card)] rounded-[2rem] border border-[var(--border)] overflow-hidden shadow-sm transition-colors duration-300">
-                            <div className="border-b border-[var(--border)] px-4 sm:px-8">
-                                <div className="flex items-center justify-between">
-                                    <nav className="flex gap-6 sm:gap-10 overflow-x-auto scrollbar-hide">
-                                        {[
-                                            ...(hasRoiAccess ? [{ key: 'investments', label: 'Investments', icon: <Activity size={14} /> }] : []),
-                                            { key: 'donations', label: 'Donations', icon: <Heart size={14} /> },
-                                            { key: 'campaigns', label: 'My Projects', icon: <Briefcase size={14} /> },
-                                            ...(hasRoiAccess
-                                                ? [
-                                                    { key: 'nfts', label: 'My NFTs', icon: <ImageIcon size={14} /> },
-                                                    { key: 'kyc', label: 'Identity', icon: <ShieldCheck size={14} /> }
-                                                ]
-                                                : [])
-                                        ].map(tab => (
-                                            <button
-                                                key={tab.key}
-                                                onClick={() => setActiveTab(tab.key as any)}
-                                                className={`py-5 text-sm font-bold border-b-2 transition-all relative flex items-center gap-2 flex-shrink-0 ${activeTab === tab.key
-                                                    ? 'border-[var(--primary)] text-[var(--primary)]'
-                                                    : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'
-                                                    }`}
-                                            >
-                                                {tab.icon}
-                                                {tab.label}
-                                                {activeTab === tab.key && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--primary)]" />}
-                                            </button>
-                                        ))}
-                                    </nav>
-                                    <div className="relative hidden sm:block">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] opacity-50" />
-                                        <input
-                                            type="text"
-                                            placeholder="Search..."
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="bg-[var(--background)] rounded-xl py-2 pl-10 pr-4 text-xs font-bold border border-transparent focus:border-[var(--primary)]/20 outline-none w-40 sm:w-56 transition-all"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="p-4 sm:p-8">
-                                {activeTab === 'kyc' ? (
-                                    <KYCView />
-                                ) : activeTab === 'investments' || activeTab === 'donations' ? (
-                                    <div className="space-y-6">
-                                        <div className="flex items-center justify-between">
-                                            <h3 className="text-lg font-bold tracking-tight">
-                                                {activeTab === 'investments' ? 'Your Investment Portfolio' : 'Your Charity Contributions'}
-                                            </h3>
-                                            <Link href="/explore" className="flex items-center gap-2 text-[var(--primary)] font-bold text-sm hover:underline">
-                                                <PlusCircle size={16} /> Discover {activeTab === 'investments' ? 'Projects' : 'Causes'}
-                                            </Link>
-                                        </div>
-
-                                        {isDataLoading ? (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                                                {[1, 2, 3, 4].map(i => <div key={i} className="h-48 bg-[var(--background)] rounded-2xl animate-pulse" />)}
-                                            </div>
-                                        ) : displayedProjects.length > 0 ? (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                                                {displayedProjects.map((project: Project) => (
-                                                    <ProjectCard
-                                                        key={project.id || project._id}
-                                                        project={project}
-                                                        onClick={() => router.push(`/projects/${project.id || project._id}`)}
-                                                    />
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="py-24 text-center space-y-4">
-                                                <div className="w-16 h-16 bg-[var(--background)] rounded-2xl flex items-center justify-center mx-auto border border-[var(--border)] opacity-50">
-                                                    {activeTab === 'investments' ? <Activity className="text-[var(--text-muted)]" size={24} /> : <Heart className="text-[var(--text-muted)]" size={24} />}
-                                                </div>
-                                                <h4 className="text-lg font-bold">No {activeTab} yet</h4>
-                                                <p className="text-sm text-[var(--text-muted)] font-medium max-w-xs mx-auto">
-                                                    {activeTab === 'investments' ? 'Start backing innovative projects and grow your portfolio.' : 'Support causes that matter and make a difference.'}
-                                                </p>
-                                                <Link href="/explore" className="button_primary inline-flex items-center gap-2 mt-4">
-                                                    <PlusCircle size={16} /> Explore {activeTab === 'investments' ? 'Projects' : 'Causes'}
-                                                </Link>
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : activeTab === 'nfts' ? (
-                                    <div className="space-y-6">
-                                        <div className="flex items-center justify-between">
-                                            <h3 className="text-lg font-bold tracking-tight">Your NFT Portfolio</h3>
-                                            <span className="flex items-center gap-1.5 text-sm font-semibold text-[var(--text-muted)]">
-                                                <ImageIcon size={14} />
-                                                KEIBO receipts are non-transferable
-                                            </span>
-                                        </div>
-                                        <NFTPortfolio />
-                                    </div>
-                                ) : (
-                                    <div className="space-y-6">
-                                        <div className="flex items-center justify-between">
-                                            <h3 className="text-lg font-bold tracking-tight">Your Managed Projects</h3>
-                                            <button
-                                                onClick={handleTriggerCreate}
-                                                className="flex items-center gap-2 text-[var(--primary)] font-bold text-sm hover:underline"
-                                            >
-                                                <PlusCircle size={16} /> Create Campaign
-                                            </button>
-                                        </div>
-
-                                        {isDataLoading ? (
-                                            <div className="space-y-4">
-                                                {[1, 2].map(i => <div key={i} className="h-28 bg-[var(--background)] rounded-2xl animate-pulse" />)}
-                                            </div>
-                                        ) : displayedProjects.length > 0 ? (
-                                            <div className="space-y-4">
-                                                {displayedProjects.map((project: Project) => {
-                                                    const raised = (project as any).raisedAmount || 0;
-                                                    const target = (project as any).targetAmount || (project as any).goalAmount || 1;
-                                                    const pct = Math.min((raised / target) * 100, 100);
-                                                    const pId = project.id || project._id;
-                                                    const pName = encodeURIComponent((project as any).name || 'Project');
-                                                    const isCharity = isCharityProject(project);
-                                                    return (
-                                                        <div key={pId} className="bg-[var(--background)] border border-[var(--border)] rounded-2xl p-5 hover:border-[var(--primary)]/30 transition-all">
-                                                            <div className="flex items-start gap-4">
-                                                                {/* Icon */}
-                                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${isCharity ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300'
-                                                                    }`}>
-                                                                    {isCharity ? <Heart size={20} /> : <TrendingUp size={20} />}
-                                                                </div>
-                                                                {/* Info */}
-                                                                <div className="flex-1 min-w-0">
-                                                                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                                                                        <p className="font-black text-sm truncate">{(project as any).name}</p>
-                                                                        <span className={`chip-base chip-compact ${(project as any).status === 'FUNDING' || (project as any).status === 'ACTIVE' ? 'chip-success'
-                                                                            : (project as any).status === 'DRAFT' ? 'chip-neutral'
-                                                                                : 'chip-info'
-                                                                            }`}>{(project as any).status}</span>
-                                                                    </div>
-                                                                    {/* Progress */}
-                                                                    <div className="flex items-center gap-3 mb-3">
-                                                                        <div className="flex-1 h-1.5 bg-[var(--border)] rounded-full overflow-hidden">
-                                                                            <div className={`h-full rounded-full ${isCharity ? 'bg-emerald-500' : 'bg-blue-500'}`} style={{ width: `${pct}%` }} />
-                                                                        </div>
-                                                                        <span className="text-[10px] font-black text-[var(--text-muted)] whitespace-nowrap">
-                                                                            UGX {raised.toLocaleString()} / {target.toLocaleString()}
-                                                                        </span>
-                                                                    </div>
-                                                                    {/* Actions */}
-                                                                    <div className="flex gap-2 flex-wrap">
-                                                                        <Link
-                                                                            href={`/projects/${pId}`}
-                                                                            className="px-3 py-1.5 rounded-lg bg-[var(--secondary)] text-xs font-black text-[var(--text-main)] border border-[var(--border)] hover:border-[var(--primary)]/40 hover:text-[var(--primary)] transition-all"
-                                                                        >
-                                                                            View →
-                                                                        </Link>
-                                                                        {(isCharity && raised > 0) || (!isCharity && raised > 0 && raised >= target) ? (
-                                                                            <Link
-                                                                                href={`/dashboard/withdraw?projectId=${pId}&projectName=${pName}&type=${isCharity ? 'CHARITY' : 'ROI'}&amount=${raised}`}
-                                                                                className="chip-base chip-success rounded-lg text-xs font-black hover:brightness-95 transition-all flex items-center gap-1"
-                                                                            >
-                                                                                <Wallet size={14} /> Withdraw Funds
-                                                                            </Link>
-                                                                        ) : null}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        ) : (
-                                            <div className="py-24 text-center space-y-4">
-                                                <div className="w-16 h-16 bg-[var(--background)] rounded-2xl flex items-center justify-center mx-auto border border-[var(--border)] opacity-50">
-                                                    <Briefcase className="text-[var(--text-muted)]" size={24} />
-                                                </div>
-                                                <h4 className="text-lg font-bold">No Campaigns Yet</h4>
-                                                <p className="text-sm text-[var(--text-muted)] font-medium max-w-xs mx-auto">
-                                                    Launch your first campaign and bring your innovation to life.
-                                                </p>
-                                                <button onClick={handleTriggerCreate} className="button_primary inline-flex items-center gap-2 mt-4">
-                                                    <PlusCircle size={16} /> Create Campaign
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    <aside className="w-full lg:w-[360px] space-y-6">
-                        <RightSidebar onTriggerCreate={handleTriggerCreate} />
-                    </aside>
-
-                </div>
-            </main>
-
-            <CreateProjectWizard isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
-            <Footer />
+      {/* Email Verification Banner */}
+      {isAuthenticated && user && !user.emailVerifiedAt && (
+        <div className="bg-amber-50 border-b border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/30 px-4 py-3">
+          <div className="container mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <AlertTriangle
+                size={16}
+                className="text-amber-700 dark:text-amber-300 flex-shrink-0 mt-0.5"
+              />
+              <span className="text-sm text-amber-900 dark:text-amber-100 font-medium">
+                Please verify your email address to unlock all features.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleStartEmailVerification}
+              disabled={isStartingVerification}
+              className="flex-shrink-0 flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-black text-xs font-black px-4 py-2 rounded-lg transition-all uppercase tracking-wider"
+            >
+              <Mail size={13} />{" "}
+              {isStartingVerification ? "Sending..." : "Verify Email"}
+            </button>
+          </div>
         </div>
-    );
+      )}
+
+      <main className="container mx-auto p-4 sm:p-6 lg:p-10">
+        <div className="flex flex-col lg:flex-row gap-8">
+          <div className="flex-1 space-y-6">
+            {/* KYC Banner */}
+            {hasRoiAccess &&
+              isAuthenticated &&
+              user &&
+              user.kycStatus !== "VERIFIED" &&
+              user.kycStatus !== "PENDING" && (
+                <div className="bg-blue-50 border border-blue-200 dark:bg-blue-950/20 dark:border-blue-900/30 rounded-2xl px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <ShieldCheck
+                      size={18}
+                      className="text-blue-700 dark:text-blue-300 flex-shrink-0 mt-0.5"
+                    />
+                    <div>
+                      <p className="text-sm font-bold text-blue-900 dark:text-blue-100">
+                        Identity Verification Required
+                      </p>
+                      <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                        Complete KYC to invest in ROI projects and access all
+                        platform features.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab("kyc")}
+                    className="flex-shrink-0 flex items-center gap-1.5 bg-blue-500 hover:bg-blue-400 text-white text-xs font-black px-5 py-2.5 rounded-xl transition-all uppercase tracking-wider"
+                  >
+                    <ShieldCheck size={13} /> Verify Now
+                  </button>
+                </div>
+              )}
+
+            <div
+              className={`grid grid-cols-2 ${hasRoiAccess ? "lg:grid-cols-4" : "lg:grid-cols-3"} gap-4`}
+            >
+              {hasRoiAccess && (
+                <KPICard
+                  label="Total Invested (UGX)"
+                  value={`${(stats.invested || 0).toLocaleString()}`}
+                  icon={<LayoutDashboard size={16} className="text-blue-500" />}
+                />
+              )}
+              <KPICard
+                label="Total Donated (UGX)"
+                value={`${(stats.donated || 0).toLocaleString()}`}
+                icon={<Activity size={16} className="text-emerald-500" />}
+              />
+              {hasRoiAccess && (
+                <KPICard
+                  label="Active Investments"
+                  value={stats.pos.toString()}
+                  icon={<LayoutDashboard size={16} className="text-blue-500" />}
+                />
+              )}
+              <KPICard
+                label="Charity Donations Made"
+                value={stats.don.toString()}
+                icon={<Heart size={16} className="text-emerald-500" />}
+              />
+            </div>
+
+            {/* Secondary KPI Row */}
+            <div className="grid grid-cols-1 gap-4">
+              <div className="bg-[var(--card)] p-5 rounded-2xl border border-[var(--border)] flex items-center justify-between shadow-sm">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-1">
+                    Total Raised from My Campaigns
+                  </p>
+                  <h4 className="text-2xl font-black text-[var(--text-main)]">
+                    UGX {totalRaised.toLocaleString()}
+                  </h4>
+                </div>
+                <div className="w-12 h-12 bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300 rounded-xl flex items-center justify-center">
+                  <Activity size={20} />
+                </div>
+              </div>
+            </div>
+
+            {/* Main Dashboard Container */}
+            <div className="bg-[var(--card)] rounded-[2rem] border border-[var(--border)] overflow-hidden shadow-sm transition-colors duration-300">
+              <div className="border-b border-[var(--border)] px-4 sm:px-8">
+                <div className="flex items-center justify-between">
+                  <nav className="flex gap-6 sm:gap-10 overflow-x-auto scrollbar-hide">
+                    {[
+                      ...(hasRoiAccess
+                        ? [
+                            {
+                              key: "investments",
+                              label: "Investments",
+                              icon: <Activity size={14} />,
+                            },
+                          ]
+                        : []),
+                      {
+                        key: "donations",
+                        label: "Donations",
+                        icon: <Heart size={14} />,
+                      },
+                      {
+                        key: "campaigns",
+                        label: "My Projects",
+                        icon: <Briefcase size={14} />,
+                      },
+                      ...(hasRoiAccess
+                        ? [
+                            {
+                              key: "nfts",
+                              label: "My NFTs",
+                              icon: <ImageIcon size={14} />,
+                            },
+                            {
+                              key: "kyc",
+                              label: "Identity",
+                              icon: <ShieldCheck size={14} />,
+                            },
+                          ]
+                        : []),
+                    ].map((tab) => (
+                      <button
+                        key={tab.key}
+                        onClick={() => setActiveTab(tab.key as DashboardTab)}
+                        className={`py-5 text-sm font-bold border-b-2 transition-all relative flex items-center gap-2 flex-shrink-0 ${
+                          activeTab === tab.key
+                            ? "border-[var(--primary)] text-[var(--primary)]"
+                            : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]"
+                        }`}
+                      >
+                        {tab.icon}
+                        {tab.label}
+                        {activeTab === tab.key && (
+                          <motion.div
+                            layoutId="tab-underline"
+                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--primary)]"
+                          />
+                        )}
+                      </button>
+                    ))}
+                  </nav>
+                  <div className="relative hidden sm:block">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] opacity-50" />
+                    <input
+                      type="text"
+                      placeholder="Search..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="bg-[var(--background)] rounded-xl py-2 pl-10 pr-4 text-xs font-bold border border-transparent focus:border-[var(--primary)]/20 outline-none w-40 sm:w-56 transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 sm:p-8">
+                {activeTab === "kyc" ? (
+                  <KYCView />
+                ) : activeTab === "investments" || activeTab === "donations" ? (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-bold tracking-tight">
+                        {activeTab === "investments"
+                          ? "Your Investment Portfolio"
+                          : "Your Charity Contributions"}
+                      </h3>
+                      <Link
+                        href="/explore"
+                        className="flex items-center gap-2 text-[var(--primary)] font-bold text-sm hover:underline"
+                      >
+                        <PlusCircle size={16} /> Discover{" "}
+                        {activeTab === "investments" ? "Projects" : "Causes"}
+                      </Link>
+                    </div>
+
+                    {isDataLoading ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                        {[1, 2, 3, 4].map((i) => (
+                          <div
+                            key={i}
+                            className="h-48 bg-[var(--background)] rounded-2xl animate-pulse"
+                          />
+                        ))}
+                      </div>
+                    ) : displayedProjects.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                        {displayedProjects.map((project: Project) => (
+                          <ProjectCard
+                            key={project.id || project._id}
+                            project={project}
+                            onClick={() =>
+                              router.push(
+                                `/projects/${project.id || project._id}`,
+                              )
+                            }
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="py-24 text-center space-y-4">
+                        <div className="w-16 h-16 bg-[var(--background)] rounded-2xl flex items-center justify-center mx-auto border border-[var(--border)] opacity-50">
+                          {activeTab === "investments" ? (
+                            <Activity
+                              className="text-[var(--text-muted)]"
+                              size={24}
+                            />
+                          ) : (
+                            <Heart
+                              className="text-[var(--text-muted)]"
+                              size={24}
+                            />
+                          )}
+                        </div>
+                        <h4 className="text-lg font-bold">
+                          No {activeTab} yet
+                        </h4>
+                        <p className="text-sm text-[var(--text-muted)] font-medium max-w-xs mx-auto">
+                          {activeTab === "investments"
+                            ? "Start backing innovative projects and grow your portfolio."
+                            : "Support causes that matter and make a difference."}
+                        </p>
+                        <Link
+                          href="/explore"
+                          className="button_primary inline-flex items-center gap-2 mt-4"
+                        >
+                          <PlusCircle size={16} /> Explore{" "}
+                          {activeTab === "investments" ? "Projects" : "Causes"}
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                ) : activeTab === "nfts" ? (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-bold tracking-tight">
+                        Your NFT Portfolio
+                      </h3>
+                      <span className="flex items-center gap-1.5 text-sm font-semibold text-[var(--text-muted)]">
+                        <ImageIcon size={14} />
+                        KEIBO receipts are non-transferable
+                      </span>
+                    </div>
+                    <NFTPortfolio />
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-bold tracking-tight">
+                        Your Managed Projects
+                      </h3>
+                      <button
+                        onClick={handleTriggerCreate}
+                        className="flex items-center gap-2 text-[var(--primary)] font-bold text-sm hover:underline"
+                      >
+                        <PlusCircle size={16} /> Create Campaign
+                      </button>
+                    </div>
+
+                    {isDataLoading ? (
+                      <div className="space-y-4">
+                        {[1, 2].map((i) => (
+                          <div
+                            key={i}
+                            className="h-28 bg-[var(--background)] rounded-2xl animate-pulse"
+                          />
+                        ))}
+                      </div>
+                    ) : displayedProjects.length > 0 ? (
+                      <div className="space-y-4">
+                        {displayedProjects.map((project: Project) => {
+                          const raised = project.raisedAmount || 0;
+                          const target =
+                            project.targetAmount || project.goalAmount || 1;
+                          const pct = Math.min((raised / target) * 100, 100);
+                          const pId = project.id || project._id;
+                          const pName = encodeURIComponent(
+                            project.name || "Project",
+                          );
+                          const isCharity = isCharityProject(project);
+                          return (
+                            <div
+                              key={pId}
+                              className="bg-[var(--background)] border border-[var(--border)] rounded-2xl p-5 hover:border-[var(--primary)]/30 transition-all"
+                            >
+                              <div className="flex items-start gap-4">
+                                {/* Icon */}
+                                <div
+                                  className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                                    isCharity
+                                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300"
+                                      : "bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300"
+                                  }`}
+                                >
+                                  {isCharity ? (
+                                    <Heart size={20} />
+                                  ) : (
+                                    <TrendingUp size={20} />
+                                  )}
+                                </div>
+                                {/* Info */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                                    <p className="font-black text-sm truncate">
+                                      {project.name}
+                                    </p>
+                                    <span
+                                      className={`chip-base chip-compact ${
+                                        project.status === "FUNDING" ||
+                                        project.status === "ACTIVE"
+                                          ? "chip-success"
+                                          : project.status === "DRAFT"
+                                            ? "chip-neutral"
+                                            : "chip-info"
+                                      }`}
+                                    >
+                                      {project.status}
+                                    </span>
+                                  </div>
+                                  {/* Progress */}
+                                  <div className="flex items-center gap-3 mb-3">
+                                    <div className="flex-1 h-1.5 bg-[var(--border)] rounded-full overflow-hidden">
+                                      <div
+                                        className={`h-full rounded-full ${isCharity ? "bg-emerald-500" : "bg-blue-500"}`}
+                                        style={{ width: `${pct}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-[10px] font-black text-[var(--text-muted)] whitespace-nowrap">
+                                      UGX {raised.toLocaleString()} /{" "}
+                                      {target.toLocaleString()}
+                                    </span>
+                                  </div>
+                                  {/* Actions */}
+                                  <div className="flex gap-2 flex-wrap">
+                                    <Link
+                                      href={`/projects/${pId}`}
+                                      className="px-3 py-1.5 rounded-lg bg-[var(--secondary)] text-xs font-black text-[var(--text-main)] border border-[var(--border)] hover:border-[var(--primary)]/40 hover:text-[var(--primary)] transition-all"
+                                    >
+                                      View →
+                                    </Link>
+                                    {(isCharity && raised > 0) ||
+                                    (!isCharity &&
+                                      raised > 0 &&
+                                      raised >= target) ? (
+                                      <Link
+                                        href={`/dashboard/withdraw?projectId=${pId}&projectName=${pName}&type=${isCharity ? "CHARITY" : "ROI"}&amount=${raised}`}
+                                        className="chip-base chip-success rounded-lg text-xs font-black hover:brightness-95 transition-all flex items-center gap-1"
+                                      >
+                                        <Wallet size={14} /> Withdraw Funds
+                                      </Link>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="py-24 text-center space-y-4">
+                        <div className="w-16 h-16 bg-[var(--background)] rounded-2xl flex items-center justify-center mx-auto border border-[var(--border)] opacity-50">
+                          <Briefcase
+                            className="text-[var(--text-muted)]"
+                            size={24}
+                          />
+                        </div>
+                        <h4 className="text-lg font-bold">No Campaigns Yet</h4>
+                        <p className="text-sm text-[var(--text-muted)] font-medium max-w-xs mx-auto">
+                          Launch your first campaign and bring your innovation
+                          to life.
+                        </p>
+                        <button
+                          onClick={handleTriggerCreate}
+                          className="button_primary inline-flex items-center gap-2 mt-4"
+                        >
+                          <PlusCircle size={16} /> Create Campaign
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <aside className="w-full lg:w-[360px] space-y-6">
+            <RightSidebar onTriggerCreate={handleTriggerCreate} />
+          </aside>
+        </div>
+      </main>
+
+      <CreateProjectWizard
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+      />
+      <Footer />
+    </div>
+  );
 }
 
 const KPICard = ({ label, value, trend, icon }: KPICardProps) => (
-    <div className="bg-[var(--card)] p-5 sm:p-8 rounded-[2rem] border border-[var(--border)] space-y-3 sm:space-y-4 shadow-sm hover:border-[var(--primary)]/50 transition-all group duration-300">
-        <div className="flex items-center justify-between">
-            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">{label}</p>
-            <div className="w-8 h-8 rounded-lg bg-[var(--background)] flex items-center justify-center border border-[var(--border)] group-hover:bg-[var(--secondary)] transition-colors">
-                {icon}
-            </div>
-        </div>
-        <div className="flex items-baseline justify-between">
-            <p className="text-3xl font-black tracking-tight text-[var(--text-main)]">{value}</p>
-            {trend && <span className="chip-base chip-success px-2 py-1 rounded-md text-[9px] font-black tracking-widest">{trend}</span>}
-        </div>
+  <div className="bg-[var(--card)] p-5 sm:p-8 rounded-[2rem] border border-[var(--border)] space-y-3 sm:space-y-4 shadow-sm hover:border-[var(--primary)]/50 transition-all group duration-300">
+    <div className="flex items-center justify-between">
+      <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+        {label}
+      </p>
+      <div className="w-8 h-8 rounded-lg bg-[var(--background)] flex items-center justify-center border border-[var(--border)] group-hover:bg-[var(--secondary)] transition-colors">
+        {icon}
+      </div>
     </div>
+    <div className="flex items-baseline justify-between">
+      <p className="text-3xl font-black tracking-tight text-[var(--text-main)]">
+        {value}
+      </p>
+      {trend && (
+        <span className="chip-base chip-success px-2 py-1 rounded-md text-[9px] font-black tracking-widest">
+          {trend}
+        </span>
+      )}
+    </div>
+  </div>
 );
 
-const VoteCard = ({ title, description, status, progress }: any) => {
-    const isPassing = status === 'passing';
+const VoteCard = ({
+  title,
+  description,
+  status,
+  progress,
+}: {
+  title: string;
+  description: string;
+  status: string;
+  progress: number;
+}) => {
+  const isPassing = status === "passing";
 
-    return (
-        <div className="space-y-3 p-5 rounded-2xl bg-[var(--background)] border border-[var(--border)] hover:border-[var(--primary)]/30 transition-all">
-            <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1 flex-1">
-                    <h4 className="text-sm font-bold text-[var(--text-main)]">{title}</h4>
-                    <p className="text-xs text-[var(--text-muted)] font-medium">{description}</p>
-                </div>
-                <span className={`chip-base chip-compact rounded-lg shrink-0 ${isPassing
-                    ? 'chip-success'
-                    : 'chip-danger'
-                    }`}>
-                    {status}
-                </span>
-            </div>
-            <div className="space-y-2">
-                <div className="flex items-center justify-between text-[10px] font-bold">
-                    <span className="text-[var(--text-muted)] uppercase tracking-widest">Progress</span>
-                    <span className={isPassing ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>{progress}%</span>
-                </div>
-                <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div
-                        className={`h-full rounded-full transition-all ${isPassing
-                            ? 'bg-gradient-to-r from-emerald-500 to-emerald-600'
-                            : 'bg-gradient-to-r from-red-500 to-red-600'
-                            }`}
-                        style={{ width: `${progress}%` }}
-                    />
-                </div>
-            </div>
+  return (
+    <div className="space-y-3 p-5 rounded-2xl bg-[var(--background)] border border-[var(--border)] hover:border-[var(--primary)]/30 transition-all">
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1 flex-1">
+          <h4 className="text-sm font-bold text-[var(--text-main)]">{title}</h4>
+          <p className="text-xs text-[var(--text-muted)] font-medium">
+            {description}
+          </p>
         </div>
-    );
+        <span
+          className={`chip-base chip-compact rounded-lg shrink-0 ${
+            isPassing ? "chip-success" : "chip-danger"
+          }`}
+        >
+          {status}
+        </span>
+      </div>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between text-[10px] font-bold">
+          <span className="text-[var(--text-muted)] uppercase tracking-widest">
+            Progress
+          </span>
+          <span
+            className={
+              isPassing
+                ? "text-emerald-600 dark:text-emerald-400"
+                : "text-red-600 dark:text-red-400"
+            }
+          >
+            {progress}%
+          </span>
+        </div>
+        <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${
+              isPassing
+                ? "bg-gradient-to-r from-emerald-500 to-emerald-600"
+                : "bg-gradient-to-r from-red-500 to-red-600"
+            }`}
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const ActivityEntry = ({ label, time, desc, type }: ActivityEntryProps) => (
-    <div className="flex gap-4">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${type === 'finance' ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800/30' :
-            type === 'success' ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/30' :
-                'bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/30'
-            }`}>
-            {type === 'finance' && <Wallet size={16} />}
-            {type === 'success' && <ArrowUpRight size={16} />}
-            {type === 'governance' && <Shield size={16} />}
-        </div>
-        <div className="space-y-0.5">
-            <p className="text-xs font-bold text-[var(--text-main)]">{label}</p>
-            <p className="text-xs text-[var(--text-muted)] font-medium">{desc}</p>
-            <p className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-[0.1em] pt-1 opacity-60">{time}</p>
-        </div>
+  <div className="flex gap-4">
+    <div
+      className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${
+        type === "finance"
+          ? "bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800/30"
+          : type === "success"
+            ? "bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/30"
+            : "bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/30"
+      }`}
+    >
+      {type === "finance" && <Wallet size={16} />}
+      {type === "success" && <ArrowUpRight size={16} />}
+      {type === "governance" && <Shield size={16} />}
     </div>
+    <div className="space-y-0.5">
+      <p className="text-xs font-bold text-[var(--text-main)]">{label}</p>
+      <p className="text-xs text-[var(--text-muted)] font-medium">{desc}</p>
+      <p className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-[0.1em] pt-1 opacity-60">
+        {time}
+      </p>
+    </div>
+  </div>
 );
