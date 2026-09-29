@@ -43,13 +43,20 @@ interface Project {
   title?: string;
   creatorId?: string;
   category?: string;
-  projectType?: string;
+  projectType?: "ROI" | "CHARITY";
   type?: string;
   raisedAmount?: number;
   targetAmount?: number;
   goalAmount?: number;
   status?: string;
   imageUrl?: string;
+}
+
+function projectType(value?: string): "ROI" | "CHARITY" | undefined {
+  const normalized = value?.trim().toUpperCase();
+  return normalized === "ROI" || normalized === "CHARITY"
+    ? normalized
+    : undefined;
 }
 
 type DashboardTab = "investments" | "donations" | "campaigns" | "nfts" | "kyc";
@@ -168,29 +175,21 @@ export default function DashboardPage() {
         const p = projectMap.get(invProjectId);
 
         // Prioritize fetched project but fallback to populated inv.project
-        if (p) return { ...p, ...inv.project };
+        if (p) return p;
         if (inv.project) {
+          const type = projectType(inv.project.type) ?? "ROI";
           return {
             id: invProjectId,
             _id: invProjectId,
-            name: inv.project.title || inv.project.name || "Untitled",
-            title: inv.project.title || inv.project.name || "Untitled",
+            name: inv.project.title || "Untitled",
+            title: inv.project.title || "Untitled",
             category: inv.project.category || "Uncategorized",
-            projectType: (
-              inv.project.type ||
-              inv.project.projectType ||
-              "ROI"
-            ).toUpperCase(),
-            type: (
-              inv.project.type ||
-              inv.project.projectType ||
-              "ROI"
-            ).toUpperCase(),
-            raisedAmount: Number(inv.project.raisedAmount || 0),
-            targetAmount: Number(inv.project.targetAmount || 0),
-            status: inv.project.status || "ACTIVE",
+            projectType: type,
+            type,
+            raisedAmount: 0,
+            targetAmount: 0,
+            status: "ACTIVE",
             creatorId: inv.project.creatorId,
-            imageUrl: inv.project.imageUrl,
           };
         }
         return null;

@@ -2,7 +2,6 @@ type MaybeProject =
   | {
       projectType?: string;
       type?: string;
-      [key: string]: unknown;
     }
   | null
   | undefined;
