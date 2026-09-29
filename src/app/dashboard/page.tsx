@@ -6,9 +6,7 @@ import Footer from "@/components/layout/Footer";
 import ProjectCard from "@/components/dashboard/ProjectCard";
 import RightSidebar from "@/components/dashboard/RightSidebar";
 import CreateProjectWizard from "@/components/dashboard/CreateProjectWizard";
-import { NotificationsView } from "@/components/dashboard/NotificationsView";
 import { KYCView } from "@/components/dashboard/KYCView";
-import { WalletView } from "@/components/dashboard/WalletView";
 import { NFTPortfolio } from "@/components/dashboard/NFTPortfolio";
 import { motion } from "framer-motion";
 import { useProjects, useMyProjects } from "@/hooks/useProjects";
@@ -19,7 +17,6 @@ import { authService } from "@/lib/auth-service";
 import { buildVerifyEmailUrl } from "@/lib/email-verification";
 import {
   Search,
-  LineChart,
   ArrowUpRight,
   Shield,
   PlusCircle,
@@ -29,7 +26,6 @@ import {
   Activity,
   Image as ImageIcon,
   ShieldCheck,
-  Bell,
   Mail,
   AlertTriangle,
   Heart,
@@ -57,10 +53,6 @@ interface Project {
 }
 
 type DashboardTab = "investments" | "donations" | "campaigns" | "nfts" | "kyc";
-
-interface ProjectsData {
-  items: Project[];
-}
 
 interface KPICardProps {
   label: string;
@@ -142,11 +134,13 @@ export default function DashboardPage() {
     }
   }, [activeTab, hasRoiAccess]);
 
-  const allFetchedProjects = (projectsData?.items || []) as Project[];
+  const allFetchedProjects = useMemo(
+    () => (projectsData?.items || []) as Project[],
+    [projectsData],
+  );
 
   // My campaigns: use the dedicated /projects/me endpoint that includes DRAFTs
-  const { data: myProjectsData, isLoading: isLoadingMyProjects } =
-    useMyProjects();
+  const { data: myProjectsData } = useMyProjects();
 
   const myCampaigns = useMemo(() => {
     const campaigns = (
@@ -273,7 +267,6 @@ export default function DashboardPage() {
     );
   }, [hasRoiAccess, investmentsData]);
 
-  const campaignsCreated = myCampaigns?.length || 0;
   const totalRaised = myCampaigns.reduce(
     (sum, project) => sum + (project.raisedAmount || 0),
     0,
@@ -729,7 +722,7 @@ const KPICard = ({ label, value, trend, icon }: KPICardProps) => (
   </div>
 );
 
-const VoteCard = ({
+export const VoteCard = ({
   title,
   description,
   status,
@@ -789,7 +782,12 @@ const VoteCard = ({
   );
 };
 
-const ActivityEntry = ({ label, time, desc, type }: ActivityEntryProps) => (
+export const ActivityEntry = ({
+  label,
+  time,
+  desc,
+  type,
+}: ActivityEntryProps) => (
   <div className="flex gap-4">
     <div
       className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${

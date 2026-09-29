@@ -14,11 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      BACKEND_API_ORIGIN: https://api.example.invalid
+      BACKEND_API_ORIGIN: "https://api.example.invalid"
       NEXT_PUBLIC_API_URL: https://api.example.invalid/api
       NEXT_PUBLIC_APP_URL: https://app.example.invalid
       NEXT_PUBLIC_WC_PROJECT_ID: ci-public-walletconnect-id
-      NEXT_PUBLIC_KEIBO_ESCROW_ADDRESS: 0xA6ef13Ad706BF24F0B28506FD18a06FEac9abF93
+      NEXT_PUBLIC_KEIBO_ESCROW_ADDRESS: "0xA6ef13Ad706BF24F0B28506FD18a06FEac9abF93"
       NEXT_PUBLIC_ROI_ENABLED: "false"
       NEXT_PUBLIC_ENABLE_NFT_MARKETPLACE: "false"
       NEXT_PUBLIC_DEAL_ROOM_ENABLED: "false"
