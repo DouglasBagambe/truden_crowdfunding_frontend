@@ -2,8 +2,28 @@ import { expect, test } from "@playwright/test";
 
 test.describe("KEIBO financial fail-closed surfaces", () => {
   test("marketplace states that receipts cannot be resold and never requests listings", async ({
+    context,
     page,
   }) => {
+    await page.route("**/api/users/me", (route) =>
+      route.fulfill({
+        json: {
+          user: {
+            id: "financial-e2e-user",
+            email: "financial@example.test",
+            roles: ["INVESTOR"],
+          },
+        },
+      }),
+    );
+    await page.goto("/");
+    await context.addCookies([
+      {
+        name: "keibo_access",
+        value: "financial-e2e-session",
+        url: new URL(page.url()).origin,
+      },
+    ]);
     const legacyRequests: string[] = [];
     page.on("request", (request) => {
       if (
