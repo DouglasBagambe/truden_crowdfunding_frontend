@@ -169,9 +169,7 @@ export default function DashboardPage() {
 
     const projects = investmentsData
       .map((inv) => {
-        const invProjectId = String(
-          inv.projectId || inv.project?.id || inv.project?._id,
-        );
+        const invProjectId = String(inv.projectId || inv.project?.id || "");
         const p = projectMap.get(invProjectId);
 
         // Prioritize fetched project but fallback to populated inv.project
