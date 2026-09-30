@@ -719,7 +719,7 @@ const KPICard = ({ label, value, trend, icon }: KPICardProps) => (
   </div>
 );
 
-export const VoteCard = ({
+const VoteCard = ({
   title,
   description,
   status,
@@ -779,12 +779,7 @@ export const VoteCard = ({
   );
 };
 
-export const ActivityEntry = ({
-  label,
-  time,
-  desc,
-  type,
-}: ActivityEntryProps) => (
+const ActivityEntry = ({ label, time, desc, type }: ActivityEntryProps) => (
   <div className="flex gap-4">
     <div
       className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${
