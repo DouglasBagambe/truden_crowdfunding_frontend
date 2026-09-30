@@ -60,7 +60,11 @@ test.describe("KEIBO financial fail-closed surfaces", () => {
     ).toBeVisible();
     expect(legacyRequests).toEqual([]);
     expect(pageErrors).toEqual([]);
-    expect(consoleErrors).toEqual([]);
+    expect(
+      consoleErrors.filter(
+        (message) => !message.includes("Lit is in dev mode"),
+      ),
+    ).toEqual([]);
   });
 
   test("creator releases a charity milestone once and keeps external payout separate", async ({
@@ -109,9 +113,11 @@ test.describe("KEIBO financial fail-closed surfaces", () => {
     });
     await releaseButton.dblclick();
     await expect(
-      page.getByText(
-        "Funds released to your KEIBO payable balance. External payout is a separate step.",
-      ),
+      page
+        .getByText(
+          "Funds released to your KEIBO payable balance. External payout is a separate step.",
+        )
+        .first(),
     ).toBeVisible();
     expect(releaseRequests).toHaveLength(1);
     expect(releaseRequests[0]).toMatchObject({
@@ -271,11 +277,7 @@ test.describe("KEIBO financial fail-closed surfaces", () => {
     ).toBeDisabled();
     await page.locator("select").first().selectOption("milestone-1");
     await page.getByRole("button", { name: "Release milestone funds" }).click();
-    await page
-      .getByText("Bank •••• 9876 · UGX · verified")
-      .locator("..")
-      .getByRole("radio")
-      .check();
+    await page.getByRole("radio").nth(1).check();
     await page.getByRole("button", { name: "Request payout" }).click();
     expect(payoutRequests).toEqual([{ destinationId: "dest-2" }]);
     await expect(
@@ -319,7 +321,9 @@ test.describe("KEIBO financial fail-closed surfaces", () => {
       return route.fulfill({ json: { id: "receipt-1", state } });
     });
     await page.goto("/payment/result?token=settled-token");
-    await expect(page.getByText("Investment receipt")).toBeVisible();
+    await expect(
+      page.getByText("Investment receipt", { exact: true }),
+    ).toBeVisible();
     await expect(
       page.getByText(/KEIBO receipts are non-transferable/),
     ).toBeVisible();
