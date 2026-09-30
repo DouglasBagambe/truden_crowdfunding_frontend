@@ -185,7 +185,6 @@ test.describe("KEIBO financial fail-closed surfaces", () => {
         status: "verified",
       },
     ];
-    let destinationDisabled = false;
     const payoutRequests: unknown[] = [];
     await page.route("**/api/projects/charity-1", (route) =>
       route.fulfill({
@@ -195,40 +194,34 @@ test.describe("KEIBO financial fail-closed surfaces", () => {
         },
       }),
     );
+    await page.route("**/api/financial/payout-destinations", async (route) => {
+      if (route.request().method() === "GET") {
+        return route.fulfill({ json: destinations });
+      }
+      const body = route.request().postDataJSON() as {
+        accountNumber: string;
+      };
+      expect(body.accountNumber).toBe("0770000000");
+      destinations = [
+        ...destinations,
+        {
+          id: "dest-2",
+          type: "bank",
+          currency: "UGX",
+          maskedDisplay: "Bank •••• 9876",
+          status: "verified",
+        },
+      ];
+      return route.fulfill({ json: destinations[1] });
+    });
     await page.route(
-      "**/api/financial/payout-destinations**",
+      "**/api/financial/payout-destinations/dest-1/disable",
       async (route) => {
-        const pathname = new URL(route.request().url()).pathname;
-        if (pathname.endsWith("/dest-1/disable")) {
-          destinationDisabled = true;
-          return route.fulfill({
-            json: { ...destinations[0], status: "disabled" },
-          });
-        }
-        if (route.request().method() === "GET") {
-          return route.fulfill({
-            json: destinations.map((destination) =>
-              destination.id === "dest-1" && destinationDisabled
-                ? { ...destination, status: "disabled" }
-                : destination,
-            ),
-          });
-        }
-        const body = route.request().postDataJSON() as {
-          accountNumber: string;
-        };
-        expect(body.accountNumber).toBe("0770000000");
         destinations = [
-          ...destinations,
-          {
-            id: "dest-2",
-            type: "bank",
-            currency: "UGX",
-            maskedDisplay: "Bank •••• 9876",
-            status: "verified",
-          },
+          { ...destinations[0], status: "disabled" },
+          ...destinations.slice(1),
         ];
-        return route.fulfill({ json: destinations[1] });
+        await route.fulfill({ json: destinations[0] });
       },
     );
     await page.route("**/api/financial/payouts", (route) =>
@@ -273,15 +266,7 @@ test.describe("KEIBO financial fail-closed surfaces", () => {
       page.getByText("Bank •••• 9876 · UGX · verified"),
     ).toBeVisible();
     await expect(page.getByText("0770000000")).toHaveCount(0);
-    const disableResponse = page.waitForResponse(
-      (response) =>
-        response.request().method() === "POST" &&
-        new URL(response.url()).pathname.endsWith(
-          "/financial/payout-destinations/dest-1/disable",
-        ),
-    );
     await page.getByRole("button", { name: "Disable" }).first().click();
-    await disableResponse;
     await expect(
       page.getByText("MTN •••• 1234 · UGX · disabled"),
     ).toBeVisible();
