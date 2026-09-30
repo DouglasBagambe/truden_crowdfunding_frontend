@@ -15,9 +15,11 @@ interface ProjectCardProps {
     name?: string;
     title?: string;
     description?: string;
+    summary?: string;
     imageUrl?: string;
     raisedAmount?: number;
     goalAmount?: number;
+    targetAmount?: number;
     projectType?: "CHARITY" | "ROI";
     type?: string;
     status?: string;
@@ -31,7 +33,7 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
   const router = useRouter();
   const projectName = project.name || project.title || "Untitled Project";
   const raised = project.raisedAmount || 0;
-  const goal = project.goalAmount || (project as any).targetAmount || 100000;
+  const goal = project.goalAmount || project.targetAmount || 100000;
   const percentage = Math.min((raised / goal) * 100, 100);
 
   const handleClick = () => {
@@ -114,7 +116,7 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
             </h3>
             <p className="text-sm text-[var(--text-muted)] line-clamp-2 font-medium italic">
               {project.description ||
-                (project as any).summary ||
+                project.summary ||
                 "An innovative project making a difference in the community."}
             </p>
           </div>

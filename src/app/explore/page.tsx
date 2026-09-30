@@ -6,24 +6,28 @@ import Footer from "@/components/layout/Footer";
 import { useProjects } from "@/hooks/useProjects";
 import ProjectCard from "@/components/dashboard/ProjectCard";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Search,
-  Filter,
-  SlidersHorizontal,
-  Heart,
-  TrendingUp,
-  Zap,
-  Globe,
-  ChevronDown,
-  LayoutGrid,
-  List,
-  Loader2,
-  Plus,
-  ArrowRight,
-  X,
-} from "lucide-react";
+import { Search, Filter, Heart, Plus, ArrowRight, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+
+type ExploreProject = {
+  id?: string;
+  _id?: string;
+  name?: string;
+  title?: string;
+  category?: string;
+  industry?: string;
+  type?: string;
+  projectType?: "CHARITY" | "ROI";
+  description?: string;
+  summary?: string;
+  imageUrl?: string;
+  galleryImages?: string[];
+  raisedAmount?: number;
+  goalAmount?: number;
+  targetAmount?: number;
+  status?: string;
+};
 
 function ExplorePageContent() {
   const searchParams = useSearchParams();
@@ -208,15 +212,15 @@ function ExplorePageContent() {
   ]);
 
   const { data, isLoading } = useProjects(queryParams);
-  const rawProjects = data?.projects || data?.items || [];
+  const rawProjects = (data?.projects || data?.items || []) as ExploreProject[];
 
   const projects = rawProjects
-    .map((project: any) => ({
+    .map((project) => ({
       ...project,
       id: project.id || project._id,
     }))
-    .filter((p: any) => p.id)
-    .filter((project: any) => {
+    .filter((p): p is ExploreProject & { id: string } => Boolean(p.id))
+    .filter((project) => {
       if (appliedCategory === "ALL") return true;
       const projectCategory = String(
         project.category || project.industry || "",
@@ -703,7 +707,7 @@ function ExplorePageContent() {
               <div className="space-y-12">
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
                   <AnimatePresence mode="popLayout">
-                    {projects.map((project: any, idx: number) => (
+                    {projects.map((project, idx) => (
                       <motion.div
                         key={project.id || idx}
                         initial={{ opacity: 0, scale: 0.95 }}
@@ -779,13 +783,3 @@ export default function ExplorePage() {
     </Suspense>
   );
 }
-
-const FilterButton = ({ active, onClick, label, icon }: any) => (
-  <button
-    onClick={onClick}
-    className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all ${active ? "bg-[var(--primary)] text-white shadow-lg shadow-blue-500/10" : "bg-[var(--card)] text-[var(--text-muted)] border border-[var(--border)] hover:border-[var(--primary)]/50"}`}
-  >
-    {icon}
-    {label}
-  </button>
-);
