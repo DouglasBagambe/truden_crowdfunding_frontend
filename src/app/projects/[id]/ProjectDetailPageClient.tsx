@@ -25,7 +25,6 @@ import Image from "next/image";
 import { projectService } from "@/lib/project-service";
 import { useAuth } from "@/hooks/useAuth";
 import { isCharityProject } from "@/lib/roi-access";
-import toast from "react-hot-toast";
 import DPOPaymentModal from "@/components/payments/DPOPaymentModal";
 
 type ProjectMilestone = {

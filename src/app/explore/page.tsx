@@ -154,27 +154,6 @@ function ExplorePageContent() {
   };
 
   useEffect(() => {
-    const nextSearch = searchParams.get("search") || "";
-    const nextCategory = normalizeCategory(searchParams.get("category"));
-    const rawType = searchParams.get("type") || "ALL";
-    const nextType = rawType;
-    const nextStatuses = parseStatuses(searchParams.get("statuses"));
-    const nextSort = searchParams.get("sort") || "newest";
-
-    setDraftSearch(nextSearch);
-    setDraftCategory(nextCategory);
-    setDraftProjectType(nextType);
-    setDraftStatusFilters(nextStatuses);
-    setDraftSortBy(nextSort);
-
-    setAppliedSearch(nextSearch);
-    setAppliedCategory(nextCategory);
-    setAppliedProjectType(nextType);
-    setAppliedStatusFilters(nextStatuses);
-    setAppliedSortBy(nextSort);
-  }, [searchParams]);
-
-  useEffect(() => {
     const t = setTimeout(() => {
       applyFilters({ search: draftSearch });
     }, 350);

@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
@@ -30,23 +29,10 @@ interface ProjectCardProps {
 
 export default function ProjectCard({ project, onClick }: ProjectCardProps) {
   const projectId = project._id || project.id;
-  const router = useRouter();
   const projectName = project.name || project.title || "Untitled Project";
   const raised = project.raisedAmount || 0;
   const goal = project.goalAmount || project.targetAmount || 100000;
   const percentage = Math.min((raised / goal) * 100, 100);
-
-  const handleClick = () => {
-    if (onClick) {
-      onClick();
-    } else {
-      const projectId = project.id || project._id;
-      if (!projectId) {
-        return;
-      }
-      router.push(`/projects/${projectId}`);
-    }
-  };
 
   const isCharity = isCharityProject(project);
 
