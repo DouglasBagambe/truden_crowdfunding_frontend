@@ -749,7 +749,7 @@ function ExplorePageContent() {
                     No projects match your search.
                   </h3>
                   <p className="text-slate-500 font-medium max-w-sm">
-                    We couldn't find any results for your current filters. Try
+                    We could not find any results for your current filters. Try
                     resetting them or searching for something else.
                   </p>
                 </div>

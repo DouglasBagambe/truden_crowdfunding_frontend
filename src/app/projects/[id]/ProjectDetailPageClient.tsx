@@ -314,7 +314,7 @@ export default function ProjectDetailPageClient() {
             Project Not Found
           </h2>
           <p className="text-[var(--text-muted)]">
-            {error || "This project doesn't exist or has been removed."}
+            {error || "This project does not exist or has been removed."}
           </p>
           <button
             onClick={() => router.push("/explore")}
