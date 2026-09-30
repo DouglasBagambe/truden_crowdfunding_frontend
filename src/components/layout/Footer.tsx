@@ -3,38 +3,25 @@
 import React from "react";
 import { Logo } from "../common/Logo";
 import Link from "next/link";
-import { Mail } from "lucide-react";
 
 const Footer = () => {
   return (
-    <footer className="bg-[var(--card)] border-t border-[var(--border)] pt-14 pb-8">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+    <footer className="border-t border-[var(--border)] bg-[var(--card)] py-10">
+      <div className="page-shell">
         {/* Top grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-10 mb-12">
+        <div className="mb-10 grid grid-cols-2 gap-8 md:grid-cols-4">
           {/* Brand */}
-          <div className="col-span-2 sm:col-span-2 md:col-span-1 space-y-4">
+          <div className="col-span-2 space-y-3 md:col-span-1">
             <Logo size={24} />
             <p className="text-sm text-[var(--text-muted)] leading-relaxed max-w-[220px]">
-              A platform where ideas get funded, causes get supported, and
-              communities grow.
+              Clear campaign discovery, accountable fundraising, and secure
+              account management.
             </p>
-            <div className="flex items-center gap-3 pt-1">
-              <span className="text-xs text-[var(--text-muted)]">
-                Social channels coming soon
-              </span>
-              <Link
-                href="/support"
-                aria-label="Email"
-                className="w-8 h-8 rounded-lg bg-[var(--secondary)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/10 transition-all"
-              >
-                <Mail size={14} />
-              </Link>
-            </div>
           </div>
 
           {/* Platform */}
           <div className="space-y-4">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-[var(--text-main)]">
+            <h4 className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-main)]">
               Platform
             </h4>
             <ul className="space-y-3">
@@ -51,7 +38,7 @@ const Footer = () => {
 
           {/* Company */}
           <div className="space-y-4">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-[var(--text-main)]">
+            <h4 className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-main)]">
               Company
             </h4>
             <ul className="space-y-3">
@@ -63,7 +50,7 @@ const Footer = () => {
 
           {/* Legal */}
           <div className="space-y-4">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-[var(--text-main)]">
+            <h4 className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-main)]">
               Legal
             </h4>
             <ul className="space-y-3">
@@ -75,7 +62,7 @@ const Footer = () => {
         </div>
 
         {/* Bottom bar */}
-        <div className="pt-6 border-t border-[var(--border)] flex flex-col sm:flex-row justify-between items-center gap-3">
+        <div className="flex flex-col items-center justify-between gap-3 border-t border-[var(--border)] pt-6 sm:flex-row">
           <p className="text-xs text-[var(--text-muted)]">
             © {new Date().getFullYear()} KEIBO. All rights reserved.
           </p>

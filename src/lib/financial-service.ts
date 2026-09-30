@@ -50,6 +50,9 @@ export interface Payout {
   keibo_reference?: string;
   maskedDisplay?: string;
   masked_display?: string;
+  createdAt?: string;
+  created_at?: string;
+  provider?: string;
 }
 
 export interface Receipt {

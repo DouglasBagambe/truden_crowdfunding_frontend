@@ -8,11 +8,19 @@ import { ReactNode, useEffect, useState } from "react";
 
 // WalletConnect projectId — from cloud.walletconnect.com
 const configuredProjectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID?.trim();
-if (process.env.NODE_ENV === "production" && !configuredProjectId) {
-  throw new Error("NEXT_PUBLIC_WC_PROJECT_ID is required in production");
+const isUsableWalletConnectProjectId = Boolean(
+  configuredProjectId &&
+  !/^(your|replace[-_ ]?with|example|test)[-_ ]/i.test(configuredProjectId),
+);
+if (process.env.NODE_ENV === "production" && !isUsableWalletConnectProjectId) {
+  throw new Error(
+    "A valid NEXT_PUBLIC_WC_PROJECT_ID is required in production",
+  );
 }
 const projectId =
-  configuredProjectId || "walletconnect-disabled-in-development";
+  configuredProjectId && isUsableWalletConnectProjectId
+    ? configuredProjectId
+    : "walletconnect-disabled-in-development";
 
 const metadata = {
   name: "Keibo",
@@ -35,7 +43,7 @@ export const wagmiConfig = defaultWagmiConfig({
   projectId,
   metadata,
   ssr: true,
-  enableWalletConnect: isBrowser && Boolean(configuredProjectId),
+  enableWalletConnect: isBrowser && isUsableWalletConnectProjectId,
   enableInjected: isBrowser,
   enableEIP6963: isBrowser,
   enableCoinbase: isBrowser,

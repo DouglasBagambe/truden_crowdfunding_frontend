@@ -13,6 +13,7 @@ import {
   User,
   ChevronDown,
   Heart,
+  Layers3,
   Menu,
   X,
   ArrowRight,
@@ -136,7 +137,7 @@ const Navbar = () => {
   return (
     <>
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[var(--card)]/90 backdrop-blur-md border-b border-[var(--border)] transition-colors duration-300">
-        <div className="container mx-auto px-4 sm:px-6 h-[68px] flex items-center justify-between relative">
+        <div className="page-shell h-[68px] flex items-center justify-between relative">
           {/* Logo */}
           <div className="flex items-center gap-3">
             <Link
@@ -153,22 +154,22 @@ const Navbar = () => {
             <div className="relative group">
               <Link
                 href="/explore"
-                className="flex items-center gap-1.5 text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors px-3 py-2 rounded-xl hover:bg-[var(--secondary)]"
+                className="flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-muted)] transition-colors hover:bg-[var(--secondary)] hover:text-[var(--text-main)]"
               >
                 Explore
                 <ChevronDown size={14} className="opacity-60" />
               </Link>
               <div className="absolute left-0 top-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <div className="w-56 bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden py-2">
-                  <p className="px-4 pt-1 pb-2 text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                <div className="w-56 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--card)] py-2 shadow-lg">
+                  <p className="px-4 pt-1 pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
                     Browse by type
                   </p>
                   <Link
                     href="/explore"
                     className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-[var(--secondary)] transition-colors"
                   >
-                    <span className="w-6 h-6 rounded-lg bg-[var(--secondary)] flex items-center justify-center text-[var(--text-muted)] text-xs">
-                      ★
+                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[var(--secondary)] text-[var(--text-muted)]">
+                      <Layers3 size={13} />
                     </span>
                     All Projects
                   </Link>
@@ -176,8 +177,8 @@ const Navbar = () => {
                     href="/explore?type=CHARITY"
                     className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-[var(--secondary)] transition-colors"
                   >
-                    <span className="w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center text-emerald-700 dark:text-emerald-300 text-xs">
-                      ♥
+                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
+                      <Heart size={13} />
                     </span>
                     Charity Causes
                   </Link>
@@ -197,7 +198,7 @@ const Navbar = () => {
                     href="/dashboard/create-project"
                     className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-colors"
                   >
-                    <span className="w-6 h-6 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] text-xs font-black">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[var(--primary)]/10 text-[var(--primary)] text-xs font-semibold">
                       +
                     </span>
                     Start a Campaign
@@ -225,12 +226,12 @@ const Navbar = () => {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") submitSearch();
                   }}
-                  placeholder="Search causes..."
-                  className="w-full bg-[var(--secondary)] border border-[var(--border)] rounded-2xl h-11 pl-11 pr-24 text-sm font-semibold outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all"
+                  placeholder="Search projects"
+                  className="h-10 w-full rounded-md border border-[var(--border)] bg-[var(--secondary)] pl-11 pr-24 text-sm outline-none transition-all focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/15"
                 />
                 <button
                   onClick={submitSearch}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-9 px-4 rounded-xl bg-emerald-600 text-white text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all"
+                  className="absolute right-1.5 top-1/2 h-7 -translate-y-1/2 rounded px-3 bg-emerald-700 text-xs font-semibold text-white transition-colors hover:bg-emerald-800"
                 >
                   Search
                 </button>
@@ -253,7 +254,7 @@ const Navbar = () => {
 
                       openWeb3Modal();
                     }}
-                    className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-xs font-semibold transition-all hover:opacity-90"
+                    className="hidden lg:flex items-center gap-2 rounded-md bg-[var(--primary)] px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-[var(--primary-hover)]"
                   >
                     <Wallet size={14} />
                     {walletAddress
@@ -263,16 +264,19 @@ const Navbar = () => {
                 ) : (
                   <Link
                     href="/dashboard/create-project"
-                    className="hidden lg:flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-xs font-semibold transition-all hover:opacity-90"
+                    className="hidden lg:flex items-center gap-1.5 rounded-md bg-[var(--primary)] px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-[var(--primary-hover)]"
                   >
                     + Start Campaign
                   </Link>
                 )}
                 <div className="relative group">
-                  <button className="w-10 h-10 rounded-xl bg-[var(--secondary)] text-[var(--primary)] flex items-center justify-center border border-[var(--primary)]/10 hover:border-[var(--primary)] transition-all">
+                  <button
+                    className="flex h-9 w-9 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--secondary)] text-[var(--primary)] transition-colors hover:border-[var(--primary)]"
+                    aria-label="Open account menu"
+                  >
                     <User size={20} />
                   </button>
-                  <div className="absolute right-0 mt-2 w-52 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                  <div className="absolute right-0 z-50 mt-2 w-52 invisible rounded-lg border border-[var(--border)] bg-[var(--card)] py-2 opacity-0 shadow-lg transition-all group-hover:visible group-hover:opacity-100">
                     <Link
                       href="/dashboard"
                       className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold hover:bg-[var(--secondary)] transition-colors"
@@ -327,7 +331,7 @@ const Navbar = () => {
                 setMobileSearchOpen(!mobileSearchOpen);
                 setMobileMenuOpen(false);
               }}
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--secondary)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all"
+              className="flex h-10 w-10 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--secondary)] text-[var(--text-muted)] transition-colors hover:text-[var(--text-main)]"
               aria-label="Search"
             >
               <Search size={18} />
@@ -337,7 +341,7 @@ const Navbar = () => {
                 setMobileMenuOpen(!mobileMenuOpen);
                 setMobileSearchOpen(false);
               }}
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--secondary)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all"
+              className="flex h-10 w-10 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--secondary)] text-[var(--text-muted)] transition-colors hover:text-[var(--text-main)]"
               aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -357,12 +361,12 @@ const Navbar = () => {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") submitSearch();
                 }}
-                placeholder="Search causes..."
-                className="w-full bg-[var(--secondary)] border border-[var(--border)] rounded-2xl h-12 pl-11 pr-24 text-sm font-semibold outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                placeholder="Search projects"
+                className="h-11 w-full rounded-md border border-[var(--border)] bg-[var(--secondary)] pl-11 pr-24 text-sm outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/15"
               />
               <button
                 onClick={submitSearch}
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-4 rounded-xl bg-emerald-600 text-white text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all"
+                className="absolute right-2 top-1/2 h-7 -translate-y-1/2 rounded bg-emerald-700 px-3 text-xs font-semibold text-white transition-colors hover:bg-emerald-800"
               >
                 Go
               </button>
@@ -477,7 +481,7 @@ const Navbar = () => {
               <Link
                 href="/dashboard/create-project"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-between gap-3 px-4 py-4 rounded-2xl bg-emerald-600 text-white font-black text-sm transition-all hover:bg-emerald-700 active:scale-[0.98] mx-1 mt-2"
+                className="mx-1 mt-2 flex items-center justify-between gap-3 rounded-md bg-emerald-700 px-4 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-800"
               >
                 <span>Start a Campaign</span>
                 <ArrowRight size={16} />
@@ -519,7 +523,7 @@ const MobileNavLink = ({
   <Link
     href={href}
     onClick={onClick}
-    className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-[var(--text-main)] hover:bg-[var(--secondary)] transition-all"
+    className="flex items-center gap-3 rounded-md px-4 py-3 text-sm font-medium text-[var(--text-main)] transition-colors hover:bg-[var(--secondary)]"
   >
     <span className="text-[var(--text-muted)]">{icon}</span>
     {label}

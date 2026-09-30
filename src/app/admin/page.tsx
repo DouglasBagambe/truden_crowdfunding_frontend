@@ -88,19 +88,19 @@ function KpiCard({
         : "bg-transparent";
 
   return (
-    <div className="relative bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden flex flex-col">
+    <div className="relative flex flex-col overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--card)]">
       {/* accent bar — the only "color" element; intentional, not decorative */}
       <div className={`h-0.5 w-full ${accentClass}`} />
       <div className="px-5 py-5 flex-1 flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
             {label}
           </p>
           {alertLevel !== "none" && (
             <span className={`h-2 w-2 rounded-full ${alertDot}`} />
           )}
         </div>
-        <p className="text-4xl font-black tracking-tight text-[var(--text-main)] leading-none tabular-nums">
+        <p className="text-3xl font-semibold tracking-tight text-[var(--text-main)] leading-none tabular-nums">
           {value}
         </p>
         {note && (
@@ -507,19 +507,21 @@ export default function AdminPage() {
     <div className="min-h-screen bg-[var(--background)] text-[var(--text-main)]">
       <div className="flex min-h-screen">
         {/* ── Sidebar ── */}
-        <aside className="w-60 border-r border-[var(--border)] bg-[var(--card)] flex flex-col py-8 px-3 gap-1 shrink-0 sticky top-0 h-screen overflow-auto">
-          <div className="px-3 mb-6">
-            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+        <aside className="sticky top-0 flex h-screen w-16 shrink-0 flex-col gap-1 overflow-auto border-r border-[var(--border)] bg-[var(--card)] px-2 py-5 sm:w-60 sm:px-3 sm:py-6">
+          <div className="mb-5 px-2 sm:mb-6 sm:px-3">
+            <p className="hidden text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)] sm:block">
               Keibo
             </p>
-            <h1 className="text-xl font-black">Admin Panel</h1>
+            <h1 className="text-center text-xl font-semibold sm:text-left">
+              K<span className="hidden sm:inline">EIBO</span>
+            </h1>
           </div>
 
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center justify-between px-3 py-3 rounded-xl text-sm font-bold transition-all ${
+              className={`flex items-center justify-between rounded-md px-3 py-3 text-sm font-medium transition-colors ${
                 activeTab === tab.key
                   ? "bg-[var(--primary)] text-white"
                   : "text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--secondary)]"
@@ -527,11 +529,11 @@ export default function AdminPage() {
             >
               <span className="flex items-center gap-3">
                 {tab.icon}
-                {tab.label}
+                <span className="hidden sm:inline">{tab.label}</span>
               </span>
               {tab.badge !== undefined && (
                 <span
-                  className={`text-[10px] font-black px-2 py-0.5 rounded-full ${activeTab === tab.key ? "bg-white/20 text-white" : "bg-amber-500 text-white"}`}
+                  className={`hidden rounded-full px-2 py-0.5 text-[10px] font-semibold sm:inline ${activeTab === tab.key ? "bg-white/20 text-white" : "bg-amber-500 text-white"}`}
                 >
                   {tab.badge}
                 </span>
@@ -542,15 +544,16 @@ export default function AdminPage() {
           <div className="mt-auto pt-6 border-t border-[var(--border)] space-y-1">
             <Link
               href="/"
-              className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--secondary)] transition-all"
+              className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium text-[var(--text-muted)] transition-colors hover:bg-[var(--secondary)] hover:text-[var(--text-main)]"
             >
-              <ArrowLeft size={16} /> Back to App
+              <ArrowLeft size={16} />
+              <span className="hidden sm:inline">Back to App</span>
             </Link>
           </div>
         </aside>
 
         {/* ── Main Content ── */}
-        <main className="flex-1 p-8 overflow-auto">
+        <main className="min-w-0 flex-1 overflow-auto p-4 sm:p-8">
           <motion.div
             key={activeTab}
             initial={{ opacity: 0, y: 8 }}
@@ -565,10 +568,10 @@ export default function AdminPage() {
                 {/* Page header */}
                 <div className="flex items-start justify-between gap-6">
                   <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--text-muted)] mb-1">
+                    <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
                       Operations
                     </p>
-                    <h2 className="text-2xl font-black tracking-tight">
+                    <h2 className="text-2xl font-semibold tracking-tight">
                       Platform Overview
                     </h2>
                     <p className="mt-1 text-sm text-[var(--text-muted)] max-w-md">
@@ -583,7 +586,7 @@ export default function AdminPage() {
                       loadKycProfiles();
                       loadPayouts();
                     }}
-                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2.5 text-sm font-semibold text-[var(--text-main)] hover:bg-[var(--secondary)] transition-all shrink-0"
+                    className="button_secondary shrink-0 gap-2"
                   >
                     <RefreshCw size={14} className="text-[var(--text-muted)]" />
                     Refresh
@@ -838,7 +841,9 @@ export default function AdminPage() {
               <div className="space-y-6">
                 <div className="flex items-center justify-between flex-wrap gap-4">
                   <div>
-                    <h2 className="text-2xl font-black">Campaign Management</h2>
+                    <h2 className="text-2xl font-semibold">
+                      Campaign management
+                    </h2>
                     <p className="text-sm text-[var(--text-muted)] mt-1">
                       Approve, reject, or request changes for submitted
                       campaigns. Rejected campaigns are hidden from the public.
@@ -852,13 +857,13 @@ export default function AdminPage() {
                         placeholder="Search..."
                         value={projectSearch}
                         onChange={(e) => setProjectSearch(e.target.value)}
-                        className="pl-9 pr-4 py-2 rounded-xl bg-[var(--secondary)] border border-[var(--border)] text-sm font-medium outline-none focus:border-[var(--primary)] w-48"
+                        className="w-48 rounded-md border border-[var(--border)] bg-[var(--secondary)] py-2 pl-9 pr-4 text-sm outline-none focus:border-[var(--primary)]"
                       />
                     </div>
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-3 py-2 rounded-xl bg-[var(--secondary)] border border-[var(--border)] text-sm font-bold outline-none"
+                      className="rounded-md border border-[var(--border)] bg-[var(--secondary)] px-3 py-2 text-sm font-medium outline-none"
                     >
                       <option value="">All Statuses</option>
                       <option value="PENDING_REVIEW">Pending Review</option>
@@ -873,7 +878,7 @@ export default function AdminPage() {
                     <button
                       onClick={loadProjects}
                       disabled={loadingProjects}
-                      className="p-2 rounded-xl bg-[var(--secondary)] border border-[var(--border)] hover:border-[var(--primary)] transition-all"
+                      className="rounded-md border border-[var(--border)] bg-[var(--secondary)] p-2 transition-colors hover:border-[var(--primary)]"
                     >
                       <RefreshCw
                         size={16}
@@ -889,11 +894,11 @@ export default function AdminPage() {
 
                 <div className="space-y-4">
                   {loadingProjects ? (
-                    <div className="py-20 flex items-center justify-center bg-[var(--card)] rounded-3xl border border-[var(--border)]">
+                    <div className="flex justify-center rounded-lg border border-[var(--border)] bg-[var(--card)] py-16">
                       <Loader2 className="w-8 h-8 text-[var(--primary)] animate-spin" />
                     </div>
                   ) : filteredProjects.length === 0 ? (
-                    <div className="py-20 text-center bg-[var(--card)] rounded-3xl border border-[var(--border)] text-[var(--text-muted)] font-medium">
+                    <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] py-16 text-center font-medium text-[var(--text-muted)]">
                       No campaigns found.
                     </div>
                   ) : (
@@ -1239,7 +1244,7 @@ export default function AdminPage() {
               <div className="space-y-6">
                 <div className="flex items-center justify-between flex-wrap gap-4">
                   <div>
-                    <h2 className="text-2xl font-black">User Management</h2>
+                    <h2 className="text-2xl font-semibold">User management</h2>
                     <p className="text-sm text-[var(--text-muted)] mt-1">
                       Block/unblock users and change their roles.
                     </p>
@@ -1252,13 +1257,13 @@ export default function AdminPage() {
                         placeholder="Search users..."
                         value={userSearch}
                         onChange={(e) => setUserSearch(e.target.value)}
-                        className="pl-9 pr-4 py-2 rounded-xl bg-[var(--secondary)] border border-[var(--border)] text-sm outline-none focus:border-[var(--primary)] w-52"
+                        className="w-52 rounded-md border border-[var(--border)] bg-[var(--secondary)] py-2 pl-9 pr-4 text-sm outline-none focus:border-[var(--primary)]"
                       />
                     </div>
                     <button
                       onClick={loadUsers}
                       disabled={loadingUsers}
-                      className="p-2 rounded-xl bg-[var(--secondary)] border border-[var(--border)] hover:border-[var(--primary)] transition-all"
+                      className="rounded-md border border-[var(--border)] bg-[var(--secondary)] p-2 transition-colors hover:border-[var(--primary)]"
                     >
                       <RefreshCw
                         size={16}
@@ -1272,7 +1277,7 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                <div className="bg-[var(--card)] rounded-3xl border border-[var(--border)] overflow-hidden">
+                <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--card)]">
                   <div className="hidden lg:grid grid-cols-12 px-6 py-3 border-b border-[var(--border)] bg-[var(--secondary)]">
                     {(
                       [

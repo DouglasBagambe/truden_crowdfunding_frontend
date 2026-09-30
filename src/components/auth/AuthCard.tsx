@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React from 'react';
-import AuthSidebar from './AuthSidebar';
-import { motion } from 'framer-motion';
+import React from "react";
+import AuthSidebar from "./AuthSidebar";
+import { motion } from "framer-motion";
 
 interface AuthCardProps {
   children: React.ReactNode;
@@ -14,13 +14,11 @@ const AuthCard = ({ children }: AuthCardProps) => {
       <motion.div
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="flex w-full max-w-[1000px] bg-[var(--card)] rounded-3xl shadow-2xl overflow-hidden border border-[var(--border)]"
+        className="flex w-full max-w-[980px] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-xl"
       >
         <AuthSidebar />
         <div className="flex-1 p-6 sm:p-8 lg:p-14 flex flex-col justify-center">
-          <div className="w-full max-w-sm mx-auto">
-            {children}
-          </div>
+          <div className="w-full max-w-sm mx-auto">{children}</div>
         </div>
       </motion.div>
     </div>

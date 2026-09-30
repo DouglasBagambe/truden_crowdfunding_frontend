@@ -500,20 +500,20 @@ export default function CreateProjectPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col pt-16">
+    <div className="min-h-screen bg-[var(--background)] flex flex-col">
       {/* Step Indicator */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 py-3 sm:py-4 shadow-sm">
+      <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--card)] py-3 shadow-sm">
         <div className="max-w-4xl mx-auto px-4">
           <div className="flex items-center justify-between">
             {[1, 2, 3, 4, 5, 6].map((s) => (
               <div key={s} className="flex items-center">
                 <div
-                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold transition-all text-sm ${
+                  className={`flex h-7 w-7 items-center justify-center rounded-md text-xs font-semibold transition-colors sm:h-8 sm:w-8 ${
                     s === step
-                      ? "bg-blue-600 text-white shadow-lg ring-4 ring-blue-100"
+                      ? "bg-[var(--primary)] text-white shadow-sm"
                       : s < step
-                        ? "bg-emerald-500 text-white"
-                        : "bg-gray-200 text-gray-400"
+                        ? "bg-emerald-700 text-white"
+                        : "bg-[var(--secondary)] text-[var(--text-muted)]"
                   }`}
                 >
                   {s < step ? (
@@ -524,13 +524,13 @@ export default function CreateProjectPage() {
                 </div>
                 {s < 6 && (
                   <div
-                    className={`h-1 w-4 sm:w-16 mx-0.5 sm:mx-1 rounded-full ${s < step ? "bg-emerald-500" : "bg-gray-200"}`}
+                    className={`mx-1 h-px w-3 sm:w-12 ${s < step ? "bg-emerald-700" : "bg-[var(--border)]"}`}
                   />
                 )}
               </div>
             ))}
           </div>
-          <div className="hidden sm:flex justify-between mt-3 text-[9px] font-black uppercase tracking-widest text-gray-500 px-1 overflow-x-auto gap-2">
+          <div className="mt-3 hidden justify-between gap-2 overflow-x-auto px-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)] sm:flex">
             <span>Project Type</span>
             <span>Basic Info</span>
             <span>Story</span>
@@ -541,7 +541,7 @@ export default function CreateProjectPage() {
         </div>
       </div>
 
-      <div className="flex-grow max-w-4xl mx-auto w-full px-4 py-8">
+      <div className="mx-auto w-full max-w-4xl flex-grow px-4 py-6 sm:py-8">
         <AnimatePresence mode="wait">
           {/* Step 1: Choose Path */}
           {step === 1 && (
@@ -1078,10 +1078,10 @@ export default function CreateProjectPage() {
                       disabled={loading}
                     />
                     <div
-                      className={`flex flex-col items-center justify-center border-4 border-dashed p-8 rounded-[2.5rem] transition-all h-full ${
+                      className={`flex h-full min-h-48 flex-col items-center justify-center rounded-lg border border-dashed p-5 transition-colors ${
                         coverPreviewUrl || formData.imageUrl
-                          ? "bg-blue-50 border-blue-400"
-                          : "bg-gray-50/50 border-gray-100 hover:bg-blue-50 hover:border-blue-200"
+                          ? "border-[var(--primary)] bg-[var(--primary)]/5"
+                          : "border-[var(--border)] bg-[var(--secondary)] hover:border-[var(--primary)]"
                       }`}
                     >
                       {coverPreviewUrl || formData.imageUrl ? (
@@ -1089,13 +1089,13 @@ export default function CreateProjectPage() {
                           <div
                             role="img"
                             aria-label="Project cover preview"
-                            className="w-full h-full rounded-2xl bg-cover bg-center shadow-lg"
+                            className="h-full min-h-[140px] w-full rounded-md bg-cover bg-center"
                             style={{
                               backgroundImage: `url(${coverPreviewUrl || formData.imageUrl})`,
                             }}
                           />
-                          <div className="absolute inset-0 bg-black/20 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <span className="text-white text-[10px] font-black uppercase tracking-widest">
+                          <div className="absolute inset-0 flex items-center justify-center rounded-md bg-black/30 opacity-0 transition-opacity group-hover:opacity-100">
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-white">
                               Change Cover
                             </span>
                           </div>
@@ -1116,14 +1116,14 @@ export default function CreateProjectPage() {
                         </div>
                       ) : (
                         <>
-                          <div className="w-16 h-16 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-all duration-500">
-                            <Star className="w-8 h-8" />
+                          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-md bg-[var(--primary)]/10 text-[var(--primary)]">
+                            <Star className="h-5 w-5" />
                           </div>
-                          <p className="font-black text-gray-900 text-lg">
+                          <p className="text-base font-semibold text-[var(--text-main)]">
                             Featured Cover
                           </p>
-                          <p className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-widest text-center">
-                            Main project image
+                          <p className="mt-1 text-center text-xs text-[var(--text-muted)]">
+                            Main image · 16:9 recommended
                           </p>
                         </>
                       )}
@@ -1138,14 +1138,14 @@ export default function CreateProjectPage() {
                       className="absolute inset-0 opacity-0 cursor-pointer z-10"
                       disabled={loading}
                     />
-                    <div className="flex flex-col items-center justify-center border-4 border-dashed border-gray-100 p-8 rounded-[2.5rem] bg-gray-50/50 group-hover:bg-blue-50 group-hover:border-blue-200 transition-all h-full">
-                      <div className="w-16 h-16 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
-                        <Upload className="w-8 h-8" />
+                    <div className="flex h-full min-h-48 flex-col items-center justify-center rounded-lg border border-dashed border-[var(--border)] bg-[var(--secondary)] p-5 transition-colors group-hover:border-[var(--primary)]">
+                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-md bg-[var(--primary)]/10 text-[var(--primary)]">
+                        <Upload className="h-5 w-5" />
                       </div>
-                      <p className="font-black text-gray-900 text-lg">
+                      <p className="text-base font-semibold text-[var(--text-main)]">
                         Photo Gallery
                       </p>
-                      <p className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-widest text-center">
+                      <p className="mt-1 text-center text-xs text-[var(--text-muted)]">
                         Add high-quality photos
                       </p>
                     </div>
@@ -1158,14 +1158,14 @@ export default function CreateProjectPage() {
                       className="absolute inset-0 opacity-0 cursor-pointer z-10"
                       disabled={loading}
                     />
-                    <div className="flex flex-col items-center justify-center border-4 border-dashed border-gray-100 p-8 rounded-[2.5rem] bg-gray-50/50 group-hover:bg-amber-50 group-hover:border-amber-200 transition-all h-full">
-                      <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:-rotate-6 transition-all duration-500">
-                        <PlaySquare className="w-8 h-8" />
+                    <div className="flex h-full min-h-48 flex-col items-center justify-center rounded-lg border border-dashed border-[var(--border)] bg-[var(--secondary)] p-5 transition-colors group-hover:border-amber-500">
+                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-md bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
+                        <PlaySquare className="h-5 w-5" />
                       </div>
-                      <p className="font-black text-gray-900 text-lg">
+                      <p className="text-base font-semibold text-[var(--text-main)]">
                         Video Pitch
                       </p>
-                      <p className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-widest text-center">
+                      <p className="mt-1 text-center text-xs text-[var(--text-muted)]">
                         Optional 1-2min video
                       </p>
                     </div>

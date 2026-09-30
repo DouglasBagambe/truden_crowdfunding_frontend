@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ImageOff } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { isCharityProject } from "@/lib/roi-access";
@@ -31,8 +31,9 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
   const projectId = project._id || project.id;
   const projectName = project.name || project.title || "Untitled Project";
   const raised = project.raisedAmount || 0;
-  const goal = project.goalAmount || project.targetAmount || 100000;
-  const percentage = Math.min((raised / goal) * 100, 100);
+  const goal = project.goalAmount || project.targetAmount;
+  const percentage =
+    goal && goal > 0 ? Math.min((raised / goal) * 100, 100) : 0;
 
   const isCharity = isCharityProject(project);
 
@@ -47,13 +48,13 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
 
   return (
     <Link href={`/projects/${projectId}`}>
-      <motion.div
+      <motion.article
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         whileHover={{ y: -8 }}
         transition={{ duration: 0.3 }}
-        className="bg-[var(--card)] rounded-2xl overflow-hidden border border-[var(--border)] shadow-sm hover:shadow-xl transition-all cursor-pointer group h-full flex flex-col"
+        className="overflow-hidden border border-[var(--border)] bg-[var(--card)] shadow-sm transition-shadow hover:shadow-md cursor-pointer group h-full flex flex-col"
         onClick={onClick}
       >
         {/* Project Image */}
@@ -68,24 +69,22 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-              <div className="text-4xl opacity-10 italic font-black tracking-tighter text-gray-900">
-                KEIBO
-              </div>
+            <div className="flex h-full w-full items-center justify-center bg-[var(--secondary)] text-[var(--text-muted)]">
+              <ImageOff size={22} aria-hidden="true" />
             </div>
           )}
 
           {/* Project Type & Status Badge */}
-          <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
+          <div className="absolute right-3 top-3 flex flex-col items-end gap-1.5">
             <span
-              className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg ${accentBg} text-white`}
+              className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] shadow-sm ${accentBg} text-white`}
             >
               {isCharity ? "Charity" : "ROI"}
             </span>
             {project.status &&
               project.status !== "APPROVED" &&
               project.status !== "FUNDING" && (
-                <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-black/60 text-white backdrop-blur-md shadow-lg border border-white/20">
+                <span className="rounded-full border border-white/20 bg-black/60 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white backdrop-blur-md">
                   {project.status}
                 </span>
               )}
@@ -93,29 +92,31 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
         </div>
 
         {/* Project Details */}
-        <div className="p-6 space-y-4 flex-grow flex flex-col">
+        <div className="flex flex-grow flex-col space-y-4 p-5">
           <div className="space-y-2 flex-grow">
             <h3
-              className={`text-xl font-bold text-[var(--text-main)] ${accentHoverText} transition-colors line-clamp-1`}
+              className={`text-base font-semibold text-[var(--text-main)] ${accentHoverText} transition-colors line-clamp-2`}
             >
               {projectName}
             </h3>
-            <p className="text-sm text-[var(--text-muted)] line-clamp-2 font-medium italic">
+            <p className="line-clamp-2 text-sm leading-6 text-[var(--text-muted)]">
               {project.description ||
                 project.summary ||
-                "An innovative project making a difference in the community."}
+                "Campaign details are being prepared by the creator."}
             </p>
           </div>
 
           {/* Progress Bar Container */}
           <div className="pt-4 border-t border-[var(--border)] mt-auto space-y-4">
             <div className="space-y-2">
-              <div className="flex justify-between text-xs font-black uppercase tracking-widest">
+              <div className="flex justify-between text-xs font-semibold tabular-nums">
                 <span className={accentText}>
                   UGX {raised.toLocaleString()}
                 </span>
                 <span className="text-[var(--text-muted)]">
-                  {percentage.toFixed(0)}%
+                  {goal
+                    ? `${percentage.toFixed(0)}% of UGX ${goal.toLocaleString()}`
+                    : "Goal not published"}
                 </span>
               </div>
               <div className="w-full bg-[var(--secondary)] rounded-full h-2 overflow-hidden">
@@ -131,18 +132,18 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
 
             {/* View Details Button */}
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
-                View Detail
+              <span className="text-xs font-semibold text-[var(--text-muted)]">
+                View campaign
               </span>
               <div
-                className={`w-8 h-8 rounded-full bg-[var(--secondary)] flex items-center justify-center group-hover:text-white transition-all ${accentHoverBg}`}
+                className={`flex h-8 w-8 items-center justify-center rounded-md bg-[var(--secondary)] transition-colors group-hover:text-white ${accentHoverBg}`}
               >
                 <ArrowRight size={14} />
               </div>
             </div>
           </div>
         </div>
-      </motion.div>
+      </motion.article>
     </Link>
   );
 }

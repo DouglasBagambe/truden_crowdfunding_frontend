@@ -18,6 +18,9 @@ import {
   CheckCircle2,
   ExternalLink,
   Link2,
+  ImageOff,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -381,8 +384,8 @@ export default function ProjectDetailPageClient() {
     <div className="min-h-screen bg-[var(--background)] text-[var(--text-main)]">
       <Navbar />
 
-      <main className="pt-20 pb-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <main className="pb-16 pt-20 sm:pt-24">
+        <div className="page-shell">
           {/* Back Button */}
           <button
             onClick={() => router.back()}
@@ -528,36 +531,20 @@ export default function ProjectDetailPageClient() {
                               );
                             })
                           }
-                          className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors"
+                          className="absolute left-3 top-1/2 -translate-y-1/2 rounded-md bg-black/45 p-2 text-white transition-colors hover:bg-black/65"
                           aria-label="Previous"
                         >
-                          <svg
-                            width="20"
-                            height="20"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                          >
-                            <path d="M15 19l-7-7 7-7" />
-                          </svg>
+                          <ChevronLeft size={20} />
                         </button>
                         <button
                           onClick={() => {
                             setMediaFailed(false);
                             setMediaIndex((i) => (i + 1) % mediaItems.length);
                           }}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md bg-black/45 p-2 text-white transition-colors hover:bg-black/65"
                           aria-label="Next"
                         >
-                          <svg
-                            width="20"
-                            height="20"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                          >
-                            <path d="M9 5l7 7-7 7" />
-                          </svg>
+                          <ChevronRight size={20} />
                         </button>
                         {/* Dots */}
                         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
@@ -577,9 +564,10 @@ export default function ProjectDetailPageClient() {
                     )}
                   </>
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <span className="text-4xl font-semibold tracking-tight opacity-20 select-none">
-                      KEIBO
+                  <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-[var(--text-muted)]">
+                    <ImageOff size={26} aria-hidden="true" />
+                    <span className="text-sm font-medium">
+                      Campaign media is not available
                     </span>
                   </div>
                 )}
@@ -619,7 +607,7 @@ export default function ProjectDetailPageClient() {
                     {project.story ? (
                       <ExpandableStory story={project.story} />
                     ) : (
-                      <div className="bg-[var(--card)] p-8 rounded-3xl border border-[var(--border)] leading-loose text-lg space-y-4">
+                      <div className="space-y-4 rounded-lg border border-[var(--border)] bg-[var(--card)] p-6 text-base leading-7">
                         <p className="text-[var(--text-muted)]">
                           No story provided yet.
                         </p>
@@ -628,8 +616,8 @@ export default function ProjectDetailPageClient() {
 
                     {/* Use of Funds */}
                     {project.useOfFunds && project.useOfFunds.length > 0 && (
-                      <div className="bg-[var(--card)] p-8 rounded-3xl border border-[var(--border)]">
-                        <h3 className="text-xl font-black mb-6 flex items-center gap-2">
+                      <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-6">
+                        <h3 className="mb-5 flex items-center gap-2 text-xl font-semibold">
                           <TrendingUp
                             className="text-[var(--primary)]"
                             size={20}

@@ -24,6 +24,7 @@ import {
 import { userService } from "@/lib/user-service";
 import { authService, type MfaSetupResponse } from "@/lib/auth-service";
 import { WalletView } from "@/components/dashboard/WalletView";
+import { NotificationsView } from "@/components/dashboard/NotificationsView";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import toast from "react-hot-toast";
@@ -61,10 +62,6 @@ export default function SettingsPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Notification prefs (local only for now)
-  const [notifDonations, setNotifDonations] = useState(true);
-  const [notifMilestones, setNotifMilestones] = useState(true);
-  const [notifMarketing, setNotifMarketing] = useState(false);
   const [mfaSetup, setMfaSetup] = useState<MfaSetupResponse | null>(null);
   const [mfaSetupCode, setMfaSetupCode] = useState("");
   const [mfaEmailSetupStarted, setMfaEmailSetupStarted] = useState(false);
@@ -238,8 +235,9 @@ export default function SettingsPage() {
           >
             {/* Header */}
             <div className="space-y-1">
-              <h1 className="text-3xl sm:text-4xl font-black tracking-tight">
-                Settings
+              <p className="eyebrow">Account</p>
+              <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+                Account settings
               </h1>
               <p className="text-[var(--text-muted)] font-medium text-sm sm:text-base">
                 Manage your account, wallet, and preferences.
@@ -450,48 +448,7 @@ export default function SettingsPage() {
                 {activeTab === "wallet" && <WalletView />}
 
                 {/* ── NOTIFICATIONS ── */}
-                {activeTab === "notifications" && (
-                  <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 space-y-8">
-                    <div>
-                      <h2 className="text-xl font-black">Notifications</h2>
-                      <p className="text-sm text-[var(--text-muted)] mt-1">
-                        Choose what you want to be alerted about.
-                      </p>
-                    </div>
-                    <div className="space-y-6 divide-y divide-[var(--border)]">
-                      <NotifRow
-                        label="Donation Alerts"
-                        desc="Get notified by email when someone donates to your campaign."
-                        checked={notifDonations}
-                        onChange={setNotifDonations}
-                      />
-                      <NotifRow
-                        label="Campaign Milestones"
-                        desc="Receive updates when your campaign hits funding targets."
-                        checked={notifMilestones}
-                        onChange={setNotifMilestones}
-                        className="pt-6"
-                      />
-                      <NotifRow
-                        label="Platform News & Tips"
-                        desc="Occasional tips and product updates from the Keibo team."
-                        checked={notifMarketing}
-                        onChange={setNotifMarketing}
-                        className="pt-6"
-                      />
-                    </div>
-                    <div className="flex justify-end pt-2">
-                      <button
-                        onClick={() =>
-                          toast.success("Notification preferences saved")
-                        }
-                        className="button_primary px-10"
-                      >
-                        Save Preferences
-                      </button>
-                    </div>
-                  </div>
-                )}
+                {activeTab === "notifications" && <NotificationsView />}
 
                 {/* ── APPEARANCE ── */}
                 {activeTab === "appearance" && (
@@ -533,7 +490,7 @@ export default function SettingsPage() {
                                 />
                               ),
                               preview:
-                                "bg-gradient-to-br from-white to-[#0d1828] border-gray-300",
+                                "bg-[var(--secondary)] border-[var(--border)]",
                             },
                           ] as const
                         ).map((opt) => {
@@ -542,14 +499,14 @@ export default function SettingsPage() {
                             <button
                               key={opt.id}
                               onClick={() => setTheme(opt.id)}
-                              className={`flex flex-col items-center gap-3 p-5 rounded-2xl border-2 transition-all text-center ${
+                              className={`flex flex-col items-center gap-3 rounded-lg border p-4 transition-colors text-center ${
                                 active
                                   ? "border-[var(--primary)] bg-[var(--primary)]/5"
                                   : "border-[var(--border)] hover:border-[var(--text-muted)]/40 hover:bg-[var(--secondary)]"
                               }`}
                             >
                               <div
-                                className={`w-full h-16 rounded-xl border ${opt.preview} flex items-center justify-center`}
+                                className={`flex h-14 w-full items-center justify-center rounded-md border ${opt.preview}`}
                               >
                                 {opt.icon}
                               </div>
@@ -892,44 +849,5 @@ const FieldGroup = ({
       {label}
     </label>
     {children}
-  </div>
-);
-
-const Toggle = ({
-  checked,
-  onChange,
-}: {
-  checked: boolean;
-  onChange: () => void;
-}) => (
-  <button
-    onClick={onChange}
-    className={`relative w-12 h-6 rounded-full transition-all ${checked ? "bg-emerald-500" : "bg-[var(--border)]"}`}
-  >
-    <span
-      className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-6" : ""}`}
-    />
-  </button>
-);
-
-const NotifRow = ({
-  label,
-  desc,
-  checked,
-  onChange,
-  className = "",
-}: {
-  label: string;
-  desc: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  className?: string;
-}) => (
-  <div className={`flex items-center justify-between ${className}`}>
-    <div className="space-y-0.5 flex-1 pr-6">
-      <p className="font-bold text-sm">{label}</p>
-      <p className="text-xs text-[var(--text-muted)]">{desc}</p>
-    </div>
-    <Toggle checked={checked} onChange={() => onChange(!checked)} />
   </div>
 );

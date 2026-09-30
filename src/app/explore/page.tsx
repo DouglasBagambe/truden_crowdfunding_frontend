@@ -284,7 +284,7 @@ function ExplorePageContent() {
     <div className="bg-[var(--background)] min-h-screen text-[var(--text-main)]">
       <Navbar />
 
-      <main className="pt-24 pb-20 container mx-auto px-4 sm:px-6 lg:px-12">
+      <main className="page-shell pb-16 pt-24">
         {/* Header Row: Search + Controls */}
         <div className="flex flex-col gap-4 mb-8">
           {/* Search Bar */}
@@ -297,7 +297,7 @@ function ExplorePageContent() {
               placeholder="Search projects by title or description..."
               value={draftSearch}
               onChange={(e) => setDraftSearch(e.target.value)}
-              className={`w-full bg-[var(--card)] border border-[var(--border)] rounded-2xl py-3.5 pl-12 pr-4 focus:ring-4 ${accent.focusRing} outline-none transition-all shadow-sm font-medium`}
+              className={`w-full rounded-md border border-[var(--border)] bg-[var(--card)] py-3 pl-12 pr-4 font-medium shadow-sm outline-none transition-all focus:ring-2 ${accent.focusRing}`}
             />
           </div>
 
@@ -306,7 +306,7 @@ function ExplorePageContent() {
             {/* Mobile: Filter toggle button */}
             <button
               onClick={() => setMobileFiltersOpen(true)}
-              className="lg:hidden flex items-center gap-2 py-2.5 px-4 rounded-xl border border-[var(--border)] bg-[var(--card)] text-sm font-bold text-[var(--text-muted)] hover:border-[var(--primary)]/50 transition-all shadow-sm flex-shrink-0"
+              className="button_secondary lg:hidden gap-2"
             >
               <Filter size={16} /> Filters
               {(appliedCategory !== "ALL" ||
@@ -327,7 +327,7 @@ function ExplorePageContent() {
             <select
               value={draftSortBy}
               onChange={(e) => setDraftSortBy(e.target.value)}
-              className={`flex-1 sm:flex-none bg-[var(--card)] border border-[var(--border)] rounded-xl py-2.5 px-4 text-sm font-bold text-[var(--text-muted)] outline-none transition-all shadow-sm cursor-pointer ${accent.hoverBorder}`}
+              className={`flex-1 cursor-pointer rounded-md border border-[var(--border)] bg-[var(--card)] px-3 py-2.5 text-sm font-medium text-[var(--text-muted)] shadow-sm outline-none transition-colors sm:flex-none ${accent.hoverBorder}`}
             >
               <option value="newest">Newest First</option>
               <option value="ending">Ending Soon</option>
@@ -335,7 +335,7 @@ function ExplorePageContent() {
             </select>
             <Link
               href="/dashboard/create-project"
-              className={`${accent.newButton} text-white font-bold py-2.5 px-4 sm:px-6 rounded-xl flex items-center gap-2 transition-all shadow-lg text-sm whitespace-nowrap flex-shrink-0`}
+              className={`${accent.newButton} flex shrink-0 items-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors whitespace-nowrap`}
             >
               <Plus size={18} />
               <span className="hidden sm:inline">New Project</span>
@@ -347,8 +347,8 @@ function ExplorePageContent() {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Desktop Sidebar Filters */}
           <aside className="hidden lg:block lg:w-80 space-y-8 flex-shrink-0">
-            <div className="bg-[var(--card)] border border-[var(--border)] rounded-[2rem] p-8 space-y-10 shadow-sm">
-              <h2 className="text-xl font-black tracking-tight border-b border-[var(--border)] pb-4">
+            <div className="space-y-8 rounded-lg border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
+              <h2 className="border-b border-[var(--border)] pb-4 text-xl font-semibold tracking-tight">
                 Filters
               </h2>
 
@@ -498,22 +498,21 @@ function ExplorePageContent() {
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-[2rem] p-8 text-white space-y-4 relative overflow-hidden shadow-xl shadow-emerald-500/20">
-              <Heart className="w-12 h-12 text-emerald-200 opacity-50 mb-2" />
-              <h3 className="text-2xl font-black leading-tight">
-                Start a cause.
+            <div className="relative space-y-4 overflow-hidden rounded-lg border border-emerald-800 bg-emerald-800 p-5 text-white shadow-sm">
+              <Heart className="mb-1 h-7 w-7 text-emerald-200" />
+              <h3 className="text-xl font-semibold leading-tight">
+                Start a campaign
               </h3>
               <p className="text-emerald-100 text-sm font-medium leading-relaxed">
-                Launch your charity campaign and reach thousands of donors
-                today.
+                Share the purpose, funding plan, and media your supporters need
+                to understand it.
               </p>
               <a
                 href="/dashboard/create-project"
-                className="w-full py-4 bg-white text-emerald-700 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg block text-center"
+                className="block w-full rounded-md bg-white py-2.5 text-center text-sm font-semibold text-emerald-800 transition-colors hover:bg-emerald-50"
               >
                 Start Campaign
               </a>
-              <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
             </div>
           </aside>
 
