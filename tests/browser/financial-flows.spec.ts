@@ -204,29 +204,36 @@ test.describe("KEIBO financial fail-closed surfaces", () => {
       }),
     );
     await page.route(
-      "**/api/financial/payout-destinations/dest-1/disable",
+      "**/api/financial/payout-destinations**",
       async (route) => {
-        destinations = [{ ...destinations[0], status: "disabled" }];
-        await route.fulfill({ json: destinations[0] });
+        const pathname = new URL(route.request().url()).pathname;
+        if (pathname.endsWith("/dest-1/disable")) {
+          destinations = [
+            { ...destinations[0], status: "disabled" },
+            ...destinations.slice(1),
+          ];
+          return route.fulfill({ json: destinations[0] });
+        }
+        if (route.request().method() === "GET") {
+          return route.fulfill({ json: destinations });
+        }
+        const body = route.request().postDataJSON() as {
+          accountNumber: string;
+        };
+        expect(body.accountNumber).toBe("0770000000");
+        destinations = [
+          ...destinations,
+          {
+            id: "dest-2",
+            type: "bank",
+            currency: "UGX",
+            maskedDisplay: "Bank •••• 9876",
+            status: "verified",
+          },
+        ];
+        return route.fulfill({ json: destinations[1] });
       },
     );
-    await page.route("**/api/financial/payout-destinations", async (route) => {
-      if (route.request().method() === "GET")
-        return route.fulfill({ json: destinations });
-      const body = route.request().postDataJSON() as { accountNumber: string };
-      expect(body.accountNumber).toBe("0770000000");
-      destinations = [
-        ...destinations,
-        {
-          id: "dest-2",
-          type: "bank",
-          currency: "UGX",
-          maskedDisplay: "Bank •••• 9876",
-          status: "verified",
-        },
-      ];
-      return route.fulfill({ json: destinations[1] });
-    });
     await page.route("**/api/financial/payouts", (route) =>
       route.fulfill({
         json: [
