@@ -17,8 +17,6 @@ import { authService } from "@/lib/auth-service";
 import { buildVerifyEmailUrl } from "@/lib/email-verification";
 import {
   Search,
-  ArrowUpRight,
-  Shield,
   PlusCircle,
   LayoutDashboard,
   Wallet,
@@ -66,13 +64,6 @@ interface KPICardProps {
   value: string;
   trend?: string;
   icon: React.ReactNode;
-}
-
-interface ActivityEntryProps {
-  label: string;
-  time: string;
-  desc: string;
-  type: "finance" | "governance" | "success";
 }
 
 export default function DashboardPage() {
@@ -715,91 +706,6 @@ const KPICard = ({ label, value, trend, icon }: KPICardProps) => (
           {trend}
         </span>
       )}
-    </div>
-  </div>
-);
-
-const VoteCard = ({
-  title,
-  description,
-  status,
-  progress,
-}: {
-  title: string;
-  description: string;
-  status: string;
-  progress: number;
-}) => {
-  const isPassing = status === "passing";
-
-  return (
-    <div className="space-y-3 p-5 rounded-2xl bg-[var(--background)] border border-[var(--border)] hover:border-[var(--primary)]/30 transition-all">
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-1 flex-1">
-          <h4 className="text-sm font-bold text-[var(--text-main)]">{title}</h4>
-          <p className="text-xs text-[var(--text-muted)] font-medium">
-            {description}
-          </p>
-        </div>
-        <span
-          className={`chip-base chip-compact rounded-lg shrink-0 ${
-            isPassing ? "chip-success" : "chip-danger"
-          }`}
-        >
-          {status}
-        </span>
-      </div>
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-[10px] font-bold">
-          <span className="text-[var(--text-muted)] uppercase tracking-widest">
-            Progress
-          </span>
-          <span
-            className={
-              isPassing
-                ? "text-emerald-600 dark:text-emerald-400"
-                : "text-red-600 dark:text-red-400"
-            }
-          >
-            {progress}%
-          </span>
-        </div>
-        <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all ${
-              isPassing
-                ? "bg-gradient-to-r from-emerald-500 to-emerald-600"
-                : "bg-gradient-to-r from-red-500 to-red-600"
-            }`}
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ActivityEntry = ({ label, time, desc, type }: ActivityEntryProps) => (
-  <div className="flex gap-4">
-    <div
-      className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${
-        type === "finance"
-          ? "bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800/30"
-          : type === "success"
-            ? "bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/30"
-            : "bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/30"
-      }`}
-    >
-      {type === "finance" && <Wallet size={16} />}
-      {type === "success" && <ArrowUpRight size={16} />}
-      {type === "governance" && <Shield size={16} />}
-    </div>
-    <div className="space-y-0.5">
-      <p className="text-xs font-bold text-[var(--text-main)]">{label}</p>
-      <p className="text-xs text-[var(--text-muted)] font-medium">{desc}</p>
-      <p className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-[0.1em] pt-1 opacity-60">
-        {time}
-      </p>
     </div>
   </div>
 );
