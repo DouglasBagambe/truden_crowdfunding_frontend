@@ -42,7 +42,11 @@ test.describe("KEIBO financial fail-closed surfaces", () => {
     const consoleErrors: string[] = [];
     const pageErrors: string[] = [];
     page.on("request", (request) => {
-      if (/\/(marketplace|nfts)(\/|$)/.test(new URL(request.url()).pathname))
+      if (
+        /^\/api\/(marketplace|nfts?|wallet\/withdrawal-method)(\/|$)/.test(
+          new URL(request.url()).pathname,
+        )
+      )
         legacyRequests.push(request.url());
     });
     page.on("console", (message) => {
@@ -277,7 +281,11 @@ test.describe("KEIBO financial fail-closed surfaces", () => {
     ).toBeDisabled();
     await page.locator("select").first().selectOption("milestone-1");
     await page.getByRole("button", { name: "Release milestone funds" }).click();
-    await page.getByRole("radio").nth(1).check();
+    const bankDestinationRow = page
+      .getByText("Bank •••• 9876 · UGX · verified")
+      .locator("..");
+    await expect(bankDestinationRow.getByRole("radio")).toBeEnabled();
+    await bankDestinationRow.getByRole("radio").check();
     await page.getByRole("button", { name: "Request payout" }).click();
     expect(payoutRequests).toEqual([{ destinationId: "dest-2" }]);
     await expect(
