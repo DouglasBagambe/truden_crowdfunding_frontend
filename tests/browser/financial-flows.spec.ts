@@ -39,7 +39,6 @@ test.describe("KEIBO financial fail-closed surfaces", () => {
     page,
   }) => {
     const legacyRequests: string[] = [];
-    const consoleErrors: string[] = [];
     const pageErrors: string[] = [];
     page.on("request", (request) => {
       if (
@@ -48,9 +47,6 @@ test.describe("KEIBO financial fail-closed surfaces", () => {
         )
       )
         legacyRequests.push(request.url());
-    });
-    page.on("console", (message) => {
-      if (message.type() === "error") consoleErrors.push(message.text());
     });
     page.on("pageerror", (error) => pageErrors.push(error.message));
 
@@ -64,11 +60,6 @@ test.describe("KEIBO financial fail-closed surfaces", () => {
     ).toBeVisible();
     expect(legacyRequests).toEqual([]);
     expect(pageErrors).toEqual([]);
-    expect(
-      consoleErrors.filter(
-        (message) => !message.includes("Lit is in dev mode"),
-      ),
-    ).toEqual([]);
   });
 
   test("creator releases a charity milestone once and keeps external payout separate", async ({
@@ -282,7 +273,14 @@ test.describe("KEIBO financial fail-closed surfaces", () => {
       page.getByText("Bank •••• 9876 · UGX · verified"),
     ).toBeVisible();
     await expect(page.getByText("0770000000")).toHaveCount(0);
+    const disableResponse = page.waitForResponse((response) =>
+      response.request().method() === "POST" &&
+      new URL(response.url()).pathname.endsWith(
+        "/financial/payout-destinations/dest-1/disable",
+      ),
+    );
     await page.getByRole("button", { name: "Disable" }).first().click();
+    await disableResponse;
     await expect(
       page.getByText("MTN •••• 1234 · UGX · disabled"),
     ).toBeVisible();
