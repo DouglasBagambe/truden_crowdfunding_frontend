@@ -194,6 +194,7 @@ test.describe("KEIBO financial fail-closed surfaces", () => {
         status: "verified",
       },
     ];
+    let destinationDisabled = false;
     const payoutRequests: unknown[] = [];
     await page.route("**/api/projects/charity-1", (route) =>
       route.fulfill({
@@ -208,14 +209,19 @@ test.describe("KEIBO financial fail-closed surfaces", () => {
       async (route) => {
         const pathname = new URL(route.request().url()).pathname;
         if (pathname.endsWith("/dest-1/disable")) {
-          destinations = [
-            { ...destinations[0], status: "disabled" },
-            ...destinations.slice(1),
-          ];
-          return route.fulfill({ json: destinations[0] });
+          destinationDisabled = true;
+          return route.fulfill({
+            json: { ...destinations[0], status: "disabled" },
+          });
         }
         if (route.request().method() === "GET") {
-          return route.fulfill({ json: destinations });
+          return route.fulfill({
+            json: destinations.map((destination) =>
+              destination.id === "dest-1" && destinationDisabled
+                ? { ...destination, status: "disabled" }
+                : destination,
+            ),
+          });
         }
         const body = route.request().postDataJSON() as {
           accountNumber: string;
