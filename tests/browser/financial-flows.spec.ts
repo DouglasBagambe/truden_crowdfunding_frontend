@@ -273,11 +273,12 @@ test.describe("KEIBO financial fail-closed surfaces", () => {
       page.getByText("Bank •••• 9876 · UGX · verified"),
     ).toBeVisible();
     await expect(page.getByText("0770000000")).toHaveCount(0);
-    const disableResponse = page.waitForResponse((response) =>
-      response.request().method() === "POST" &&
-      new URL(response.url()).pathname.endsWith(
-        "/financial/payout-destinations/dest-1/disable",
-      ),
+    const disableResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        new URL(response.url()).pathname.endsWith(
+          "/financial/payout-destinations/dest-1/disable",
+        ),
     );
     await page.getByRole("button", { name: "Disable" }).first().click();
     await disableResponse;
