@@ -178,7 +178,7 @@ function ExplorePageContent() {
       applyFilters({ search: draftSearch });
     }, 350);
     return () => clearTimeout(t);
-  }, [applyFilters]);
+  }, [applyFilters, draftSearch]);
 
   const queryParams = useMemo(() => {
     return {
