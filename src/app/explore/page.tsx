@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useMemo, useState, useEffect, Suspense } from "react";
+import React, {
+  useCallback,
+  useMemo,
+  useState,
+  useEffect,
+  Suspense,
+} from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { useProjects } from "@/hooks/useProjects";
@@ -83,51 +89,65 @@ function ExplorePageContent() {
   );
   const [appliedSortBy, setAppliedSortBy] = useState(initialApplied.sortBy);
 
-  const buildExploreUrl = (next: {
-    search: string;
-    category: string;
-    projectType: string;
-    statuses: string[];
-    sortBy: string;
-  }) => {
-    const sp = new URLSearchParams();
-    if (next.search.trim()) sp.set("search", next.search.trim());
-    if (next.category && next.category !== "ALL")
-      sp.set("category", next.category);
-    if (next.projectType && next.projectType !== "ALL")
-      sp.set("type", next.projectType);
-    if (next.statuses && next.statuses.length > 0)
-      sp.set("statuses", next.statuses.join(","));
-    if (next.sortBy && next.sortBy !== "newest") sp.set("sort", next.sortBy);
-    const qs = sp.toString();
-    return qs ? `/explore?${qs}` : "/explore";
-  };
-
-  const applyFilters = (
-    next?: Partial<{
+  const buildExploreUrl = useCallback(
+    (next: {
       search: string;
       category: string;
       projectType: string;
       statuses: string[];
       sortBy: string;
-    }>,
-  ) => {
-    const merged = {
-      search: next?.search ?? draftSearch,
-      category: next?.category ?? draftCategory,
-      projectType: next?.projectType ?? draftProjectType,
-      statuses: next?.statuses ?? draftStatusFilters,
-      sortBy: next?.sortBy ?? draftSortBy,
-    };
+    }) => {
+      const sp = new URLSearchParams();
+      if (next.search.trim()) sp.set("search", next.search.trim());
+      if (next.category && next.category !== "ALL")
+        sp.set("category", next.category);
+      if (next.projectType && next.projectType !== "ALL")
+        sp.set("type", next.projectType);
+      if (next.statuses && next.statuses.length > 0)
+        sp.set("statuses", next.statuses.join(","));
+      if (next.sortBy && next.sortBy !== "newest") sp.set("sort", next.sortBy);
+      const qs = sp.toString();
+      return qs ? `/explore?${qs}` : "/explore";
+    },
+    [],
+  );
 
-    setAppliedSearch(merged.search);
-    setAppliedCategory(merged.category);
-    setAppliedProjectType(merged.projectType);
-    setAppliedStatusFilters(merged.statuses);
-    setAppliedSortBy(merged.sortBy);
+  const applyFilters = useCallback(
+    (
+      next?: Partial<{
+        search: string;
+        category: string;
+        projectType: string;
+        statuses: string[];
+        sortBy: string;
+      }>,
+    ) => {
+      const merged = {
+        search: next?.search ?? draftSearch,
+        category: next?.category ?? draftCategory,
+        projectType: next?.projectType ?? draftProjectType,
+        statuses: next?.statuses ?? draftStatusFilters,
+        sortBy: next?.sortBy ?? draftSortBy,
+      };
 
-    router.replace(buildExploreUrl(merged));
-  };
+      setAppliedSearch(merged.search);
+      setAppliedCategory(merged.category);
+      setAppliedProjectType(merged.projectType);
+      setAppliedStatusFilters(merged.statuses);
+      setAppliedSortBy(merged.sortBy);
+
+      router.replace(buildExploreUrl(merged));
+    },
+    [
+      buildExploreUrl,
+      draftCategory,
+      draftProjectType,
+      draftSearch,
+      draftSortBy,
+      draftStatusFilters,
+      router,
+    ],
+  );
 
   const resetAll = () => {
     const defaults = {
@@ -158,13 +178,7 @@ function ExplorePageContent() {
       applyFilters({ search: draftSearch });
     }, 350);
     return () => clearTimeout(t);
-  }, [
-    draftSearch,
-    draftCategory,
-    draftProjectType,
-    draftStatusFilters,
-    draftSortBy,
-  ]);
+  }, [applyFilters]);
 
   const queryParams = useMemo(() => {
     return {
