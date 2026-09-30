@@ -1,14 +1,11 @@
 "use client";
 
 import React from "react";
-import { useRoiAccess } from "@/hooks/useRoiAccess";
 import { Logo } from "../common/Logo";
 import Link from "next/link";
-import { Mail, Twitter, MessageCircle } from "lucide-react";
+import { Mail } from "lucide-react";
 
 const Footer = () => {
-  const { hasRoiAccess } = useRoiAccess();
-
   return (
     <footer className="bg-[var(--card)] border-t border-[var(--border)] pt-14 pb-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -22,24 +19,9 @@ const Footer = () => {
               communities grow.
             </p>
             <div className="flex items-center gap-3 pt-1">
-              <a
-                href="https://x.com/realdyson_"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="X / Twitter"
-                className="w-8 h-8 rounded-lg bg-[var(--secondary)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border)] transition-all"
-              >
-                <Twitter size={14} />
-              </a>
-              <a
-                href="https://wa.me/256770919175"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="WhatsApp"
-                className="w-8 h-8 rounded-lg bg-[var(--secondary)] flex items-center justify-center text-[var(--text-muted)] hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-950/30 transition-all"
-              >
-                <MessageCircle size={14} />
-              </a>
+              <span className="text-xs text-[var(--text-muted)]">
+                Social channels coming soon
+              </span>
               <Link
                 href="/support"
                 aria-label="Email"
@@ -60,9 +42,7 @@ const Footer = () => {
               <FooterLink href="/explore?type=CHARITY">
                 Charity Causes
               </FooterLink>
-              {hasRoiAccess && (
-                <FooterLink href="/explore?type=ROI">Investments</FooterLink>
-              )}
+              <FooterLink href="/explore?type=ROI">Investments</FooterLink>
               <FooterLink href="/dashboard/create-project">
                 Start a Campaign
               </FooterLink>

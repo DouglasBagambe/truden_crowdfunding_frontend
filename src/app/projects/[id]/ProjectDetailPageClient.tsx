@@ -24,8 +24,7 @@ import Footer from "@/components/layout/Footer";
 import Image from "next/image";
 import { projectService } from "@/lib/project-service";
 import { useAuth } from "@/hooks/useAuth";
-import { useRoiAccess } from "@/hooks/useRoiAccess";
-import { isCharityProject, isROIProject } from "@/lib/roi-access";
+import { isCharityProject } from "@/lib/roi-access";
 import toast from "react-hot-toast";
 import DPOPaymentModal from "@/components/payments/DPOPaymentModal";
 
@@ -108,6 +107,16 @@ function getErrorMessage(error: unknown, fallback: string): string {
   return typeof message === "string" ? message : fallback;
 }
 
+function isDisplayableMediaUrl(value: unknown): value is string {
+  if (typeof value !== "string" || !value.trim()) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
 function ExpandableStory({ story }: { story: string }) {
   const [expanded, setExpanded] = useState(false);
   const trimmedStory = story.trim();
@@ -146,7 +155,6 @@ export default function ProjectDetailPageClient() {
   const router = useRouter();
   const projectId = params.id as string;
   const { isAuthenticated, user } = useAuth();
-  const { hasRoiAccess } = useRoiAccess();
 
   const [project, setProject] = useState<ProjectDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -165,20 +173,26 @@ export default function ProjectDetailPageClient() {
   const [donorsLoading, setDonorsLoading] = useState(false);
 
   const isCharity = isCharityProject(project);
-  const isRoi = isROIProject(project);
 
   const [mediaIndex, setMediaIndex] = useState(0);
+  const [mediaFailed, setMediaFailed] = useState(false);
   const mediaItems = project
     ? [
-        ...(project.imageUrl ? [{ type: "image", url: project.imageUrl }] : []),
-        ...(project.galleryImages || []).map((url: string) => ({
-          type: "image",
-          url,
-        })),
-        ...(project.videoUrls || []).map((url: string) => ({
-          type: "video",
-          url,
-        })),
+        ...(isDisplayableMediaUrl(project.imageUrl)
+          ? [{ type: "image" as const, url: project.imageUrl }]
+          : []),
+        ...(project.galleryImages || [])
+          .filter(isDisplayableMediaUrl)
+          .map((url: string) => ({
+            type: "image",
+            url,
+          })),
+        ...(project.videoUrls || [])
+          .filter(isDisplayableMediaUrl)
+          .map((url: string) => ({
+            type: "video",
+            url,
+          })),
       ]
     : [];
   const currentMedia = mediaItems[mediaIndex];
@@ -262,16 +276,8 @@ export default function ProjectDetailPageClient() {
   }, [isCharity, loadDonors, projectId]);
 
   useEffect(() => {
-    if (!loading && project && isRoi && !hasRoiAccess) {
-      toast.error(
-        "ROI projects are currently available to internal users only.",
-      );
-      router.replace("/explore");
-    }
-  }, [hasRoiAccess, isRoi, loading, project, router]);
-
-  useEffect(() => {
     setMediaIndex(0);
+    setMediaFailed(false);
   }, [project]);
 
   const handleSubmitForReview = async () => {
@@ -489,8 +495,8 @@ export default function ProjectDetailPageClient() {
               </div>
 
               {/* Media Carousel */}
-              <div className="relative rounded-3xl overflow-hidden bg-[var(--secondary)] aspect-video shadow-2xl">
-                {mediaItems.length > 0 ? (
+              <div className="relative aspect-video overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--secondary)] shadow-sm">
+                {mediaItems.length > 0 && !mediaFailed ? (
                   <>
                     {currentMedia?.type === "image" && (
                       <Image
@@ -500,6 +506,7 @@ export default function ProjectDetailPageClient() {
                         className="object-cover"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         priority
+                        onError={() => setMediaFailed(true)}
                       />
                     )}
                     {currentMedia?.type === "video" && (
@@ -507,6 +514,7 @@ export default function ProjectDetailPageClient() {
                         src={currentMedia.url}
                         controls
                         className="w-full h-full object-cover"
+                        onError={() => setMediaFailed(true)}
                       />
                     )}
                     {/* Navigation */}
@@ -514,10 +522,12 @@ export default function ProjectDetailPageClient() {
                       <>
                         <button
                           onClick={() =>
-                            setMediaIndex(
-                              (i) =>
-                                (i - 1 + mediaItems.length) % mediaItems.length,
-                            )
+                            setMediaIndex((i) => {
+                              setMediaFailed(false);
+                              return (
+                                (i - 1 + mediaItems.length) % mediaItems.length
+                              );
+                            })
                           }
                           className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors"
                           aria-label="Previous"
@@ -533,9 +543,10 @@ export default function ProjectDetailPageClient() {
                           </svg>
                         </button>
                         <button
-                          onClick={() =>
-                            setMediaIndex((i) => (i + 1) % mediaItems.length)
-                          }
+                          onClick={() => {
+                            setMediaFailed(false);
+                            setMediaIndex((i) => (i + 1) % mediaItems.length);
+                          }}
                           className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors"
                           aria-label="Next"
                         >
@@ -554,7 +565,10 @@ export default function ProjectDetailPageClient() {
                           {mediaItems.map((_, i) => (
                             <button
                               key={i}
-                              onClick={() => setMediaIndex(i)}
+                              onClick={() => {
+                                setMediaFailed(false);
+                                setMediaIndex(i);
+                              }}
                               className={`w-2 h-2 rounded-full transition-all ${i === mediaIndex ? "bg-white w-6" : "bg-white/50"}`}
                               aria-label={`Go to media ${i + 1}`}
                             />
@@ -565,7 +579,7 @@ export default function ProjectDetailPageClient() {
                   </>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <span className="text-8xl font-black italic opacity-10 select-none">
+                    <span className="text-4xl font-semibold tracking-tight opacity-20 select-none">
                       KEIBO
                     </span>
                   </div>

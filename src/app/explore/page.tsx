@@ -1,609 +1,791 @@
-'use client';
+"use client";
 
-import React, { useMemo, useState, useEffect, Suspense } from 'react';
-import Navbar from '@/components/layout/Navbar';
-import Footer from '@/components/layout/Footer';
-import { useProjects } from '@/hooks/useProjects';
-import ProjectCard from '@/components/dashboard/ProjectCard';
-import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useMemo, useState, useEffect, Suspense } from "react";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
+import { useProjects } from "@/hooks/useProjects";
+import ProjectCard from "@/components/dashboard/ProjectCard";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
-    Search, Filter, SlidersHorizontal,
-    Heart, TrendingUp, Zap, Globe,
-    ChevronDown, LayoutGrid, List,
-    Loader2, Plus, ArrowRight, X
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import Link from 'next/link';
-import { useRoiAccess } from '@/hooks/useRoiAccess';
-import { filterVisibleProjects } from '@/lib/roi-access';
+  Search,
+  Filter,
+  SlidersHorizontal,
+  Heart,
+  TrendingUp,
+  Zap,
+  Globe,
+  ChevronDown,
+  LayoutGrid,
+  List,
+  Loader2,
+  Plus,
+  ArrowRight,
+  X,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 
 function ExplorePageContent() {
-    const searchParams = useSearchParams();
-    const router = useRouter();
-    const { hasRoiAccess } = useRoiAccess();
-    const parseStatuses = (raw: string | null) => {
-        if (!raw) return [];
-        const parts = raw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
-        return parts.length > 0 ? parts : [];
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const parseStatuses = (raw: string | null) => {
+    if (!raw) return [];
+    const parts = raw
+      .split(",")
+      .map((s) => s.trim().toUpperCase())
+      .filter(Boolean);
+    return parts.length > 0 ? parts : [];
+  };
+  const normalizeCategory = (value: string | null) => {
+    if (!value || value === "ALL") return "ALL";
+    return value.trim().toLowerCase();
+  };
+
+  const initialApplied = useMemo(() => {
+    const initialSearch = searchParams.get("search") || "";
+    const initialCategory = normalizeCategory(searchParams.get("category"));
+    const rawType = searchParams.get("type") || "ALL";
+    const initialType = rawType;
+    const initialStatuses = parseStatuses(searchParams.get("statuses"));
+    const initialSort = searchParams.get("sort") || "newest";
+    return {
+      search: initialSearch,
+      category: initialCategory,
+      projectType: initialType,
+      statuses: initialStatuses,
+      sortBy: initialSort,
     };
-    const normalizeCategory = (value: string | null) => {
-        if (!value || value === 'ALL') return 'ALL';
-        return value.trim().toLowerCase();
-    };
+  }, [searchParams]);
 
-    const initialApplied = useMemo(() => {
-        const initialSearch = searchParams.get('search') || '';
-        const initialCategory = normalizeCategory(searchParams.get('category'));
-        const rawType = searchParams.get('type') || 'ALL';
-        const initialType = !hasRoiAccess && rawType === 'ROI' ? 'ALL' : rawType;
-        const initialStatuses = parseStatuses(searchParams.get('statuses'));
-        const initialSort = searchParams.get('sort') || 'newest';
-        return {
-            search: initialSearch,
-            category: initialCategory,
-            projectType: initialType,
-            statuses: initialStatuses,
-            sortBy: initialSort,
-        };
-    }, [hasRoiAccess, searchParams]);
+  const [draftSearch, setDraftSearch] = useState(initialApplied.search);
+  const [draftCategory, setDraftCategory] = useState(initialApplied.category);
+  const [draftProjectType, setDraftProjectType] = useState(
+    initialApplied.projectType,
+  );
+  const [draftStatusFilters, setDraftStatusFilters] = useState<string[]>(
+    initialApplied.statuses,
+  );
+  const [draftSortBy, setDraftSortBy] = useState(initialApplied.sortBy);
 
-    const [draftSearch, setDraftSearch] = useState(initialApplied.search);
-    const [draftCategory, setDraftCategory] = useState(initialApplied.category);
-    const [draftProjectType, setDraftProjectType] = useState(initialApplied.projectType);
-    const [draftStatusFilters, setDraftStatusFilters] = useState<string[]>(initialApplied.statuses);
-    const [draftSortBy, setDraftSortBy] = useState(initialApplied.sortBy);
+  const [appliedSearch, setAppliedSearch] = useState(initialApplied.search);
+  const [appliedCategory, setAppliedCategory] = useState(
+    initialApplied.category,
+  );
+  const [appliedProjectType, setAppliedProjectType] = useState(
+    initialApplied.projectType,
+  );
+  const [appliedStatusFilters, setAppliedStatusFilters] = useState<string[]>(
+    initialApplied.statuses,
+  );
+  const [appliedSortBy, setAppliedSortBy] = useState(initialApplied.sortBy);
 
-    const [appliedSearch, setAppliedSearch] = useState(initialApplied.search);
-    const [appliedCategory, setAppliedCategory] = useState(initialApplied.category);
-    const [appliedProjectType, setAppliedProjectType] = useState(initialApplied.projectType);
-    const [appliedStatusFilters, setAppliedStatusFilters] = useState<string[]>(initialApplied.statuses);
-    const [appliedSortBy, setAppliedSortBy] = useState(initialApplied.sortBy);
+  const buildExploreUrl = (next: {
+    search: string;
+    category: string;
+    projectType: string;
+    statuses: string[];
+    sortBy: string;
+  }) => {
+    const sp = new URLSearchParams();
+    if (next.search.trim()) sp.set("search", next.search.trim());
+    if (next.category && next.category !== "ALL")
+      sp.set("category", next.category);
+    if (next.projectType && next.projectType !== "ALL")
+      sp.set("type", next.projectType);
+    if (next.statuses && next.statuses.length > 0)
+      sp.set("statuses", next.statuses.join(","));
+    if (next.sortBy && next.sortBy !== "newest") sp.set("sort", next.sortBy);
+    const qs = sp.toString();
+    return qs ? `/explore?${qs}` : "/explore";
+  };
 
-    const buildExploreUrl = (next: {
-        search: string;
-        category: string;
-        projectType: string;
-        statuses: string[];
-        sortBy: string;
-    }) => {
-        const sp = new URLSearchParams();
-        if (next.search.trim()) sp.set('search', next.search.trim());
-        if (next.category && next.category !== 'ALL') sp.set('category', next.category);
-        if (next.projectType && next.projectType !== 'ALL') sp.set('type', next.projectType);
-        if (next.statuses && next.statuses.length > 0) sp.set('statuses', next.statuses.join(','));
-        if (next.sortBy && next.sortBy !== 'newest') sp.set('sort', next.sortBy);
-        const qs = sp.toString();
-        return qs ? `/explore?${qs}` : '/explore';
-    };
-
-    const applyFilters = (next?: Partial<{
-        search: string;
-        category: string;
-        projectType: string;
-        statuses: string[];
-        sortBy: string;
-    }>) => {
-        const merged = {
-            search: next?.search ?? draftSearch,
-            category: next?.category ?? draftCategory,
-            projectType: next?.projectType ?? draftProjectType,
-            statuses: next?.statuses ?? draftStatusFilters,
-            sortBy: next?.sortBy ?? draftSortBy,
-        };
-
-        setAppliedSearch(merged.search);
-        setAppliedCategory(merged.category);
-        setAppliedProjectType(merged.projectType);
-        setAppliedStatusFilters(merged.statuses);
-        setAppliedSortBy(merged.sortBy);
-
-        router.replace(buildExploreUrl(merged));
-    };
-
-    const resetAll = () => {
-        const defaults = {
-            search: '',
-            category: 'ALL',
-            projectType: 'ALL',
-            statuses: [],
-            sortBy: 'newest',
-        };
-
-        setDraftSearch(defaults.search);
-        setDraftCategory(defaults.category);
-        setDraftProjectType(defaults.projectType);
-        setDraftStatusFilters(defaults.statuses);
-        setDraftSortBy(defaults.sortBy);
-
-        setAppliedSearch(defaults.search);
-        setAppliedCategory(defaults.category);
-        setAppliedProjectType(defaults.projectType);
-        setAppliedStatusFilters(defaults.statuses);
-        setAppliedSortBy(defaults.sortBy);
-
-        router.replace('/explore');
+  const applyFilters = (
+    next?: Partial<{
+      search: string;
+      category: string;
+      projectType: string;
+      statuses: string[];
+      sortBy: string;
+    }>,
+  ) => {
+    const merged = {
+      search: next?.search ?? draftSearch,
+      category: next?.category ?? draftCategory,
+      projectType: next?.projectType ?? draftProjectType,
+      statuses: next?.statuses ?? draftStatusFilters,
+      sortBy: next?.sortBy ?? draftSortBy,
     };
 
-    useEffect(() => {
-        const nextSearch = searchParams.get('search') || '';
-        const nextCategory = normalizeCategory(searchParams.get('category'));
-        const rawType = searchParams.get('type') || 'ALL';
-        const nextType = !hasRoiAccess && rawType === 'ROI' ? 'ALL' : rawType;
-        const nextStatuses = parseStatuses(searchParams.get('statuses'));
-        const nextSort = searchParams.get('sort') || 'newest';
+    setAppliedSearch(merged.search);
+    setAppliedCategory(merged.category);
+    setAppliedProjectType(merged.projectType);
+    setAppliedStatusFilters(merged.statuses);
+    setAppliedSortBy(merged.sortBy);
 
-        setDraftSearch(nextSearch);
-        setDraftCategory(nextCategory);
-        setDraftProjectType(nextType);
-        setDraftStatusFilters(nextStatuses);
-        setDraftSortBy(nextSort);
+    router.replace(buildExploreUrl(merged));
+  };
 
-        setAppliedSearch(nextSearch);
-        setAppliedCategory(nextCategory);
-        setAppliedProjectType(nextType);
-        setAppliedStatusFilters(nextStatuses);
-        setAppliedSortBy(nextSort);
-    }, [hasRoiAccess, searchParams]);
+  const resetAll = () => {
+    const defaults = {
+      search: "",
+      category: "ALL",
+      projectType: "ALL",
+      statuses: [],
+      sortBy: "newest",
+    };
 
-    useEffect(() => {
-        if (!hasRoiAccess && searchParams.get('type') === 'ROI') {
-            const sp = new URLSearchParams(searchParams.toString());
-            sp.delete('type');
-            const qs = sp.toString();
-            router.replace(qs ? `/explore?${qs}` : '/explore');
-        }
-    }, [hasRoiAccess, router, searchParams]);
+    setDraftSearch(defaults.search);
+    setDraftCategory(defaults.category);
+    setDraftProjectType(defaults.projectType);
+    setDraftStatusFilters(defaults.statuses);
+    setDraftSortBy(defaults.sortBy);
 
-    useEffect(() => {
-        const t = setTimeout(() => {
-            applyFilters({ search: draftSearch });
-        }, 350);
-        return () => clearTimeout(t);
-    }, [draftSearch, draftCategory, draftProjectType, draftStatusFilters, draftSortBy]);
+    setAppliedSearch(defaults.search);
+    setAppliedCategory(defaults.category);
+    setAppliedProjectType(defaults.projectType);
+    setAppliedStatusFilters(defaults.statuses);
+    setAppliedSortBy(defaults.sortBy);
 
-    const queryParams = useMemo(() => {
-        return {
-            search: appliedSearch || undefined,
-            type: appliedProjectType !== 'ALL' ? appliedProjectType : undefined,
-            category: appliedProjectType === 'CHARITY' && appliedCategory !== 'ALL' ? appliedCategory : undefined,
-            industry: appliedProjectType === 'ROI' && appliedCategory !== 'ALL' ? appliedCategory : undefined,
-            statuses: appliedStatusFilters.length > 0 ? appliedStatusFilters : undefined,
-            sort: appliedSortBy !== 'newest' ? appliedSortBy : undefined,
-        };
-    }, [appliedSearch, appliedCategory, appliedProjectType, appliedStatusFilters, appliedSortBy]);
+    router.replace("/explore");
+  };
 
-    const { data, isLoading } = useProjects(queryParams);
-    const rawProjects = data?.projects || data?.items || [];
+  useEffect(() => {
+    const nextSearch = searchParams.get("search") || "";
+    const nextCategory = normalizeCategory(searchParams.get("category"));
+    const rawType = searchParams.get("type") || "ALL";
+    const nextType = rawType;
+    const nextStatuses = parseStatuses(searchParams.get("statuses"));
+    const nextSort = searchParams.get("sort") || "newest";
 
-    const projects = filterVisibleProjects(
-        rawProjects.map((project: any) => ({
-            ...project,
-            id: project.id || project._id
-        })).filter((p: any) => p.id),
-        hasRoiAccess,
-    ).filter((project: any) => {
-        if (appliedCategory === 'ALL') return true;
-        const projectCategory = String(project.category || project.industry || '').toLowerCase();
-        return projectCategory === appliedCategory;
+    setDraftSearch(nextSearch);
+    setDraftCategory(nextCategory);
+    setDraftProjectType(nextType);
+    setDraftStatusFilters(nextStatuses);
+    setDraftSortBy(nextSort);
+
+    setAppliedSearch(nextSearch);
+    setAppliedCategory(nextCategory);
+    setAppliedProjectType(nextType);
+    setAppliedStatusFilters(nextStatuses);
+    setAppliedSortBy(nextSort);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      applyFilters({ search: draftSearch });
+    }, 350);
+    return () => clearTimeout(t);
+  }, [
+    draftSearch,
+    draftCategory,
+    draftProjectType,
+    draftStatusFilters,
+    draftSortBy,
+  ]);
+
+  const queryParams = useMemo(() => {
+    return {
+      search: appliedSearch || undefined,
+      type: appliedProjectType !== "ALL" ? appliedProjectType : undefined,
+      category:
+        appliedProjectType === "CHARITY" && appliedCategory !== "ALL"
+          ? appliedCategory
+          : undefined,
+      industry:
+        appliedProjectType === "ROI" && appliedCategory !== "ALL"
+          ? appliedCategory
+          : undefined,
+      statuses:
+        appliedStatusFilters.length > 0 ? appliedStatusFilters : undefined,
+      sort: appliedSortBy !== "newest" ? appliedSortBy : undefined,
+    };
+  }, [
+    appliedSearch,
+    appliedCategory,
+    appliedProjectType,
+    appliedStatusFilters,
+    appliedSortBy,
+  ]);
+
+  const { data, isLoading } = useProjects(queryParams);
+  const rawProjects = data?.projects || data?.items || [];
+
+  const projects = rawProjects
+    .map((project: any) => ({
+      ...project,
+      id: project.id || project._id,
+    }))
+    .filter((p: any) => p.id)
+    .filter((project: any) => {
+      if (appliedCategory === "ALL") return true;
+      const projectCategory = String(
+        project.category || project.industry || "",
+      ).toLowerCase();
+      return projectCategory === appliedCategory;
     });
 
-    const categories = [
-        { id: 'ALL', label: 'All Categories' },
-        { id: 'school', label: 'School' },
-        { id: 'church', label: 'Church' },
-        { id: 'community_group', label: 'Community Group' },
-        { id: 'ngo', label: 'NGO' },
-        { id: 'individual', label: 'Individual' },
-        { id: 'family', label: 'Family' },
-        { id: 'technology', label: 'Technology' },
-        { id: 'education', label: 'Education' },
-        { id: 'health', label: 'Health' },
-        { id: 'agriculture', label: 'Agriculture' },
-        { id: 'energy', label: 'Energy' },
-        { id: 'environment', label: 'Environment' },
-        { id: 'financial_services', label: 'Financial Services' },
-        { id: 'manufacturing', label: 'Manufacturing' },
-        { id: 'real_estate', label: 'Real Estate' },
-        { id: 'transport', label: 'Transport' },
-        { id: 'other', label: 'Other' },
-    ];
+  const categories = [
+    { id: "ALL", label: "All Categories" },
+    { id: "school", label: "School" },
+    { id: "church", label: "Church" },
+    { id: "community_group", label: "Community Group" },
+    { id: "ngo", label: "NGO" },
+    { id: "individual", label: "Individual" },
+    { id: "family", label: "Family" },
+    { id: "technology", label: "Technology" },
+    { id: "education", label: "Education" },
+    { id: "health", label: "Health" },
+    { id: "agriculture", label: "Agriculture" },
+    { id: "energy", label: "Energy" },
+    { id: "environment", label: "Environment" },
+    { id: "financial_services", label: "Financial Services" },
+    { id: "manufacturing", label: "Manufacturing" },
+    { id: "real_estate", label: "Real Estate" },
+    { id: "transport", label: "Transport" },
+    { id: "other", label: "Other" },
+  ];
 
-    const toggleStatus = (status: string) => {
-        setDraftStatusFilters(prev =>
-            prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
-        );
-    };
-
-    const isCharitySelected = !hasRoiAccess || draftProjectType === 'CHARITY';
-    const accent = {
-        focusText: isCharitySelected ? 'group-focus-within:text-emerald-500' : 'group-focus-within:text-blue-500',
-        focusRing: isCharitySelected ? 'focus:ring-emerald-500/10 focus:border-emerald-500' : 'focus:ring-blue-500/10 focus:border-blue-500',
-        hoverBorder: isCharitySelected ? 'hover:border-emerald-500' : 'hover:border-blue-500',
-        radioOn: isCharitySelected ? 'border-emerald-600 bg-emerald-600' : 'border-blue-600 bg-blue-600',
-        radioOff: isCharitySelected ? 'group-hover:border-emerald-400' : 'group-hover:border-blue-400',
-        checkboxOn: isCharitySelected ? 'border-emerald-600 bg-emerald-600' : 'border-blue-600 bg-blue-600',
-        checkboxOff: isCharitySelected ? 'group-hover:border-emerald-400' : 'group-hover:border-blue-400',
-        newButton: isCharitySelected ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700',
-    };
-
-    const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-
-    return (
-        <div className="bg-[var(--background)] min-h-screen text-[var(--text-main)]">
-            <Navbar />
-
-            <main className="pt-24 pb-20 container mx-auto px-4 sm:px-6 lg:px-12">
-                {/* Header Row: Search + Controls */}
-                <div className="flex flex-col gap-4 mb-8">
-                    {/* Search Bar */}
-                    <div className="relative w-full group">
-                        <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)] ${accent.focusText} transition-colors`} />
-                        <input
-                            type="text"
-                            placeholder="Search projects by title or description..."
-                            value={draftSearch}
-                            onChange={(e) => setDraftSearch(e.target.value)}
-                            className={`w-full bg-[var(--card)] border border-[var(--border)] rounded-2xl py-3.5 pl-12 pr-4 focus:ring-4 ${accent.focusRing} outline-none transition-all shadow-sm font-medium`}
-                        />
-                    </div>
-
-                    {/* Controls Row */}
-                    <div className="flex items-center gap-3">
-                        {/* Mobile: Filter toggle button */}
-                        <button
-                            onClick={() => setMobileFiltersOpen(true)}
-                            className="lg:hidden flex items-center gap-2 py-2.5 px-4 rounded-xl border border-[var(--border)] bg-[var(--card)] text-sm font-bold text-[var(--text-muted)] hover:border-[var(--primary)]/50 transition-all shadow-sm flex-shrink-0"
-                        >
-                            <Filter size={16} /> Filters
-                            {(appliedCategory !== 'ALL' || appliedProjectType !== 'ALL' || appliedStatusFilters.length > 0) && (
-                                <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center">
-                                    {[appliedCategory !== 'ALL', appliedProjectType !== 'ALL', ...appliedStatusFilters].filter(Boolean).length}
-                                </span>
-                            )}
-                        </button>
-
-                        <select
-                            value={draftSortBy}
-                            onChange={(e) => setDraftSortBy(e.target.value)}
-                            className={`flex-1 sm:flex-none bg-[var(--card)] border border-[var(--border)] rounded-xl py-2.5 px-4 text-sm font-bold text-[var(--text-muted)] outline-none transition-all shadow-sm cursor-pointer ${accent.hoverBorder}`}
-                        >
-                            <option value="newest">Newest First</option>
-                            <option value="ending">Ending Soon</option>
-                            <option value="funded">Most Funded</option>
-                        </select>
-                        <Link href="/dashboard/create-project" className={`${accent.newButton} text-white font-bold py-2.5 px-4 sm:px-6 rounded-xl flex items-center gap-2 transition-all shadow-lg text-sm whitespace-nowrap flex-shrink-0`}>
-                            <Plus size={18} />
-                            <span className="hidden sm:inline">New Project</span>
-                            <span className="sm:hidden">New</span>
-                        </Link>
-                    </div>
-                </div>
-
-                <div className="flex flex-col lg:flex-row gap-8">
-                    {/* Desktop Sidebar Filters */}
-                    <aside className="hidden lg:block lg:w-80 space-y-8 flex-shrink-0">
-                        <div className="bg-[var(--card)] border border-[var(--border)] rounded-[2rem] p-8 space-y-10 shadow-sm">
-                            <h2 className="text-xl font-black tracking-tight border-b border-[var(--border)] pb-4">Filters</h2>
-
-                            {/* Active Filters */}
-                            {(appliedSearch.trim() || appliedCategory !== 'ALL' || appliedProjectType !== 'ALL' || appliedStatusFilters.length > 0 || appliedSortBy !== 'newest') && (
-                                <div className="flex flex-wrap gap-2">
-                                    {appliedProjectType !== 'ALL' && (
-                                        <button
-                                            onClick={() => applyFilters({ projectType: 'ALL' })}
-                                            className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[var(--secondary)] text-[var(--text-main)] border border-[var(--border)] hover:opacity-90"
-                                        >
-                                            Type: {appliedProjectType}
-                                        </button>
-                                    )}
-                                    {appliedCategory !== 'ALL' && (
-                                        <button
-                                            onClick={() => applyFilters({ category: 'ALL' })}
-                                            className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[var(--secondary)] text-[var(--text-main)] border border-[var(--border)] hover:opacity-90"
-                                        >
-                                            Category: {appliedCategory}
-                                        </button>
-                                    )}
-                                    {appliedSearch.trim() && (
-                                        <button
-                                            onClick={() => applyFilters({ search: '' })}
-                                            className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[var(--secondary)] text-[var(--text-main)] border border-[var(--border)] hover:opacity-90"
-                                        >
-                                            Search: “{appliedSearch.trim()}”
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Project Type */}
-                            <div className="space-y-4">
-                                <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Project Type</h3>
-                                <div className="space-y-3">
-                                    {['ALL', ...(hasRoiAccess ? ['ROI'] : []), 'CHARITY'].map((type) => (
-                                        <label key={type} className="flex items-center gap-3 cursor-pointer group">
-                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${draftProjectType === type ? accent.radioOn : `border-[var(--border)] ${accent.radioOff}`}`}>
-                                                {draftProjectType === type && <div className="w-2 h-2 rounded-full bg-white" />}
-                                            </div>
-                                            <input
-                                                type="radio"
-                                                className="hidden"
-                                                name="projectType"
-                                                checked={draftProjectType === type}
-                                                onChange={() => setDraftProjectType(type)}
-                                            />
-                                            <span className={`text-sm font-bold transition-colors ${draftProjectType === type ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-main)]'}`}>
-                                                {type === 'ALL' ? 'All Projects' : type === 'ROI' ? 'ROI Projects' : 'Charity Projects'}
-                                            </span>
-                                        </label>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Status */}
-                            <div className="space-y-4">
-                                <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Status</h3>
-                                <div className="space-y-3">
-                                    {[
-                                        { id: 'APPROVED', label: 'Newly Posted' },
-                                        { id: 'FUNDING', label: 'Open Projects' },
-                                        { id: 'FUNDED', label: 'Funded' },
-                                        { id: 'CLOSED', label: 'Completed' },
-                                    ].map((status) => (
-                                        <label key={status.id} className="flex items-center gap-3 cursor-pointer group">
-                                            <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${draftStatusFilters.includes(status.id) ? accent.checkboxOn : `border-[var(--border)] ${accent.checkboxOff}`}`}>
-                                                {draftStatusFilters.includes(status.id) && <Plus size={14} className="text-white" />}
-                                            </div>
-                                            <input
-                                                type="checkbox"
-                                                className="hidden"
-                                                checked={draftStatusFilters.includes(status.id)}
-                                                onChange={() => toggleStatus(status.id)}
-                                            />
-                                            <span className={`text-sm font-bold transition-colors ${draftStatusFilters.includes(status.id) ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-main)]'}`}>
-                                                {status.label}
-                                            </span>
-                                        </label>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Category Dropdown */}
-                            <div className="space-y-4">
-                                <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Category</h3>
-                                <select
-                                    value={draftCategory}
-                                    onChange={(e) => setDraftCategory(e.target.value)}
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm font-bold text-slate-700 outline-none focus:border-blue-500 transition-all cursor-pointer"
-                                >
-                                    {categories.map((cat) => (
-                                        <option key={cat.id} value={cat.id}>{cat.label}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="pt-6 border-t border-slate-100 flex gap-3">
-                                <button
-                                    onClick={resetAll}
-                                    className="flex-1 py-3 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors uppercase tracking-widest"
-                                >
-                                    Reset
-                                </button>
-                                <button
-                                    onClick={() => applyFilters()}
-                                    className="flex-1 py-3 bg-slate-900 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-md"
-                                >
-                                    Apply
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-[2rem] p-8 text-white space-y-4 relative overflow-hidden shadow-xl shadow-emerald-500/20">
-                            <Heart className="w-12 h-12 text-emerald-200 opacity-50 mb-2" />
-                            <h3 className="text-2xl font-black leading-tight">Start a cause.</h3>
-                            <p className="text-emerald-100 text-sm font-medium leading-relaxed">
-                                Launch your charity campaign and reach thousands of donors today.
-                            </p>
-                            <a href="/dashboard/create-project" className="w-full py-4 bg-white text-emerald-700 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg block text-center">
-                                Start Campaign
-                            </a>
-                            <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-                        </div>
-                    </aside>
-
-                    {/* Mobile Filter Drawer */}
-                    {mobileFiltersOpen && (
-                        <div className="fixed inset-0 z-50 lg:hidden">
-                            <div
-                                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-                                onClick={() => setMobileFiltersOpen(false)}
-                            />
-                            <div className="absolute bottom-0 left-0 right-0 bg-[var(--card)] rounded-t-3xl shadow-2xl border-t border-[var(--border)] max-h-[85vh] overflow-y-auto">
-                                <div className="flex items-center justify-between p-5 border-b border-[var(--border)] sticky top-0 bg-[var(--card)] z-10">
-                                    <h2 className="text-lg font-black">Filters</h2>
-                                    <button
-                                        onClick={() => setMobileFiltersOpen(false)}
-                                        className="w-9 h-9 rounded-xl bg-[var(--secondary)] flex items-center justify-center"
-                                    >
-                                        <X size={18} />
-                                    </button>
-                                </div>
-                                <div className="p-5 space-y-8">
-                                    {/* Active Filter Tags */}
-                                    {(appliedSearch.trim() || appliedCategory !== 'ALL' || appliedProjectType !== 'ALL' || appliedStatusFilters.length > 0 || appliedSortBy !== 'newest') && (
-                                        <div className="flex flex-wrap gap-2">
-                                            {appliedProjectType !== 'ALL' && (
-                                                <button onClick={() => applyFilters({ projectType: 'ALL' })} className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[var(--secondary)] text-[var(--text-main)] border border-[var(--border)] hover:opacity-90">
-                                                    Type: {appliedProjectType} ✕
-                                                </button>
-                                            )}
-                                            {appliedCategory !== 'ALL' && (
-                                                <button onClick={() => applyFilters({ category: 'ALL' })} className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[var(--secondary)] text-[var(--text-main)] border border-[var(--border)] hover:opacity-90">
-                                                    Category: {appliedCategory} ✕
-                                                </button>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Project Type */}
-                                    <div className="space-y-4">
-                                        <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Project Type</h3>
-                                        <div className="space-y-3">
-                                            {['ALL', ...(hasRoiAccess ? ['ROI'] : []), 'CHARITY'].map((type) => (
-                                                <label key={type} className="flex items-center gap-3 cursor-pointer group">
-                                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${draftProjectType === type ? accent.radioOn : `border-[var(--border)] ${accent.radioOff}`}`}>
-                                                        {draftProjectType === type && <div className="w-2 h-2 rounded-full bg-white" />}
-                                                    </div>
-                                                    <input
-                                                        type="radio"
-                                                        className="hidden"
-                                                        name="mobileProjectType"
-                                                        checked={draftProjectType === type}
-                                                        onChange={() => setDraftProjectType(type)}
-                                                    />
-                                                    <span className={`text-sm font-bold transition-colors ${draftProjectType === type ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-main)]'}`}>
-                                                        {type === 'ALL' ? 'All Projects' : type === 'ROI' ? 'ROI Projects' : 'Charity Projects'}
-                                                    </span>
-                                                </label>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Status */}
-                                    <div className="space-y-4">
-                                        <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Status</h3>
-                                        <div className="space-y-3">
-                                            {[
-                                                { id: 'APPROVED', label: 'Newly Posted' },
-                                                { id: 'FUNDING', label: 'Open Projects' },
-                                                { id: 'FUNDED', label: 'Funded' },
-                                                { id: 'CLOSED', label: 'Completed' },
-                                            ].map((status) => (
-                                                <label key={status.id} className="flex items-center gap-3 cursor-pointer group">
-                                                    <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${draftStatusFilters.includes(status.id) ? accent.checkboxOn : `border-[var(--border)] ${accent.checkboxOff}`}`}>
-                                                        {draftStatusFilters.includes(status.id) && <Plus size={14} className="text-white" />}
-                                                    </div>
-                                                    <input type="checkbox" className="hidden" checked={draftStatusFilters.includes(status.id)} onChange={() => toggleStatus(status.id)} />
-                                                    <span className={`text-sm font-bold transition-colors ${draftStatusFilters.includes(status.id) ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-main)]'}`}>{status.label}</span>
-                                                </label>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Category */}
-                                    <div className="space-y-4">
-                                        <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Category</h3>
-                                        <select
-                                            value={draftCategory}
-                                            onChange={(e) => setDraftCategory(e.target.value)}
-                                            className="w-full bg-[var(--secondary)] border border-[var(--border)] rounded-xl py-3 px-4 text-sm font-bold text-[var(--text-main)] outline-none cursor-pointer"
-                                        >
-                                            {categories.map((cat) => (
-                                                <option key={cat.id} value={cat.id}>{cat.label}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    {/* Actions */}
-                                    <div className="flex gap-3 pb-2">
-                                        <button
-                                            onClick={() => { resetAll(); setMobileFiltersOpen(false); }}
-                                            className="flex-1 py-3 text-sm font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors uppercase tracking-widest border border-[var(--border)] rounded-xl"
-                                        >
-                                            Reset
-                                        </button>
-                                        <button
-                                            onClick={() => { applyFilters(); setMobileFiltersOpen(false); }}
-                                            className="flex-1 py-3 bg-slate-900 text-white rounded-xl text-sm font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-md"
-                                        >
-                                            Apply Filters
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Project Grid */}
-                    <div className="flex-grow">
-                        {isLoading ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                                {Array(6).fill(0).map((_, i) => (
-                                    <div key={i} className="h-[28rem] bg-white rounded-[2rem] animate-pulse border border-slate-200 shadow-sm" />
-                                ))}
-                            </div>
-                        ) : projects.length > 0 ? (
-                            <div className="space-y-12">
-                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                                    <AnimatePresence mode="popLayout">
-                                        {projects.map((project: any, idx: number) => (
-                                            <motion.div
-                                                key={project.id || idx}
-                                                initial={{ opacity: 0, scale: 0.95 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                exit={{ opacity: 0, scale: 0.95 }}
-                                                transition={{ duration: 0.3, delay: idx * 0.05 }}
-                                            >
-                                                <ProjectCard project={project} />
-                                            </motion.div>
-                                        ))}
-                                    </AnimatePresence>
-                                </div>
-
-                                {/* Pagination */}
-                                <div className="flex justify-center items-center gap-3 pt-8 pb-12">
-                                    <button className="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-600 transition-all shadow-sm">
-                                        <ArrowRight size={20} className="rotate-180" />
-                                    </button>
-                                    {[1, 2, 3].map((page) => (
-                                        <button key={page} className={`w-12 h-12 rounded-xl font-bold transition-all shadow-sm ${page === 1 ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-blue-600'}`}>
-                                            {page}
-                                        </button>
-                                    ))}
-                                    <button className="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-600 transition-all shadow-sm">
-                                        <ArrowRight size={20} />
-                                    </button>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center py-40 space-y-6 bg-white rounded-[3rem] border-2 border-dashed border-slate-200 shadow-sm">
-                                <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center">
-                                    <Search className="w-10 h-10 text-slate-300" />
-                                </div>
-                                <div className="text-center space-y-2">
-                                    <h3 className="text-2xl font-black tracking-tight text-slate-900">No projects match your search.</h3>
-                                    <p className="text-slate-500 font-medium max-w-sm">We couldn't find any results for your current filters. Try resetting them or searching for something else.</p>
-                                </div>
-                                <button
-                                    onClick={resetAll}
-                                    className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20 hover:scale-105"
-                                >
-                                    Reset All Filters
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </main>
-
-            <Footer />
-        </div>
+  const toggleStatus = (status: string) => {
+    setDraftStatusFilters((prev) =>
+      prev.includes(status)
+        ? prev.filter((s) => s !== status)
+        : [...prev, status],
     );
+  };
+
+  const isCharitySelected = draftProjectType === "CHARITY";
+  const accent = {
+    focusText: isCharitySelected
+      ? "group-focus-within:text-emerald-500"
+      : "group-focus-within:text-blue-500",
+    focusRing: isCharitySelected
+      ? "focus:ring-emerald-500/10 focus:border-emerald-500"
+      : "focus:ring-blue-500/10 focus:border-blue-500",
+    hoverBorder: isCharitySelected
+      ? "hover:border-emerald-500"
+      : "hover:border-blue-500",
+    radioOn: isCharitySelected
+      ? "border-emerald-600 bg-emerald-600"
+      : "border-blue-600 bg-blue-600",
+    radioOff: isCharitySelected
+      ? "group-hover:border-emerald-400"
+      : "group-hover:border-blue-400",
+    checkboxOn: isCharitySelected
+      ? "border-emerald-600 bg-emerald-600"
+      : "border-blue-600 bg-blue-600",
+    checkboxOff: isCharitySelected
+      ? "group-hover:border-emerald-400"
+      : "group-hover:border-blue-400",
+    newButton: isCharitySelected
+      ? "bg-emerald-600 hover:bg-emerald-700"
+      : "bg-blue-600 hover:bg-blue-700",
+  };
+
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  return (
+    <div className="bg-[var(--background)] min-h-screen text-[var(--text-main)]">
+      <Navbar />
+
+      <main className="pt-24 pb-20 container mx-auto px-4 sm:px-6 lg:px-12">
+        {/* Header Row: Search + Controls */}
+        <div className="flex flex-col gap-4 mb-8">
+          {/* Search Bar */}
+          <div className="relative w-full group">
+            <Search
+              className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)] ${accent.focusText} transition-colors`}
+            />
+            <input
+              type="text"
+              placeholder="Search projects by title or description..."
+              value={draftSearch}
+              onChange={(e) => setDraftSearch(e.target.value)}
+              className={`w-full bg-[var(--card)] border border-[var(--border)] rounded-2xl py-3.5 pl-12 pr-4 focus:ring-4 ${accent.focusRing} outline-none transition-all shadow-sm font-medium`}
+            />
+          </div>
+
+          {/* Controls Row */}
+          <div className="flex items-center gap-3">
+            {/* Mobile: Filter toggle button */}
+            <button
+              onClick={() => setMobileFiltersOpen(true)}
+              className="lg:hidden flex items-center gap-2 py-2.5 px-4 rounded-xl border border-[var(--border)] bg-[var(--card)] text-sm font-bold text-[var(--text-muted)] hover:border-[var(--primary)]/50 transition-all shadow-sm flex-shrink-0"
+            >
+              <Filter size={16} /> Filters
+              {(appliedCategory !== "ALL" ||
+                appliedProjectType !== "ALL" ||
+                appliedStatusFilters.length > 0) && (
+                <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center">
+                  {
+                    [
+                      appliedCategory !== "ALL",
+                      appliedProjectType !== "ALL",
+                      ...appliedStatusFilters,
+                    ].filter(Boolean).length
+                  }
+                </span>
+              )}
+            </button>
+
+            <select
+              value={draftSortBy}
+              onChange={(e) => setDraftSortBy(e.target.value)}
+              className={`flex-1 sm:flex-none bg-[var(--card)] border border-[var(--border)] rounded-xl py-2.5 px-4 text-sm font-bold text-[var(--text-muted)] outline-none transition-all shadow-sm cursor-pointer ${accent.hoverBorder}`}
+            >
+              <option value="newest">Newest First</option>
+              <option value="ending">Ending Soon</option>
+              <option value="funded">Most Funded</option>
+            </select>
+            <Link
+              href="/dashboard/create-project"
+              className={`${accent.newButton} text-white font-bold py-2.5 px-4 sm:px-6 rounded-xl flex items-center gap-2 transition-all shadow-lg text-sm whitespace-nowrap flex-shrink-0`}
+            >
+              <Plus size={18} />
+              <span className="hidden sm:inline">New Project</span>
+              <span className="sm:hidden">New</span>
+            </Link>
+          </div>
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Desktop Sidebar Filters */}
+          <aside className="hidden lg:block lg:w-80 space-y-8 flex-shrink-0">
+            <div className="bg-[var(--card)] border border-[var(--border)] rounded-[2rem] p-8 space-y-10 shadow-sm">
+              <h2 className="text-xl font-black tracking-tight border-b border-[var(--border)] pb-4">
+                Filters
+              </h2>
+
+              {/* Active Filters */}
+              {(appliedSearch.trim() ||
+                appliedCategory !== "ALL" ||
+                appliedProjectType !== "ALL" ||
+                appliedStatusFilters.length > 0 ||
+                appliedSortBy !== "newest") && (
+                <div className="flex flex-wrap gap-2">
+                  {appliedProjectType !== "ALL" && (
+                    <button
+                      onClick={() => applyFilters({ projectType: "ALL" })}
+                      className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[var(--secondary)] text-[var(--text-main)] border border-[var(--border)] hover:opacity-90"
+                    >
+                      Type: {appliedProjectType}
+                    </button>
+                  )}
+                  {appliedCategory !== "ALL" && (
+                    <button
+                      onClick={() => applyFilters({ category: "ALL" })}
+                      className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[var(--secondary)] text-[var(--text-main)] border border-[var(--border)] hover:opacity-90"
+                    >
+                      Category: {appliedCategory}
+                    </button>
+                  )}
+                  {appliedSearch.trim() && (
+                    <button
+                      onClick={() => applyFilters({ search: "" })}
+                      className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[var(--secondary)] text-[var(--text-main)] border border-[var(--border)] hover:opacity-90"
+                    >
+                      Search: “{appliedSearch.trim()}”
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Project Type */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
+                  Project Type
+                </h3>
+                <div className="space-y-3">
+                  {["ALL", "CHARITY", "ROI"].map((type) => (
+                    <label
+                      key={type}
+                      className="flex items-center gap-3 cursor-pointer group"
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${draftProjectType === type ? accent.radioOn : `border-[var(--border)] ${accent.radioOff}`}`}
+                      >
+                        {draftProjectType === type && (
+                          <div className="w-2 h-2 rounded-full bg-white" />
+                        )}
+                      </div>
+                      <input
+                        type="radio"
+                        className="hidden"
+                        name="projectType"
+                        checked={draftProjectType === type}
+                        onChange={() => setDraftProjectType(type)}
+                      />
+                      <span
+                        className={`text-sm font-bold transition-colors ${draftProjectType === type ? "text-[var(--text-main)]" : "text-[var(--text-muted)] group-hover:text-[var(--text-main)]"}`}
+                      >
+                        {type === "ALL"
+                          ? "All Projects"
+                          : type === "ROI"
+                            ? "ROI Projects"
+                            : "Charity Projects"}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Status */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
+                  Status
+                </h3>
+                <div className="space-y-3">
+                  {[
+                    { id: "APPROVED", label: "Newly Posted" },
+                    { id: "FUNDING", label: "Open Projects" },
+                    { id: "FUNDED", label: "Funded" },
+                    { id: "CLOSED", label: "Completed" },
+                  ].map((status) => (
+                    <label
+                      key={status.id}
+                      className="flex items-center gap-3 cursor-pointer group"
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${draftStatusFilters.includes(status.id) ? accent.checkboxOn : `border-[var(--border)] ${accent.checkboxOff}`}`}
+                      >
+                        {draftStatusFilters.includes(status.id) && (
+                          <Plus size={14} className="text-white" />
+                        )}
+                      </div>
+                      <input
+                        type="checkbox"
+                        className="hidden"
+                        checked={draftStatusFilters.includes(status.id)}
+                        onChange={() => toggleStatus(status.id)}
+                      />
+                      <span
+                        className={`text-sm font-bold transition-colors ${draftStatusFilters.includes(status.id) ? "text-[var(--text-main)]" : "text-[var(--text-muted)] group-hover:text-[var(--text-main)]"}`}
+                      >
+                        {status.label}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Category Dropdown */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">
+                  Category
+                </h3>
+                <select
+                  value={draftCategory}
+                  onChange={(e) => setDraftCategory(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm font-bold text-slate-700 outline-none focus:border-blue-500 transition-all cursor-pointer"
+                >
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="pt-6 border-t border-slate-100 flex gap-3">
+                <button
+                  onClick={resetAll}
+                  className="flex-1 py-3 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors uppercase tracking-widest"
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={() => applyFilters()}
+                  className="flex-1 py-3 bg-slate-900 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-md"
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-[2rem] p-8 text-white space-y-4 relative overflow-hidden shadow-xl shadow-emerald-500/20">
+              <Heart className="w-12 h-12 text-emerald-200 opacity-50 mb-2" />
+              <h3 className="text-2xl font-black leading-tight">
+                Start a cause.
+              </h3>
+              <p className="text-emerald-100 text-sm font-medium leading-relaxed">
+                Launch your charity campaign and reach thousands of donors
+                today.
+              </p>
+              <a
+                href="/dashboard/create-project"
+                className="w-full py-4 bg-white text-emerald-700 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg block text-center"
+              >
+                Start Campaign
+              </a>
+              <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+            </div>
+          </aside>
+
+          {/* Mobile Filter Drawer */}
+          {mobileFiltersOpen && (
+            <div className="fixed inset-0 z-50 lg:hidden">
+              <div
+                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                onClick={() => setMobileFiltersOpen(false)}
+              />
+              <div className="absolute bottom-0 left-0 right-0 bg-[var(--card)] rounded-t-3xl shadow-2xl border-t border-[var(--border)] max-h-[85vh] overflow-y-auto">
+                <div className="flex items-center justify-between p-5 border-b border-[var(--border)] sticky top-0 bg-[var(--card)] z-10">
+                  <h2 className="text-lg font-black">Filters</h2>
+                  <button
+                    onClick={() => setMobileFiltersOpen(false)}
+                    className="w-9 h-9 rounded-xl bg-[var(--secondary)] flex items-center justify-center"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                <div className="p-5 space-y-8">
+                  {/* Active Filter Tags */}
+                  {(appliedSearch.trim() ||
+                    appliedCategory !== "ALL" ||
+                    appliedProjectType !== "ALL" ||
+                    appliedStatusFilters.length > 0 ||
+                    appliedSortBy !== "newest") && (
+                    <div className="flex flex-wrap gap-2">
+                      {appliedProjectType !== "ALL" && (
+                        <button
+                          onClick={() => applyFilters({ projectType: "ALL" })}
+                          className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[var(--secondary)] text-[var(--text-main)] border border-[var(--border)] hover:opacity-90"
+                        >
+                          Type: {appliedProjectType} ✕
+                        </button>
+                      )}
+                      {appliedCategory !== "ALL" && (
+                        <button
+                          onClick={() => applyFilters({ category: "ALL" })}
+                          className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[var(--secondary)] text-[var(--text-main)] border border-[var(--border)] hover:opacity-90"
+                        >
+                          Category: {appliedCategory} ✕
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Project Type */}
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
+                      Project Type
+                    </h3>
+                    <div className="space-y-3">
+                      {["ALL", "CHARITY", "ROI"].map((type) => (
+                        <label
+                          key={type}
+                          className="flex items-center gap-3 cursor-pointer group"
+                        >
+                          <div
+                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${draftProjectType === type ? accent.radioOn : `border-[var(--border)] ${accent.radioOff}`}`}
+                          >
+                            {draftProjectType === type && (
+                              <div className="w-2 h-2 rounded-full bg-white" />
+                            )}
+                          </div>
+                          <input
+                            type="radio"
+                            className="hidden"
+                            name="mobileProjectType"
+                            checked={draftProjectType === type}
+                            onChange={() => setDraftProjectType(type)}
+                          />
+                          <span
+                            className={`text-sm font-bold transition-colors ${draftProjectType === type ? "text-[var(--text-main)]" : "text-[var(--text-muted)] group-hover:text-[var(--text-main)]"}`}
+                          >
+                            {type === "ALL"
+                              ? "All Projects"
+                              : type === "ROI"
+                                ? "ROI Projects"
+                                : "Charity Projects"}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Status */}
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
+                      Status
+                    </h3>
+                    <div className="space-y-3">
+                      {[
+                        { id: "APPROVED", label: "Newly Posted" },
+                        { id: "FUNDING", label: "Open Projects" },
+                        { id: "FUNDED", label: "Funded" },
+                        { id: "CLOSED", label: "Completed" },
+                      ].map((status) => (
+                        <label
+                          key={status.id}
+                          className="flex items-center gap-3 cursor-pointer group"
+                        >
+                          <div
+                            className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${draftStatusFilters.includes(status.id) ? accent.checkboxOn : `border-[var(--border)] ${accent.checkboxOff}`}`}
+                          >
+                            {draftStatusFilters.includes(status.id) && (
+                              <Plus size={14} className="text-white" />
+                            )}
+                          </div>
+                          <input
+                            type="checkbox"
+                            className="hidden"
+                            checked={draftStatusFilters.includes(status.id)}
+                            onChange={() => toggleStatus(status.id)}
+                          />
+                          <span
+                            className={`text-sm font-bold transition-colors ${draftStatusFilters.includes(status.id) ? "text-[var(--text-main)]" : "text-[var(--text-muted)] group-hover:text-[var(--text-main)]"}`}
+                          >
+                            {status.label}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Category */}
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
+                      Category
+                    </h3>
+                    <select
+                      value={draftCategory}
+                      onChange={(e) => setDraftCategory(e.target.value)}
+                      className="w-full bg-[var(--secondary)] border border-[var(--border)] rounded-xl py-3 px-4 text-sm font-bold text-[var(--text-main)] outline-none cursor-pointer"
+                    >
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-3 pb-2">
+                    <button
+                      onClick={() => {
+                        resetAll();
+                        setMobileFiltersOpen(false);
+                      }}
+                      className="flex-1 py-3 text-sm font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors uppercase tracking-widest border border-[var(--border)] rounded-xl"
+                    >
+                      Reset
+                    </button>
+                    <button
+                      onClick={() => {
+                        applyFilters();
+                        setMobileFiltersOpen(false);
+                      }}
+                      className="flex-1 py-3 bg-slate-900 text-white rounded-xl text-sm font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-md"
+                    >
+                      Apply Filters
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Project Grid */}
+          <div className="flex-grow">
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                {Array(6)
+                  .fill(0)
+                  .map((_, i) => (
+                    <div
+                      key={i}
+                      className="h-[28rem] bg-white rounded-[2rem] animate-pulse border border-slate-200 shadow-sm"
+                    />
+                  ))}
+              </div>
+            ) : projects.length > 0 ? (
+              <div className="space-y-12">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                  <AnimatePresence mode="popLayout">
+                    {projects.map((project: any, idx: number) => (
+                      <motion.div
+                        key={project.id || idx}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.3, delay: idx * 0.05 }}
+                      >
+                        <ProjectCard project={project} />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+
+                {/* Pagination */}
+                <div className="flex justify-center items-center gap-3 pt-8 pb-12">
+                  <button className="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-600 transition-all shadow-sm">
+                    <ArrowRight size={20} className="rotate-180" />
+                  </button>
+                  {[1, 2, 3].map((page) => (
+                    <button
+                      key={page}
+                      className={`w-12 h-12 rounded-xl font-bold transition-all shadow-sm ${page === 1 ? "bg-blue-600 text-white" : "bg-white border border-slate-200 text-slate-600 hover:border-blue-600"}`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button className="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-600 transition-all shadow-sm">
+                    <ArrowRight size={20} />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-40 space-y-6 bg-white rounded-[3rem] border-2 border-dashed border-slate-200 shadow-sm">
+                <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center">
+                  <Search className="w-10 h-10 text-slate-300" />
+                </div>
+                <div className="text-center space-y-2">
+                  <h3 className="text-2xl font-black tracking-tight text-slate-900">
+                    No projects match your search.
+                  </h3>
+                  <p className="text-slate-500 font-medium max-w-sm">
+                    We couldn't find any results for your current filters. Try
+                    resetting them or searching for something else.
+                  </p>
+                </div>
+                <button
+                  onClick={resetAll}
+                  className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20 hover:scale-105"
+                >
+                  Reset All Filters
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
 }
 
 export default function ExplorePage() {
-    return (
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center p-8 text-slate-500 font-bold">Loading Explore...</div>}>
-            <ExplorePageContent />
-        </Suspense>
-    );
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center p-8 text-slate-500 font-bold">
+          Loading Explore...
+        </div>
+      }
+    >
+      <ExplorePageContent />
+    </Suspense>
+  );
 }
 
 const FilterButton = ({ active, onClick, label, icon }: any) => (
-    <button
-        onClick={onClick}
-        className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all ${active ? 'bg-[var(--primary)] text-white shadow-lg shadow-blue-500/10' : 'bg-[var(--card)] text-[var(--text-muted)] border border-[var(--border)] hover:border-[var(--primary)]/50'}`}
-    >
-        {icon}
-        {label}
-    </button>
+  <button
+    onClick={onClick}
+    className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all ${active ? "bg-[var(--primary)] text-white shadow-lg shadow-blue-500/10" : "bg-[var(--card)] text-[var(--text-muted)] border border-[var(--border)] hover:border-[var(--primary)]/50"}`}
+  >
+    {icon}
+    {label}
+  </button>
 );

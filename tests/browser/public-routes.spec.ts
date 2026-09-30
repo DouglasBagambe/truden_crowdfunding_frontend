@@ -40,6 +40,15 @@ test.describe("public routes", () => {
     await expect(page.locator("body")).not.toContainText(
       /payment successful|funded successfully|settled/i,
     );
+
+    await page.getByText("ROI Projects", { exact: true }).first().click();
+    await expect(page).toHaveURL(/type=ROI/);
+    await expect(
+      page.getByPlaceholder("Search projects by title or description..."),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: /Reset/i }).first().click();
+    await expect(page).toHaveURL(/\/explore$/);
   });
 
   test("legal, support, missing routes, and mobile layout are usable", async ({

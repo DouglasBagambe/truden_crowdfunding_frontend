@@ -162,12 +162,6 @@ export default function CreateProjectPage() {
     useOfFunds: [],
   });
 
-  useEffect(() => {
-    if (!canCreateRoi && formData.type === ProjectType.ROI) {
-      setFormData((prev) => ({ ...prev, type: ProjectType.CHARITY }));
-    }
-  }, [formData.type, canCreateRoi]);
-
   const clearFieldError = (field: keyof FieldErrors) => {
     setFieldErrors((current) => {
       if (!current[field]) return current;
@@ -255,6 +249,13 @@ export default function CreateProjectPage() {
   };
 
   const confirmTypeAndNext = () => {
+    if (formData.type === ProjectType.ROI && !canCreateRoi) {
+      setError(
+        "Investment creation requires completed verification and eligibility approval.",
+      );
+      setShowConfirmModal(false);
+      return;
+    }
     setShowConfirmModal(false);
     setStep(2);
   };
@@ -267,9 +268,6 @@ export default function CreateProjectPage() {
     try {
       // Cleanup data before sending
       const payload: CreateProjectParams = { ...formData };
-      if (!canCreateRoi) {
-        payload.type = ProjectType.CHARITY;
-      }
       if (payload.type === ProjectType.CHARITY) {
         delete payload.industry;
         delete payload.milestones;
@@ -375,6 +373,18 @@ export default function CreateProjectPage() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    const file = files[0];
+    if (!file) return;
+    if (type !== "video" && !file.type.startsWith("image/")) {
+      setError("Choose a valid image file.");
+      e.target.value = "";
+      return;
+    }
+    if (type === "video" && !file.type.startsWith("video/")) {
+      setError("Choose a valid video file.");
+      e.target.value = "";
+      return;
+    }
     if (type === "cover") {
       setCoverPreviewUrl(URL.createObjectURL(files[0]));
     }
@@ -430,6 +440,34 @@ export default function CreateProjectPage() {
       e.target.value = "";
       setLoading(false);
     }
+  };
+
+  const addVideoUrl = (value: string) => {
+    const url = value.trim();
+    if (!isProbablyUrl(url)) {
+      setError("Enter a valid YouTube, Vimeo, or direct video URL.");
+      return;
+    }
+    try {
+      const host = new URL(url).hostname.toLowerCase();
+      const isSupported =
+        host.includes("youtube.com") ||
+        host.includes("youtu.be") ||
+        host.includes("vimeo.com") ||
+        /\.(mp4|webm|ogg)(\?.*)?$/i.test(url);
+      if (!isSupported) {
+        setError("Use a YouTube, Vimeo, or direct video URL.");
+        return;
+      }
+    } catch {
+      setError("Enter a valid video URL.");
+      return;
+    }
+    setFormData((current) => ({
+      ...current,
+      videoUrls: [...(current.videoUrls || []), url],
+    }));
+    setError("");
   };
 
   if (
@@ -511,116 +549,79 @@ export default function CreateProjectPage() {
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
-              className="bg-white rounded-[3rem] shadow-2xl p-8 md:p-16 space-y-12 border border-blue-50/50"
+              className="card_base space-y-8"
             >
               <div className="text-center space-y-4 max-w-2xl mx-auto">
-                <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-                  Choose Your Funding Path
-                </h1>
-                <p className="text-lg md:text-xl text-slate-500 font-medium">
-                  Different goals require different structures. Select the model
-                  that fits your vision.
+                <h1 className="typography_h1">Choose project type</h1>
+                <p className="typography_body">
+                  Select the campaign structure that fits your project.
                 </p>
               </div>
 
-              <div
-                className={`grid grid-cols-1 ${canCreateRoi ? "md:grid-cols-2" : ""} gap-10`}
-              >
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <button
                   onClick={() =>
                     setFormData({ ...formData, type: ProjectType.CHARITY })
                   }
-                  className={`relative p-8 md:p-10 rounded-[2.5rem] text-left transition-all duration-500 overflow-hidden group border-4 ${
+                  className={`relative rounded-lg border p-5 text-left transition-colors ${
                     formData.type === ProjectType.CHARITY
-                      ? "border-emerald-600 bg-emerald-50/30"
-                      : "border-slate-50 bg-slate-50/30 hover:bg-emerald-50/10 hover:border-emerald-200"
+                      ? "border-emerald-600 bg-emerald-50/40"
+                      : "border-[var(--border)] bg-[var(--card)] hover:border-emerald-300"
                   }`}
                 >
                   <div
-                    className={`w-16 h-16 md:w-20 md:h-20 rounded-3xl flex items-center justify-center mb-8 transition-all duration-500 ${formData.type === ProjectType.CHARITY ? "bg-emerald-600 text-white shadow-2xl shadow-emerald-500/40 rotate-6" : "bg-white text-slate-400 border-2 border-slate-100"}`}
+                    className={`mb-4 flex h-10 w-10 items-center justify-center rounded-lg ${formData.type === ProjectType.CHARITY ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-700"}`}
                   >
-                    <Heart size={36} />
+                    <Heart size={20} />
                   </div>
-                  <h3 className="text-2xl md:text-3xl font-black text-slate-900 mb-4 tracking-tight">
+                  <h3 className="text-lg font-semibold text-slate-900">
                     Charity
                   </h3>
-                  <p className="text-sm md:text-base text-slate-500 font-medium leading-relaxed mb-6">
-                    For charities, humanitarian aid, and community projects
-                    where funding is donation-based.
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    Fund a cause, community initiative, organisation or
+                    charitable project.
                   </p>
-                  <ul className="space-y-4">
-                    {[
-                      "Donation-based funding",
-                      "Transparent milestone tracking",
-                      "Impact focused reporting",
-                      "Community-driven reach",
-                    ].map((item, idx) => (
-                      <li
-                        key={idx}
-                        className="flex items-center gap-3 text-sm font-bold text-slate-600"
-                      >
-                        <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                          <CheckCircle2 size={12} />
-                        </div>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
                   {formData.type === ProjectType.CHARITY && (
-                    <div className="absolute top-6 right-6 text-emerald-600 hidden md:block">
-                      <CheckCircle2 size={32} />
+                    <div className="absolute right-4 top-4 text-emerald-700">
+                      <CheckCircle2 size={20} />
                     </div>
                   )}
                 </button>
 
-                {canCreateRoi && (
-                  <button
-                    onClick={() =>
-                      setFormData({ ...formData, type: ProjectType.ROI })
-                    }
-                    className={`relative p-8 md:p-10 rounded-[2.5rem] text-left transition-all duration-500 overflow-hidden group border-4 ${
-                      formData.type === ProjectType.ROI
-                        ? "border-blue-600 bg-blue-50/30"
-                        : "border-slate-50 bg-slate-50/30 hover:bg-blue-50/10 hover:border-blue-200"
-                    }`}
+                <button
+                  onClick={() =>
+                    setFormData({ ...formData, type: ProjectType.ROI })
+                  }
+                  className={`relative rounded-lg border p-5 text-left transition-colors ${
+                    formData.type === ProjectType.ROI
+                      ? "border-violet-600 bg-violet-50/40"
+                      : "border-[var(--border)] bg-[var(--card)] hover:border-violet-300"
+                  }`}
+                >
+                  <div
+                    className={`mb-4 flex h-10 w-10 items-center justify-center rounded-lg ${formData.type === ProjectType.ROI ? "bg-violet-600 text-white" : "bg-violet-50 text-violet-700"}`}
                   >
-                    <div
-                      className={`w-16 h-16 md:w-20 md:h-20 rounded-3xl flex items-center justify-center mb-8 transition-all duration-500 ${formData.type === ProjectType.ROI ? "bg-blue-600 text-white shadow-2xl shadow-blue-500/40 -rotate-6" : "bg-white text-slate-400 border-2 border-slate-100"}`}
-                    >
-                      <TrendingUp size={36} />
-                    </div>
-                    <h3 className="text-2xl md:text-3xl font-black text-slate-900 mb-4 tracking-tight">
-                      Investment / ROI
-                    </h3>
-                    <p className="text-sm md:text-base text-slate-500 font-medium leading-relaxed mb-6">
-                      For businesses and innovations seeking growth capital in
-                      exchange for returns or stake.
+                    <TrendingUp size={20} />
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    Investment
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    Raise capital for an investment opportunity with financial
+                    and compliance requirements.
+                  </p>
+                  {!canCreateRoi && (
+                    <p className="mt-3 text-xs font-medium text-amber-700">
+                      Investment creation requires completed verification and
+                      eligibility approval.
                     </p>
-                    <ul className="space-y-4">
-                      {[
-                        "Equity-based model",
-                        "Backer financial returns",
-                        "Scalability and profit focused",
-                        "Strategic investor network",
-                      ].map((item, idx) => (
-                        <li
-                          key={idx}
-                          className="flex items-center gap-3 text-sm font-bold text-slate-600"
-                        >
-                          <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                            <CheckCircle2 size={12} />
-                          </div>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                    {formData.type === ProjectType.ROI && (
-                      <div className="absolute top-6 right-6 text-blue-600 hidden md:block">
-                        <CheckCircle2 size={32} />
-                      </div>
-                    )}
-                  </button>
-                )}
+                  )}
+                  {formData.type === ProjectType.ROI && (
+                    <div className="absolute right-4 top-4 text-violet-700">
+                      <CheckCircle2 size={20} />
+                    </div>
+                  )}
+                </button>
               </div>
             </motion.div>
           )}
@@ -1062,14 +1063,12 @@ export default function CreateProjectPage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="bg-white rounded-3xl shadow-xl p-8 md:p-12 space-y-12"
+              className="card_base space-y-8"
             >
-              <h2 className="text-4xl font-black text-gray-900 leading-tight">
-                Media Presence
-              </h2>
+              <h2 className="typography_h2">Story and media</h2>
 
-              <div className="space-y-10">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   <div className="relative group">
                     <input
                       type="file"
@@ -1100,6 +1099,20 @@ export default function CreateProjectPage() {
                               Change Cover
                             </span>
                           </div>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.preventDefault();
+                              setCoverPreviewUrl("");
+                              setFormData((current) => ({
+                                ...current,
+                                imageUrl: "",
+                              }));
+                            }}
+                            className="button_secondary absolute bottom-2 left-2 min-h-8 px-2 text-xs"
+                          >
+                            Remove
+                          </button>
                         </div>
                       ) : (
                         <>
@@ -1196,6 +1209,83 @@ export default function CreateProjectPage() {
                   </div>
                 )}
 
+                <div className="rounded-lg border border-[var(--border)] p-4">
+                  <label
+                    htmlFor="video-url"
+                    className="block text-sm font-semibold text-[var(--text-main)]"
+                  >
+                    Video URL
+                  </label>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    YouTube, Vimeo, or a direct video URL.
+                  </p>
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <input
+                      id="video-url"
+                      type="url"
+                      placeholder="https://"
+                      className="input_field"
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          addVideoUrl(event.currentTarget.value);
+                          event.currentTarget.value = "";
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="button_secondary shrink-0"
+                      onClick={(event) => {
+                        const input =
+                          event.currentTarget.parentElement?.querySelector<HTMLInputElement>(
+                            "#video-url",
+                          );
+                        if (input) {
+                          addVideoUrl(input.value);
+                          input.value = "";
+                        }
+                      }}
+                    >
+                      Add video
+                    </button>
+                  </div>
+                  {(formData.videoUrls?.length || 0) > 0 && (
+                    <ul className="mt-4 space-y-2">
+                      {formData.videoUrls?.map((url, index) => (
+                        <li
+                          key={url}
+                          className="flex items-center justify-between gap-3 rounded-md bg-[var(--secondary)] p-2 text-sm"
+                        >
+                          <a
+                            className="min-w-0 truncate text-[var(--primary)] underline"
+                            href={url}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Video {index + 1}
+                          </a>
+                          <button
+                            type="button"
+                            aria-label={`Remove video ${index + 1}`}
+                            className="text-rose-700"
+                            onClick={() =>
+                              setFormData((current) => ({
+                                ...current,
+                                videoUrls: current.videoUrls?.filter(
+                                  (_, itemIndex) => itemIndex !== index,
+                                ),
+                              }))
+                            }
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
                 <div className="space-y-6 pt-6 border-t border-gray-100">
                   <h3 className="font-black text-xl text-gray-900 tracking-tight">
                     Social & External Links
@@ -1265,28 +1355,22 @@ export default function CreateProjectPage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="bg-white rounded-[3rem] shadow-2xl p-10 md:p-16 space-y-12 border border-gray-100 text-center"
+              className="card_base space-y-6"
             >
-              <div className="space-y-4">
-                <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-[2rem] flex items-center justify-center mx-auto shadow-inner">
-                  <CheckCircle2 size={48} />
-                </div>
-                <h2 className="text-5xl font-black text-gray-900 tracking-tight">
-                  Perfectly Ready!
-                </h2>
-                <p className="text-gray-500 font-medium text-lg max-w-lg mx-auto">
-                  One last look at your vision before it goes live to the Keibo
-                  community.
+              <div>
+                <h2 className="typography_h2">Review project</h2>
+                <p className="mt-2 text-sm text-[var(--text-muted)]">
+                  Confirm the information below before submitting it for review.
                 </p>
               </div>
 
-              <div className="space-y-8 text-left max-w-2xl mx-auto">
-                <div className="grid grid-cols-2 gap-10 p-10 bg-gray-50/50 rounded-[3rem] border border-gray-100 ring-1 ring-white/50 backdrop-blur-sm">
+              <div className="space-y-5 text-left">
+                <div className="grid grid-cols-1 gap-5 rounded-lg border border-[var(--border)] bg-[var(--secondary)] p-5 sm:grid-cols-2">
                   <div className="col-span-2">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-2">
                       Project Name
                     </p>
-                    <p className="text-3xl font-black text-gray-900">
+                    <p className="text-lg font-semibold text-gray-900">
                       {formData.name || "Untitled"}
                     </p>
                   </div>
@@ -1294,7 +1378,7 @@ export default function CreateProjectPage() {
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-2">
                       Type & Category
                     </p>
-                    <p className="text-xl font-black text-blue-600 uppercase tracking-tight">
+                    <p className="text-base font-semibold text-[var(--primary)]">
                       {formData.type} •{" "}
                       {formData.type === ProjectType.CHARITY
                         ? formData.category
@@ -1305,7 +1389,7 @@ export default function CreateProjectPage() {
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-2">
                       Target Amount
                     </p>
-                    <p className="text-xl font-black text-gray-900 uppercase tracking-tight">
+                    <p className="tabular-nums text-base font-semibold text-gray-900">
                       {formData.currency}{" "}
                       {formData.targetAmount.toLocaleString()}
                     </p>
@@ -1314,7 +1398,7 @@ export default function CreateProjectPage() {
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-2">
                       Funding Ends
                     </p>
-                    <p className="text-xl font-black text-gray-900">
+                    <p className="text-base font-semibold text-gray-900">
                       {formData.fundingEndDate || "Not set"}
                     </p>
                   </div>
@@ -1326,35 +1410,29 @@ export default function CreateProjectPage() {
                       <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
                         <Users size={16} />
                       </div>
-                      <p className="text-xl font-black text-gray-800">
+                      <p className="text-base font-semibold text-gray-800">
                         {formData.beneficiary}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-4 px-4">
+                <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <FileText className="w-6 h-6 text-blue-600" />
-                    <h4 className="font-black text-xl text-gray-900 tracking-tight">
-                      Executive Summary
-                    </h4>
+                    <h4 className="font-semibold text-gray-900">Summary</h4>
                   </div>
-                  <p className="text-gray-600 leading-relaxed font-medium italic text-lg opacity-80">
-                    &ldquo;{formData.summary}&rdquo;
+                  <p className="text-sm leading-6 text-gray-600">
+                    {formData.summary}
                   </p>
                 </div>
 
                 {error && (
-                  <div className="p-8 bg-rose-50 border-4 border-rose-100 rounded-[2.5rem] text-rose-600 flex items-start gap-5 shadow-inner">
-                    <AlertCircle className="w-8 h-8 flex-shrink-0 mt-1" />
+                  <div className="flex items-start gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4 text-rose-700">
+                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
                     <div className="space-y-1">
-                      <p className="text-lg font-black uppercase tracking-tight">
-                        We found some issues
-                      </p>
-                      <p className="text-sm font-bold opacity-80 leading-relaxed">
-                        {error}
-                      </p>
+                      <p className="text-sm font-semibold">Submission issue</p>
+                      <p className="mt-1 text-sm leading-relaxed">{error}</p>
                     </div>
                   </div>
                 )}
@@ -1364,35 +1442,28 @@ export default function CreateProjectPage() {
         </AnimatePresence>
 
         {/* Action Buttons */}
-        <div className="mt-8 sm:mt-12 flex justify-between items-center bg-white/80 backdrop-blur-xl p-4 sm:p-6 rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl border border-white/50 sticky bottom-4 sm:bottom-8">
+        <div className="sticky bottom-4 mt-6 flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 shadow-sm">
           <button
             onClick={prevStep}
             disabled={step === 1 || loading}
-            className={`flex items-center gap-2 sm:gap-3 px-5 sm:px-10 py-4 sm:py-5 rounded-2xl font-black uppercase tracking-widest text-sm transition-all ${
-              step === 1
-                ? "text-gray-200 cursor-not-allowed"
-                : "text-gray-500 hover:bg-gray-100 active:scale-95"
-            }`}
+            className="button_secondary gap-2"
           >
             <ArrowLeft className="w-5 h-5" />{" "}
             <span className="hidden sm:inline">Back</span>
           </button>
 
           {step < 6 ? (
-            <button
-              onClick={nextStep}
-              className="flex items-center gap-4 bg-gray-900 hover:bg-black text-white px-12 py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-sm shadow-xl hover:-translate-y-1 active:translate-y-0 active:scale-95 transition-all"
-            >
+            <button onClick={nextStep} className="button_primary gap-2">
               Next Step <ArrowRight className="w-5 h-5" />
             </button>
           ) : (
             <button
               onClick={handleCreate}
               disabled={loading}
-              className={`flex items-center gap-4 px-16 py-6 rounded-2xl font-black uppercase tracking-[0.3em] text-base shadow-2xl hover:-translate-y-2 active:translate-y-0 active:scale-95 transition-all w-full md:w-auto justify-center ${
+              className={`flex min-h-10 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors ${
                 loading
                   ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                  : "bg-gradient-to-br from-blue-600 to-indigo-700 text-white hover:shadow-blue-200"
+                  : "bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]"
               }`}
             >
               {loading ? (
@@ -1402,7 +1473,7 @@ export default function CreateProjectPage() {
                 </>
               ) : (
                 <>
-                  Launch Project <CheckCircle2 className="w-7 h-7" />
+                  Submit project <CheckCircle2 className="h-4 w-4" />
                 </>
               )}
             </button>
@@ -1425,43 +1496,28 @@ export default function CreateProjectPage() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl p-10 text-center border border-slate-100"
+              className="relative w-full max-w-md rounded-lg border border-[var(--border)] bg-[var(--card)] p-6 shadow-xl"
             >
-              <div
-                className={`w-20 h-20 rounded-3xl mx-auto flex items-center justify-center mb-8 ${formData.type === ProjectType.CHARITY ? "bg-emerald-100 text-emerald-600" : "bg-blue-100 text-blue-600"}`}
-              >
-                {formData.type === ProjectType.CHARITY ? (
-                  <Heart size={36} />
-                ) : (
-                  <TrendingUp size={36} />
-                )}
-              </div>
-              <h2 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">
-                Confirm Project Path
+              <h2 className="text-xl font-semibold text-[var(--text-main)]">
+                Confirm project type
               </h2>
-              <p className="text-slate-500 font-medium leading-relaxed mb-10 text-lg">
-                You are choosing to create a{" "}
-                <span className="font-bold text-slate-900">
-                  {formData.type}
-                </span>{" "}
-                project. This decision{" "}
-                <span className="text-rose-500 font-bold underline">
-                  cannot be changed
-                </span>{" "}
-                once you proceed to the next step.
+              <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+                You’re creating a{" "}
+                {formData.type === ProjectType.CHARITY
+                  ? "Charity"
+                  : "Investment"}{" "}
+                campaign. You can go back now if this is not the correct project
+                type.
               </p>
-              <div className="space-y-3">
-                <button
-                  onClick={confirmTypeAndNext}
-                  className={`w-full py-5 rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl hover:-translate-y-1 transition-all ${formData.type === ProjectType.CHARITY ? "bg-emerald-600 text-white shadow-emerald-200" : "bg-blue-600 text-white shadow-blue-200"}`}
-                >
-                  Proceed to Basics
+              <div className="mt-6 flex justify-end gap-3">
+                <button onClick={confirmTypeAndNext} className="button_primary">
+                  Continue
                 </button>
                 <button
                   onClick={() => setShowConfirmModal(false)}
-                  className="w-full py-5 text-slate-400 font-black uppercase tracking-widest text-xs hover:text-slate-900 transition-colors"
+                  className="button_secondary"
                 >
-                  Go Back
+                  Cancel
                 </button>
               </div>
             </motion.div>

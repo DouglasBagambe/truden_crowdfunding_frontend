@@ -371,10 +371,10 @@ export default function DashboardPage() {
             </div>
 
             {/* Main Dashboard Container */}
-            <div className="bg-[var(--card)] rounded-[2rem] border border-[var(--border)] overflow-hidden shadow-sm transition-colors duration-300">
+            <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--card)] shadow-sm transition-colors duration-300">
               <div className="border-b border-[var(--border)] px-4 sm:px-8">
-                <div className="flex items-center justify-between">
-                  <nav className="flex gap-6 sm:gap-10 overflow-x-auto scrollbar-hide">
+                <div className="flex min-w-0 items-center gap-4">
+                  <nav className="flex min-w-0 flex-1 gap-6 overflow-x-auto scrollbar-hide">
                     {[
                       ...(hasRoiAccess
                         ? [
@@ -413,7 +413,7 @@ export default function DashboardPage() {
                       <button
                         key={tab.key}
                         onClick={() => setActiveTab(tab.key as DashboardTab)}
-                        className={`py-5 text-sm font-bold border-b-2 transition-all relative flex items-center gap-2 flex-shrink-0 ${
+                        className={`relative flex shrink-0 items-center gap-2 border-b-2 py-4 text-sm font-bold transition-all ${
                           activeTab === tab.key
                             ? "border-[var(--primary)] text-[var(--primary)]"
                             : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]"
@@ -430,14 +430,14 @@ export default function DashboardPage() {
                       </button>
                     ))}
                   </nav>
-                  <div className="relative hidden sm:block">
+                  <div className="relative hidden shrink-0 sm:block">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] opacity-50" />
                     <input
                       type="text"
                       placeholder="Search..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="bg-[var(--background)] rounded-xl py-2 pl-10 pr-4 text-xs font-bold border border-transparent focus:border-[var(--primary)]/20 outline-none w-40 sm:w-56 transition-all"
+                      className="w-40 rounded-md border border-transparent bg-[var(--background)] py-2 pl-10 pr-4 text-xs font-bold outline-none transition-all focus:border-[var(--primary)]/20 sm:w-56"
                     />
                   </div>
                 </div>
