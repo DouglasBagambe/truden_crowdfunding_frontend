@@ -12,11 +12,6 @@ const isUsableWalletConnectProjectId = Boolean(
   configuredProjectId &&
   !/^(your|replace[-_ ]?with|example|test)[-_ ]/i.test(configuredProjectId),
 );
-if (process.env.NODE_ENV === "production" && !isUsableWalletConnectProjectId) {
-  throw new Error(
-    "A valid NEXT_PUBLIC_WC_PROJECT_ID is required in production",
-  );
-}
 const projectId =
   configuredProjectId && isUsableWalletConnectProjectId
     ? configuredProjectId
@@ -70,7 +65,11 @@ export function Web3Provider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
-    if (web3ModalInitialized || typeof window === "undefined") {
+    if (
+      web3ModalInitialized ||
+      typeof window === "undefined" ||
+      !isUsableWalletConnectProjectId
+    ) {
       return;
     }
 
