@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Heart,
   Lightbulb,
@@ -29,6 +29,22 @@ export default function LandingPage() {
   const { data: projectsData, isLoading } = useProjects();
   const { hasRoiAccess } = useRoiAccess();
   const [activeTab, setActiveTab] = useState<"ALL" | "CHARITY" | "ROI">("ALL");
+  const heroImages = useMemo(
+    () => [
+      "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1600&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=1600&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=1600&auto=format&fit=crop&q=80",
+    ],
+    [],
+  );
+  const [heroIndex, setHeroIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setHeroIndex((index) => (index + 1) % heroImages.length);
+    }, 5000);
+    return () => window.clearInterval(interval);
+  }, [heroImages]);
 
   const ugxFormatter = useMemo(
     () =>
@@ -79,45 +95,53 @@ export default function LandingPage() {
 
       <main className="flex-grow">
         {/* ── Hero ── */}
-        <section className="border-b border-[var(--border)] bg-[var(--card)]">
-          <div className="page-shell py-16 sm:py-20 lg:py-24">
+        <section className="relative isolate min-h-[540px] overflow-hidden border-b border-[var(--border)] sm:min-h-[620px]">
+          <div className="absolute inset-0 -z-10">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={heroImages[heroIndex]}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1 }}
+                className="absolute inset-0 bg-cover bg-center"
+                style={{ backgroundImage: `url(${heroImages[heroIndex]})` }}
+              />
+            </AnimatePresence>
+            <div className="absolute inset-0 bg-slate-950/35" />
+            <div className="absolute inset-0 bg-gradient-to-b from-slate-950/25 via-slate-950/40 to-slate-950/65" />
+          </div>
+          <div className="page-shell flex min-h-[540px] items-center py-16 text-center sm:min-h-[620px] sm:py-20">
             <motion.div
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7 }}
-              className="max-w-3xl space-y-5"
+              className="mx-auto max-w-3xl space-y-5"
             >
-              <p className="eyebrow text-[var(--primary)]">
-                Campaign funding, made clearer
-              </p>
-              <h1 className="max-w-2xl text-3xl font-semibold tracking-tight text-[var(--text-main)] sm:text-4xl lg:text-5xl leading-tight">
-                Back the work you believe in.
+              <h1 className="text-4xl font-semibold leading-tight tracking-tight text-white sm:text-5xl lg:text-6xl">
+                Back what matters.
+                <br />
+                Fund the future.
               </h1>
-              <p className="max-w-xl text-base leading-7 text-[var(--text-muted)] sm:text-lg">
+              <p className="mx-auto max-w-2xl text-base leading-7 text-white/90 sm:text-lg">
                 {hasRoiAccess
-                  ? "Explore charity campaigns and eligible investment opportunities with the context needed to make informed decisions."
-                  : "Explore charity campaigns, follow their progress, and support causes that matter to you."}
+                  ? "Support charity causes making a real impact, or invest in businesses built for growth — all on one trusted platform."
+                  : "Support charity causes making a real impact and help communities grow through trusted fundraising."}
               </p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25, duration: 0.6 }}
-              className="mt-7 flex flex-col items-start gap-3 sm:flex-row"
-            >
-              <Link
-                href="/dashboard/create-project"
-                className="button_primary w-full sm:w-auto px-5 text-center"
-              >
-                Start a Campaign
-              </Link>
-              <Link
-                href="/explore"
-                className="button_secondary w-full sm:w-auto px-5 text-center"
-              >
-                Explore Projects
-              </Link>
+              <div className="flex flex-col justify-center gap-3 pt-3 sm:flex-row">
+                <Link
+                  href="/dashboard/create-project"
+                  className="button_primary px-6 text-center"
+                >
+                  Start a Campaign
+                </Link>
+                <Link
+                  href="/explore"
+                  className="inline-flex min-h-10 items-center justify-center rounded-md border border-white/70 bg-white/90 px-6 text-sm font-semibold text-slate-900 transition-colors hover:bg-white"
+                >
+                  Explore Projects
+                </Link>
+              </div>
             </motion.div>
           </div>
         </section>
@@ -346,37 +370,31 @@ export default function LandingPage() {
                   icon={<Lightbulb />}
                   label="Technology"
                   href="/explore?category=TECHNOLOGY"
-                  color="blue"
                 />
                 <CategoryCard
                   icon={<GraduationCap />}
                   label="Education"
                   href="/explore?category=EDUCATION"
-                  color="indigo"
                 />
                 <CategoryCard
                   icon={<UtensilsCrossed />}
                   label="Food & Craft"
                   href="/explore?category=COMMUNITY"
-                  color="amber"
                 />
                 <CategoryCard
                   icon={<Leaf />}
                   label="Environment"
                   href="/explore?category=ENVIRONMENT"
-                  color="emerald"
                 />
                 <CategoryCard
                   icon={<Palette />}
                   label="Arts"
                   href="/explore?category=COMMUNITY"
-                  color="rose"
                 />
                 <CategoryCard
                   icon={<FlaskConical />}
                   label="Health"
                   href="/explore?category=HEALTH"
-                  color="cyan"
                 />
               </div>
             </section>
@@ -425,35 +443,18 @@ export default function LandingPage() {
   );
 }
 
-const colorMap: Record<string, string> = {
-  blue: "text-blue-600 bg-blue-50 dark:bg-blue-950/30 border-blue-100 dark:border-blue-900/40 group-hover:border-blue-400",
-  indigo:
-    "text-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 border-indigo-100 dark:border-indigo-900/40 group-hover:border-indigo-400",
-  amber:
-    "text-amber-600 bg-amber-50 dark:bg-amber-950/30 border-amber-100 dark:border-amber-900/40 group-hover:border-amber-400",
-  emerald:
-    "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/40 group-hover:border-emerald-400",
-  rose: "text-rose-600 bg-rose-50 dark:bg-rose-950/30 border-rose-100 dark:border-rose-900/40 group-hover:border-rose-400",
-  cyan: "text-cyan-600 bg-cyan-50 dark:bg-cyan-950/30 border-cyan-100 dark:border-cyan-900/40 group-hover:border-cyan-400",
-};
-
 function CategoryCard({
   icon,
   label,
-  color,
   href,
 }: {
   icon: React.ReactNode;
   label: string;
-  color: string;
   href: string;
 }) {
-  const cls = colorMap[color] || colorMap.blue;
   return (
     <Link href={href} className="group">
-      <div
-        className={`flex cursor-pointer flex-col items-center gap-3 rounded-lg border p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${cls}`}
-      >
+      <div className="flex cursor-pointer flex-col items-center gap-3 border border-[var(--border)] bg-[var(--card)] p-4 text-[var(--primary)] transition-colors duration-200 hover:border-[var(--primary)] hover:bg-[var(--secondary)]">
         <div className="[&>svg]:w-5 [&>svg]:h-5 sm:[&>svg]:w-6 sm:[&>svg]:h-6 transition-transform group-hover:scale-110 duration-300">
           {icon}
         </div>
