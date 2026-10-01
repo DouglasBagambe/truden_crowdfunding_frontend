@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Bell, CheckCheck, CircleAlert, RefreshCw } from "lucide-react";
+import toast from "react-hot-toast";
 import {
   markAllNotificationsRead,
   markNotificationRead,
@@ -16,6 +17,7 @@ const filters: Array<{ label: string; value?: NotificationCategory }> = [
   { label: "Campaign", value: "campaign" },
   { label: "Financial", value: "financial" },
   { label: "System", value: "system" },
+  { label: "Security", value: "security" },
 ];
 
 export function NotificationsView() {
@@ -40,24 +42,32 @@ export function NotificationsView() {
   }, [category, load]);
   const unread = items.filter((item) => !item.readAt).length;
   const markAll = async () => {
-    await markAllNotificationsRead();
-    setItems((current) =>
-      current.map((item) => ({
-        ...item,
-        readAt: item.readAt || new Date().toISOString(),
-      })),
-    );
+    try {
+      await markAllNotificationsRead();
+      setItems((current) =>
+        current.map((item) => ({
+          ...item,
+          readAt: item.readAt || new Date().toISOString(),
+        })),
+      );
+    } catch {
+      toast.error("Unable to mark notifications as read. Try again.");
+    }
   };
   const read = async (item: KeiboNotification) => {
     if (!item.readAt) {
-      await markNotificationRead(item.id);
-      setItems((current) =>
-        current.map((candidate) =>
-          candidate.id === item.id
-            ? { ...candidate, readAt: new Date().toISOString() }
-            : candidate,
-        ),
-      );
+      try {
+        await markNotificationRead(item.id);
+        setItems((current) =>
+          current.map((candidate) =>
+            candidate.id === item.id
+              ? { ...candidate, readAt: new Date().toISOString() }
+              : candidate,
+          ),
+        );
+      } catch {
+        toast.error("Unable to mark this notification as read. Try again.");
+      }
     }
   };
 
