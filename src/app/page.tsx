@@ -148,7 +148,7 @@ export default function LandingPage() {
 
         {/* ── Filter Tabs ── */}
         <section className="bg-[var(--background)] border-b border-[var(--border)] py-5">
-          <div className="page-shell">
+          <div className="page-shell flex justify-center">
             <div className="inline-flex gap-1 rounded-md border border-[var(--border)] bg-[var(--card)] p-1 shadow-sm">
               {(
                 [
