@@ -5,10 +5,10 @@ export default function TermsPage() {
     <PublicPage eyebrow="Legal" title="Terms of Service">
       <p>
         KEIBO is currently available in a limited UAT environment while the
-        platform is being prepared for wider release. Campaign listings,
-        payment actions, wallet connections, and investment receipts remain
-        subject to the eligibility, provider, and confirmation checks shown at
-        the time of use.
+        platform is being prepared for wider release. Campaign listings, payment
+        actions, wallet connections, and investment receipts remain subject to
+        the eligibility, provider, and confirmation checks shown at the time of
+        use.
       </p>
       <p>
         Users must provide accurate information, use wallets they control, and
