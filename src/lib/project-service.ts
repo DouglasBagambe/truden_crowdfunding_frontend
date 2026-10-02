@@ -63,7 +63,7 @@ export interface CreateProjectParams {
   milestones?: Array<{
     title: string;
     description: string;
-    dueDate: string;
+    dueDate?: string;
     payoutPercentage?: number;
   }>;
   useOfFunds?: Array<{

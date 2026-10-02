@@ -34,6 +34,11 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
 import { userService } from "@/lib/user-service";
+import {
+  campaignDeadlineToIso,
+  formatCampaignDeadline,
+  isFutureCampaignDeadline,
+} from "@/lib/project-dates";
 
 const CHARITY_CATEGORIES = [
   { label: "School", value: "school" },
@@ -225,6 +230,9 @@ export default function CreateProjectPage() {
       ) {
         errors.milestones = "Add at least one milestone for ROI projects.";
       }
+      if (!isFutureCampaignDeadline(formData.fundingEndDate || "")) {
+        errors.fundingEndDate = "Choose a valid future campaign end date.";
+      }
     }
     return errors;
   };
@@ -263,11 +271,30 @@ export default function CreateProjectPage() {
   const prevStep = () => setStep((s) => Math.max(s - 1, 1));
 
   const handleCreate = async () => {
+    const fundingEndDate = campaignDeadlineToIso(formData.fundingEndDate || "");
+    if (
+      !fundingEndDate ||
+      !isFutureCampaignDeadline(formData.fundingEndDate || "")
+    ) {
+      setError("Choose a valid future campaign end date.");
+      setFieldErrors({
+        fundingEndDate: "Choose a valid future campaign end date.",
+      });
+      return;
+    }
+
     setLoading(true);
     setError("");
     try {
       // Cleanup data before sending
       const payload: CreateProjectParams = { ...formData };
+      payload.fundingEndDate = fundingEndDate;
+      if (payload.milestones) {
+        payload.milestones = payload.milestones.map((milestone) => ({
+          ...milestone,
+          dueDate: campaignDeadlineToIso(milestone.dueDate || ""),
+        }));
+      }
       if (payload.type === ProjectType.CHARITY) {
         delete payload.industry;
         delete payload.milestones;
@@ -951,15 +978,21 @@ export default function CreateProjectPage() {
                     <input
                       type="date"
                       value={formData.fundingEndDate}
-                      onChange={(e) =>
+                      min={new Date().toISOString().slice(0, 10)}
+                      onChange={(e) => {
+                        clearFieldError("fundingEndDate");
                         setFormData({
                           ...formData,
                           fundingEndDate: e.target.value,
-                        })
-                      }
-                      className="w-full bg-transparent border-none text-2xl font-black text-gray-900 focus:outline-none"
+                        });
+                      }}
+                      className={getInputClass(
+                        "fundingEndDate",
+                        "w-full bg-transparent border-none text-2xl font-black text-gray-900 focus:outline-none",
+                      )}
                     />
                   </div>
+                  {renderFieldError("fundingEndDate")}
                 </div>
               </div>
 
@@ -1399,7 +1432,8 @@ export default function CreateProjectPage() {
                       Funding Ends
                     </p>
                     <p className="text-base font-semibold text-gray-900">
-                      {formData.fundingEndDate || "Not set"}
+                      {formatCampaignDeadline(formData.fundingEndDate || "") ||
+                        "Not set"}
                     </p>
                   </div>
                   <div className="col-span-2 border-t border-gray-100 pt-6">

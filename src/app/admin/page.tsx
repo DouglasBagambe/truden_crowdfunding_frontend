@@ -41,6 +41,13 @@ import toast from "react-hot-toast";
 
 type AdminTab = "overview" | "projects" | "kyc" | "users" | "payouts";
 
+type AdminOverview = {
+  totals?: { totalUsers?: number };
+  projects?: {
+    funnel?: Record<string, { count?: number }>;
+  };
+};
+
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: "chip-neutral",
   PENDING_REVIEW: "chip-warning",
@@ -151,6 +158,9 @@ export default function AdminPage() {
   const [users, setUsers] = useState<Record<string, unknown>[]>([]);
   const [kycProfiles, setKycProfiles] = useState<KycAdminListItem[]>([]);
   const [payouts, setPayouts] = useState<Record<string, unknown>[]>([]);
+  const [adminOverview, setAdminOverview] = useState<AdminOverview | null>(
+    null,
+  );
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [loadingKyc, setLoadingKyc] = useState(false);
@@ -290,13 +300,35 @@ export default function AdminPage() {
     }
   }, []);
 
+  const loadAdminOverview = useCallback(async () => {
+    try {
+      const response = await apiClient.get<AdminOverview>(
+        "/stats/admin/overview",
+      );
+      setAdminOverview(response.data);
+    } catch (error: unknown) {
+      setAdminOverview(null);
+      const message = (error as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message;
+      toast.error(message || "Unable to load authoritative admin totals.");
+    }
+  }, []);
+
   useEffect(() => {
     if (!isAdmin) return;
     void loadProjects();
     void loadUsers();
     void loadKycProfiles();
     void loadPayouts();
-  }, [isAdmin, loadKycProfiles, loadPayouts, loadProjects, loadUsers]);
+    void loadAdminOverview();
+  }, [
+    isAdmin,
+    loadAdminOverview,
+    loadKycProfiles,
+    loadPayouts,
+    loadProjects,
+    loadUsers,
+  ]);
 
   const overrideKycStatus = async (
     profileId: string,
@@ -423,6 +455,22 @@ export default function AdminPage() {
     (p) => p.status === "REJECTED",
   ).length;
   const draftCount = allProjects.filter((p) => p.status === "DRAFT").length;
+  const projectFunnel = adminOverview?.projects?.funnel;
+  const authoritativeCampaignCount = projectFunnel
+    ? Object.values(projectFunnel).reduce(
+        (total, item) => total + (item.count ?? 0),
+        0,
+      )
+    : allProjects.length;
+  const authoritativePendingCount =
+    projectFunnel?.PENDING_REVIEW?.count ?? pendingCount;
+  const authoritativeApprovedCount = projectFunnel
+    ? (projectFunnel.APPROVED?.count ?? 0) +
+      (projectFunnel.FUNDING?.count ?? 0) +
+      (projectFunnel.FUNDED?.count ?? 0)
+    : approvedCount;
+  const authoritativeUserCount =
+    adminOverview?.totals?.totalUsers ?? users.length;
 
   const getCreatorName = (p: Record<string, unknown>): string => {
     const creator = (p.creator || p.creatorId) as
@@ -602,34 +650,36 @@ export default function AdminPage() {
                 <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
                   <KpiCard
                     label="All Campaigns"
-                    value={allProjects.length}
+                    value={authoritativeCampaignCount}
                     accentClass="bg-[var(--primary)]"
                     note="across all statuses"
                   />
                   <KpiCard
                     label="Pending Review"
-                    value={pendingCount}
+                    value={authoritativePendingCount}
                     accentClass="bg-amber-400"
                     note={
-                      pendingCount > 0 ? "needs moderation" : "queue is clear"
+                      authoritativePendingCount > 0
+                        ? "needs moderation"
+                        : "queue is clear"
                     }
                     alertLevel={
-                      pendingCount > 5
+                      authoritativePendingCount > 5
                         ? "crit"
-                        : pendingCount > 0
+                        : authoritativePendingCount > 0
                           ? "warn"
                           : "none"
                     }
                   />
                   <KpiCard
                     label="Approved / Live"
-                    value={approvedCount}
+                    value={authoritativeApprovedCount}
                     accentClass="bg-emerald-500"
                     note="visible to investors"
                   />
                   <KpiCard
                     label="Total Users"
-                    value={users.length}
+                    value={authoritativeUserCount}
                     accentClass="bg-slate-400"
                     note="registered accounts"
                   />

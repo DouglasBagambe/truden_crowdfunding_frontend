@@ -43,7 +43,7 @@ const Footer = () => {
             </h4>
             <ul className="space-y-3">
               <FooterLink href="/dashboard">Dashboard</FooterLink>
-              <FooterLink href="/settings">Account Settings</FooterLink>
+              <FooterLink href="/profile">Account Settings</FooterLink>
               <FooterLink href="/explore">Explore</FooterLink>
             </ul>
           </div>

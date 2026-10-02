@@ -90,7 +90,7 @@ export default function LandingPage() {
   const visibleTab = !hasRoiAccess && activeTab === "ROI" ? "ALL" : activeTab;
 
   return (
-    <div className="bg-[var(--background)] min-h-screen flex flex-col pt-[68px] transition-colors duration-300">
+    <div className="min-w-0 w-full overflow-x-clip bg-[var(--background)] min-h-screen flex flex-col pt-[68px] transition-colors duration-300">
       <Navbar />
 
       <main className="flex-grow">
