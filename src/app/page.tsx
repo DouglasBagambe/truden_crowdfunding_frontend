@@ -1,4 +1,5 @@
 "use client";
+import { homeCategories } from "@/lib/project-categories";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Navbar from "@/components/layout/Navbar";
@@ -366,36 +367,22 @@ export default function LandingPage() {
               </div>
 
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-                <CategoryCard
-                  icon={<Lightbulb />}
-                  label="Technology"
-                  href="/explore?category=TECHNOLOGY"
-                />
-                <CategoryCard
-                  icon={<GraduationCap />}
-                  label="Education"
-                  href="/explore?category=EDUCATION"
-                />
-                <CategoryCard
-                  icon={<UtensilsCrossed />}
-                  label="Food & Craft"
-                  href="/explore?category=COMMUNITY"
-                />
-                <CategoryCard
-                  icon={<Leaf />}
-                  label="Environment"
-                  href="/explore?category=ENVIRONMENT"
-                />
-                <CategoryCard
-                  icon={<Palette />}
-                  label="Arts"
-                  href="/explore?category=COMMUNITY"
-                />
-                <CategoryCard
-                  icon={<FlaskConical />}
-                  label="Health"
-                  href="/explore?category=HEALTH"
-                />
+                {homeCategories.map((category, index) => (
+                  <CategoryCard
+                    key={category.href}
+                    icon={
+                      [
+                        <Lightbulb key="school" />,
+                        <GraduationCap key="ngo" />,
+                        <UtensilsCrossed key="community" />,
+                        <Leaf key="church" />,
+                        <Palette key="individual" />,
+                        <FlaskConical key="family" />,
+                      ][index]
+                    }
+                    {...category}
+                  />
+                ))}
               </div>
             </section>
 

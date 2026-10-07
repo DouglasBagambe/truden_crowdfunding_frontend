@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import {
   markAllNotificationsRead,
   markNotificationRead,
+  markNotificationUnread,
   getNotifications,
   type KeiboNotification,
   type NotificationCategory,
@@ -71,6 +72,19 @@ export function NotificationsView() {
     }
   };
 
+  const unreadItem = async (item: KeiboNotification) => {
+    try {
+      await markNotificationUnread(item.id);
+      setItems((current) =>
+        current.map((candidate) =>
+          candidate.id === item.id ? { ...candidate, readAt: null } : candidate,
+        ),
+      );
+    } catch {
+      toast.error("Unable to mark this notification as unread. Try again.");
+    }
+  };
+
   return (
     <section className="space-y-5">
       <header className="flex flex-col gap-3 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-end sm:justify-between">
@@ -89,7 +103,7 @@ export function NotificationsView() {
         <div className="flex gap-2">
           <button
             className="button_secondary gap-2"
-            onClick={() => void load()}
+            onClick={() => void load(category)}
             disabled={loading}
           >
             <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
@@ -164,6 +178,14 @@ export function NotificationsView() {
                       >
                         View details
                       </Link>
+                    )}
+                    {item.readAt && (
+                      <button
+                        className="text-xs font-medium text-[var(--text-muted)]"
+                        onClick={() => void unreadItem(item)}
+                      >
+                        Mark unread
+                      </button>
                     )}
                     {!item.readAt && (
                       <button

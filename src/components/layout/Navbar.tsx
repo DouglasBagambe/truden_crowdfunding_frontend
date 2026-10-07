@@ -1,4 +1,5 @@
 "use client";
+import { homeCategories } from "@/lib/project-categories";
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -120,14 +121,17 @@ const Navbar = () => {
 
   const navCategories = [
     { href: "/explore", label: "All Projects" },
-    { href: "/explore?category=HEALTH", label: "Health" },
-    { href: "/explore?category=EDUCATION", label: "Education" },
-    { href: "/explore?category=ENVIRONMENT", label: "Environment" },
-    { href: "/explore?category=COMMUNITY", label: "Community" },
+    ...homeCategories,
     ...(hasRoiAccess
       ? [
-          { href: "/explore?industry=REAL_ESTATE", label: "Real Estate" },
-          { href: "/explore?industry=TECHNOLOGY", label: "Technology" },
+          {
+            href: "/explore?type=ROI&industry=real_estate",
+            label: "Real Estate",
+          },
+          {
+            href: "/explore?type=ROI&industry=technology",
+            label: "Technology",
+          },
           { href: "/explore?industry=AGRICULTURE", label: "Agriculture" },
           { href: "/explore?industry=ENERGY", label: "Energy" },
         ]

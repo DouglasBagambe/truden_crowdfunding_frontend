@@ -45,6 +45,6 @@ jobs:
       - name: Validate Playwright test discovery
         run: npm run test:browser-list
       - name: Run mocked financial browser coverage
-        run: PLAYWRIGHT_LOCAL=true npx playwright test tests/browser/financial-flows.spec.ts
+        run: PLAYWRIGHT_LOCAL=true npx playwright test tests/browser/financial-flows.spec.ts tests/browser/uat-defects.spec.ts
       - name: Webpack production build
         run: npm run build -- --webpack

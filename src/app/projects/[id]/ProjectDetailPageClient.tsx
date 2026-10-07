@@ -25,6 +25,8 @@ import {
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import Image from "next/image";
+import toast from "react-hot-toast";
+import { categoryLabel } from "@/lib/project-categories";
 import { projectService } from "@/lib/project-service";
 import { useAuth } from "@/hooks/useAuth";
 import { isCharityProject } from "@/lib/roi-access";
@@ -112,7 +114,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 function isDisplayableMediaUrl(value: unknown): value is string {
   if (typeof value !== "string" || !value.trim()) return false;
   try {
-    const url = new URL(value);
+    const url = new URL(value, "https://keibo.invalid");
     return url.protocol === "https:" || url.protocol === "http:";
   } catch {
     return false;
@@ -165,6 +167,46 @@ export default function ProjectDetailPageClient() {
     "story",
   );
   const [bookmarked, setBookmarked] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveReady, setSaveReady] = useState(false);
+  useEffect(() => {
+    let active = true;
+    setBookmarked(false);
+    setSaveReady(false);
+    if (!isAuthenticated) return;
+    projectService
+      .getSaved(projectId)
+      .then((saved) => {
+        if (active) {
+          setBookmarked(saved);
+          setSaveReady(true);
+        }
+      })
+      .catch(() => {
+        if (active)
+          toast.error("Unable to load saved campaign. Refresh to retry.");
+      });
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated, projectId, user?.id, user?._id]);
+  const toggleSaved = async () => {
+    if (!isAuthenticated) {
+      router.push(
+        `/login?next=${encodeURIComponent(window.location.pathname)}`,
+      );
+      return;
+    }
+    if (saving || !saveReady) return;
+    setSaving(true);
+    try {
+      setBookmarked(await projectService.setSaved(projectId, !bookmarked));
+    } catch {
+      toast.error("Unable to save campaign. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [isSubmittingForReview, setIsSubmittingForReview] = useState(false);
@@ -484,7 +526,7 @@ export default function ProjectDetailPageClient() {
                   </span>
                   {project.category && (
                     <span className="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1">
-                      <Globe size={12} /> {project.category}
+                      <Globe size={12} /> {categoryLabel(project.category)}
                     </span>
                   )}
                 </div>
@@ -807,7 +849,9 @@ export default function ProjectDetailPageClient() {
                       )}
                       <div className="flex gap-3">
                         <button
-                          onClick={() => setBookmarked(!bookmarked)}
+                          onClick={() => void toggleSaved()}
+                          disabled={isAuthenticated && (!saveReady || saving)}
+                          aria-pressed={bookmarked}
                           className={`flex-1 py-3 border border-[var(--border)] rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-white/5 transition-all flex items-center justify-center gap-2 ${bookmarked ? "text-rose-400 border-rose-400/30" : ""}`}
                         >
                           <Heart

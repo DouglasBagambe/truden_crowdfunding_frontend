@@ -302,6 +302,67 @@ export default function DPOPaymentModal({
     onClose();
   };
 
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(handleClose);
+  useEffect(() => {
+    closeRef.current = handleClose;
+  });
+  useEffect(() => {
+    if (!isOpen) return;
+    const previous =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    const frame = requestAnimationFrame(() => {
+      const first = dialogRef.current?.querySelector<HTMLElement>(
+        "button:not([disabled]), input:not([disabled]), select:not([disabled]), a[href]",
+      );
+      (first || dialogRef.current)?.focus();
+    });
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeRef.current();
+      }
+      if (event.key !== "Tab") return;
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      const elements = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex="0"]',
+        ),
+      ).filter((el) => el.getClientRects().length > 0);
+      const first = elements[0];
+      const last = elements[elements.length - 1];
+      if (!first) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+      if (
+        event.shiftKey &&
+        (document.activeElement === first ||
+          !dialog.contains(document.activeElement))
+      ) {
+        event.preventDefault();
+        last.focus();
+      } else if (
+        !event.shiftKey &&
+        (document.activeElement === last ||
+          !dialog.contains(document.activeElement))
+      ) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", keydown);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("keydown", keydown);
+      previous?.focus();
+    };
+  }, [isOpen]);
+
   const handleWalletAction = () => {
     if (isConnected && address) {
       setWalletAddress(address);
@@ -416,10 +477,20 @@ export default function DPOPaymentModal({
             transition={{ type: "spring", stiffness: 280, damping: 28 }}
             className="fixed inset-0 z-[51] flex items-center justify-center px-4 py-4 sm:py-6"
           >
-            <div className="flex w-full max-w-md max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-2xl sm:max-h-[calc(100dvh-3rem)]">
+            <div
+              ref={dialogRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="contribution-dialog-title"
+              tabIndex={-1}
+              className="flex w-full max-w-md max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-2xl sm:max-h-[calc(100dvh-3rem)]"
+            >
               <div className="flex flex-shrink-0 items-center justify-between border-b border-[var(--border)] px-6 py-5">
                 <div>
-                  <h2 className="text-lg font-black text-[var(--text-main)]">
+                  <h2
+                    id="contribution-dialog-title"
+                    className="text-lg font-black text-[var(--text-main)]"
+                  >
                     {isCharity ? "Donate to Project" : "Invest in Project"}
                   </h2>
                   <p className="mt-0.5 text-xs font-medium text-[var(--text-muted)]">
@@ -429,6 +500,7 @@ export default function DPOPaymentModal({
                 <button
                   type="button"
                   onClick={handleClose}
+                  aria-label="Close donation dialog"
                   className="rounded-xl p-2 transition hover:bg-white/5"
                 >
                   <X className="h-5 w-5 text-[var(--text-muted)]" />
@@ -508,7 +580,6 @@ export default function DPOPaymentModal({
                     onChange={(event) => setAmount(event.target.value)}
                     placeholder={isCharity ? "e.g. 10000" : "e.g. 100000"}
                     className="input_field"
-                    autoFocus
                   />
                 </div>
 

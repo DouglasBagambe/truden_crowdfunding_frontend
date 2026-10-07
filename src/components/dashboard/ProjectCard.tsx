@@ -1,9 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, ImageOff } from "lucide-react";
 import Link from "next/link";
+import { categoryLabel } from "@/lib/project-categories";
 import Image from "next/image";
 import { isCharityProject } from "@/lib/roi-access";
 
@@ -22,12 +23,16 @@ interface ProjectCardProps {
     projectType?: "CHARITY" | "ROI";
     type?: string;
     status?: string;
+    category?: string;
+    industry?: string;
     galleryImages?: string[];
   };
   onClick?: () => void;
 }
 
 export default function ProjectCard({ project, onClick }: ProjectCardProps) {
+  const [failedImage, setFailedImage] = useState<string | null>(null);
+  const cover = project.imageUrl || project.galleryImages?.[0] || "";
   const projectId = project._id || project.id;
   const projectName = project.name || project.title || "Untitled Project";
   const raised = project.raisedAmount || 0;
@@ -59,10 +64,10 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
       >
         {/* Project Image */}
         <div className="relative h-48 bg-[var(--secondary)] overflow-hidden">
-          {project.imageUrl ||
-          (project.galleryImages && project.galleryImages[0]) ? (
+          {cover && failedImage !== cover ? (
             <Image
-              src={project.imageUrl || project.galleryImages?.[0] || ""}
+              src={cover}
+              onError={() => setFailedImage(cover)}
               alt={projectName}
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -79,7 +84,8 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
             <span
               className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] shadow-sm ${accentBg} text-white`}
             >
-              {isCharity ? "Charity" : "ROI"}
+              {isCharity ? "Charity" : "ROI"} ·{" "}
+              {categoryLabel(project.category || project.industry)}
             </span>
             {project.status &&
               project.status !== "APPROVED" &&

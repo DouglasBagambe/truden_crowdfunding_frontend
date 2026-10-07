@@ -15,6 +15,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Search, Filter, Heart, Plus, ArrowRight, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import {
+  projectCategories,
+  categoryLabel,
+  normalizeCategory,
+} from "@/lib/project-categories";
 
 type ExploreProject = {
   id?: string;
@@ -46,15 +51,14 @@ function ExplorePageContent() {
       .filter(Boolean);
     return parts.length > 0 ? parts : [];
   };
-  const normalizeCategory = (value: string | null) => {
-    if (!value || value === "ALL") return "ALL";
-    return value.trim().toLowerCase();
-  };
-
   const initialApplied = useMemo(() => {
     const initialSearch = searchParams.get("search") || "";
-    const initialCategory = normalizeCategory(searchParams.get("category"));
-    const rawType = searchParams.get("type") || "ALL";
+    const initialCategory = normalizeCategory(
+      searchParams.get("category") || searchParams.get("industry"),
+    );
+    const rawType =
+      searchParams.get("type") ||
+      (searchParams.has("industry") ? "ROI" : "ALL");
     const initialType = rawType;
     const initialStatuses = parseStatuses(searchParams.get("statuses"));
     const initialSort = searchParams.get("sort") || "newest";
@@ -77,17 +81,22 @@ function ExplorePageContent() {
   );
   const [draftSortBy, setDraftSortBy] = useState(initialApplied.sortBy);
 
-  const [appliedSearch, setAppliedSearch] = useState(initialApplied.search);
-  const [appliedCategory, setAppliedCategory] = useState(
-    initialApplied.category,
-  );
-  const [appliedProjectType, setAppliedProjectType] = useState(
-    initialApplied.projectType,
-  );
-  const [appliedStatusFilters, setAppliedStatusFilters] = useState<string[]>(
-    initialApplied.statuses,
-  );
-  const [appliedSortBy, setAppliedSortBy] = useState(initialApplied.sortBy);
+  const appliedSearch = initialApplied.search;
+  const appliedCategory = initialApplied.category;
+  const appliedProjectType = initialApplied.projectType;
+  const appliedStatusFilters = initialApplied.statuses;
+  const appliedSortBy = initialApplied.sortBy;
+  const rawPage = Number(searchParams.get("page") || 1);
+  const currentPage =
+    Number.isSafeInteger(rawPage) && rawPage > 0 ? rawPage : 1;
+
+  useEffect(() => {
+    setDraftSearch(initialApplied.search);
+    setDraftCategory(initialApplied.category);
+    setDraftProjectType(initialApplied.projectType);
+    setDraftStatusFilters(initialApplied.statuses);
+    setDraftSortBy(initialApplied.sortBy);
+  }, [initialApplied]);
 
   const buildExploreUrl = useCallback(
     (next: {
@@ -100,7 +109,10 @@ function ExplorePageContent() {
       const sp = new URLSearchParams();
       if (next.search.trim()) sp.set("search", next.search.trim());
       if (next.category && next.category !== "ALL")
-        sp.set("category", next.category);
+        sp.set(
+          next.projectType === "ROI" ? "industry" : "category",
+          next.category,
+        );
       if (next.projectType && next.projectType !== "ALL")
         sp.set("type", next.projectType);
       if (next.statuses && next.statuses.length > 0)
@@ -130,13 +142,7 @@ function ExplorePageContent() {
         sortBy: next?.sortBy ?? draftSortBy,
       };
 
-      setAppliedSearch(merged.search);
-      setAppliedCategory(merged.category);
-      setAppliedProjectType(merged.projectType);
-      setAppliedStatusFilters(merged.statuses);
-      setAppliedSortBy(merged.sortBy);
-
-      router.replace(buildExploreUrl(merged));
+      router.push(buildExploreUrl(merged));
     },
     [
       buildExploreUrl,
@@ -164,28 +170,17 @@ function ExplorePageContent() {
     setDraftStatusFilters(defaults.statuses);
     setDraftSortBy(defaults.sortBy);
 
-    setAppliedSearch(defaults.search);
-    setAppliedCategory(defaults.category);
-    setAppliedProjectType(defaults.projectType);
-    setAppliedStatusFilters(defaults.statuses);
-    setAppliedSortBy(defaults.sortBy);
-
-    router.replace("/explore");
+    router.push("/explore");
   };
-
-  useEffect(() => {
-    const t = setTimeout(() => {
-      applyFilters({ search: draftSearch });
-    }, 350);
-    return () => clearTimeout(t);
-  }, [applyFilters, draftSearch]);
 
   const queryParams = useMemo(() => {
     return {
+      page: currentPage,
+      pageSize: 12,
       search: appliedSearch || undefined,
       type: appliedProjectType !== "ALL" ? appliedProjectType : undefined,
       category:
-        appliedProjectType === "CHARITY" && appliedCategory !== "ALL"
+        appliedProjectType !== "ROI" && appliedCategory !== "ALL"
           ? appliedCategory
           : undefined,
       industry:
@@ -197,6 +192,7 @@ function ExplorePageContent() {
       sort: appliedSortBy !== "newest" ? appliedSortBy : undefined,
     };
   }, [
+    currentPage,
     appliedSearch,
     appliedCategory,
     appliedProjectType,
@@ -212,35 +208,38 @@ function ExplorePageContent() {
       ...project,
       id: project.id || project._id,
     }))
-    .filter((p): p is ExploreProject & { id: string } => Boolean(p.id))
-    .filter((project) => {
-      if (appliedCategory === "ALL") return true;
-      const projectCategory = String(
-        project.category || project.industry || "",
-      ).toLowerCase();
-      return projectCategory === appliedCategory;
-    });
+    .filter((p): p is ExploreProject & { id: string } => Boolean(p.id));
 
-  const categories = [
-    { id: "ALL", label: "All Categories" },
-    { id: "school", label: "School" },
-    { id: "church", label: "Church" },
-    { id: "community_group", label: "Community Group" },
-    { id: "ngo", label: "NGO" },
-    { id: "individual", label: "Individual" },
-    { id: "family", label: "Family" },
-    { id: "technology", label: "Technology" },
-    { id: "education", label: "Education" },
-    { id: "health", label: "Health" },
-    { id: "agriculture", label: "Agriculture" },
-    { id: "energy", label: "Energy" },
-    { id: "environment", label: "Environment" },
-    { id: "financial_services", label: "Financial Services" },
-    { id: "manufacturing", label: "Manufacturing" },
-    { id: "real_estate", label: "Real Estate" },
-    { id: "transport", label: "Transport" },
-    { id: "other", label: "Other" },
-  ];
+  const categories = projectCategories.filter(
+    (category) =>
+      category.id === "ALL" ||
+      (draftProjectType === "ROI"
+        ? ![
+            "school",
+            "church",
+            "community_group",
+            "ngo",
+            "individual",
+            "family",
+          ].includes(category.id)
+        : [
+            "school",
+            "church",
+            "community_group",
+            "ngo",
+            "individual",
+            "family",
+          ].includes(category.id)),
+  );
+  const totalPages = Math.ceil(
+    Number(data?.total || 0) / Number(data?.pageSize || 12),
+  );
+  const changePage = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (page > 1) params.set("page", String(page));
+    else params.delete("page");
+    router.push(`/explore?${params.toString()}`);
+  };
 
   const toggleStatus = (status: string) => {
     setDraftStatusFilters((prev) =>
@@ -297,6 +296,9 @@ function ExplorePageContent() {
               placeholder="Search projects by title or description..."
               value={draftSearch}
               onChange={(e) => setDraftSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") applyFilters();
+              }}
               className={`w-full rounded-md border border-[var(--border)] bg-[var(--card)] py-3 pl-12 pr-4 font-medium shadow-sm outline-none transition-all focus:ring-2 ${accent.focusRing}`}
             />
           </div>
@@ -326,7 +328,10 @@ function ExplorePageContent() {
 
             <select
               value={draftSortBy}
-              onChange={(e) => setDraftSortBy(e.target.value)}
+              onChange={(e) => {
+                setDraftSortBy(e.target.value);
+                applyFilters({ sortBy: e.target.value });
+              }}
               className={`flex-1 cursor-pointer rounded-md border border-[var(--border)] bg-[var(--card)] px-3 py-2.5 text-sm font-medium text-[var(--text-muted)] shadow-sm outline-none transition-colors sm:flex-none ${accent.hoverBorder}`}
             >
               <option value="newest">Newest First</option>
@@ -372,7 +377,7 @@ function ExplorePageContent() {
                       onClick={() => applyFilters({ category: "ALL" })}
                       className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[var(--secondary)] text-[var(--text-main)] border border-[var(--border)] hover:opacity-90"
                     >
-                      Category: {appliedCategory}
+                      Category: {categoryLabel(appliedCategory)}
                     </button>
                   )}
                   {appliedSearch.trim() && (
@@ -554,7 +559,7 @@ function ExplorePageContent() {
                           onClick={() => applyFilters({ category: "ALL" })}
                           className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[var(--secondary)] text-[var(--text-main)] border border-[var(--border)] hover:opacity-90"
                         >
-                          Category: {appliedCategory} ✕
+                          Category: {categoryLabel(appliedCategory)} ✕
                         </button>
                       )}
                     </div>
@@ -713,23 +718,49 @@ function ExplorePageContent() {
                   </AnimatePresence>
                 </div>
 
-                {/* Pagination */}
-                <div className="flex justify-center items-center gap-3 pt-8 pb-12">
-                  <button className="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-600 transition-all shadow-sm">
-                    <ArrowRight size={20} className="rotate-180" />
-                  </button>
-                  {[1, 2, 3].map((page) => (
+                {totalPages > 1 && (
+                  <nav
+                    aria-label="Campaign pages"
+                    className="flex justify-center items-center gap-3 pt-8 pb-12"
+                  >
                     <button
-                      key={page}
-                      className={`w-12 h-12 rounded-xl font-bold transition-all shadow-sm ${page === 1 ? "bg-blue-600 text-white" : "bg-white border border-slate-200 text-slate-600 hover:border-blue-600"}`}
+                      aria-label="Previous page"
+                      disabled={currentPage <= 1}
+                      onClick={() => changePage(currentPage - 1)}
+                      className="button_secondary disabled:opacity-40"
                     >
-                      {page}
+                      <ArrowRight size={20} className="rotate-180" />
                     </button>
-                  ))}
-                  <button className="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-600 transition-all shadow-sm">
-                    <ArrowRight size={20} />
-                  </button>
-                </div>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(
+                        (page) =>
+                          page === 1 ||
+                          page === totalPages ||
+                          Math.abs(page - currentPage) <= 2,
+                      )
+                      .map((page) => (
+                        <button
+                          key={page}
+                          aria-current={
+                            page === currentPage ? "page" : undefined
+                          }
+                          disabled={page === currentPage}
+                          onClick={() => changePage(page)}
+                          className="button_secondary disabled:opacity-60"
+                        >
+                          {page}
+                        </button>
+                      ))}
+                    <button
+                      aria-label="Next page"
+                      disabled={currentPage >= totalPages}
+                      onClick={() => changePage(currentPage + 1)}
+                      className="button_secondary disabled:opacity-40"
+                    >
+                      <ArrowRight size={20} />
+                    </button>
+                  </nav>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-40 space-y-6 bg-white rounded-[3rem] border-2 border-dashed border-slate-200 shadow-sm">

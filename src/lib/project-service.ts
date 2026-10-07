@@ -76,6 +76,18 @@ export interface CreateProjectParams {
 }
 
 export const projectService = {
+  async getSaved(id: string): Promise<boolean> {
+    const response = await apiClient.get<{ saved: boolean }>(
+      `/projects/${id}/saved`,
+    );
+    return response.data.saved;
+  },
+  async setSaved(id: string, saved: boolean): Promise<boolean> {
+    const response = saved
+      ? await apiClient.put<{ saved: boolean }>(`/projects/${id}/saved`)
+      : await apiClient.delete<{ saved: boolean }>(`/projects/${id}/saved`);
+    return response.data.saved;
+  },
   /**
    * List projects with filters
    */

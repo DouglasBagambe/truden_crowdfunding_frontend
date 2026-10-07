@@ -33,6 +33,18 @@ const nextConfig: NextConfig = {
   images: {
     dangerouslyAllowLocalIP: false,
     remotePatterns: [
+      ...(() => {
+        const url = new URL(backendApiOrigin());
+        return [
+          {
+            protocol: url.protocol.slice(0, -1) as "https" | "http",
+            hostname: url.hostname,
+            port: url.port,
+            pathname: "/api/projects/files/**",
+            search: "",
+          },
+        ];
+      })(),
       {
         protocol: "https",
         hostname: "images.unsplash.com",

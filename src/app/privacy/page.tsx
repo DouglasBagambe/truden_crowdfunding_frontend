@@ -10,9 +10,9 @@ export default function PrivacyPage() {
       </p>
       <p>
         Provider credentials, raw KYC payloads and wallet signatures are
-        excluded from application logs. The final public privacy notice,
-        including retention periods, processors and data-controller contact
-        details, will be published before broader availability.
+        excluded from application logs. Additional privacy information,
+        including retention periods, processors and contact details, will be
+        published as it becomes available.
       </p>
     </PublicPage>
   );

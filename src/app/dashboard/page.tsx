@@ -399,7 +399,7 @@ export default function DashboardPage() {
                         ? [
                             {
                               key: "nfts",
-                              label: "My NFTs",
+                              label: "My Receipts",
                               icon: <ImageIcon size={14} />,
                             },
                             {
@@ -523,7 +523,7 @@ export default function DashboardPage() {
                   <div className="space-y-6">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-bold tracking-tight">
-                        Your NFT Portfolio
+                        Your Investment Receipts
                       </h3>
                       <span className="flex items-center gap-1.5 text-sm font-semibold text-[var(--text-muted)]">
                         <ImageIcon size={14} />
