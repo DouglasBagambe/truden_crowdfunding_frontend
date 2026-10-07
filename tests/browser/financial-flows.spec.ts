@@ -285,7 +285,9 @@ test.describe("KEIBO financial fail-closed surfaces", () => {
     await expect(bankDestinationRadio).toBeEnabled();
     await bankDestinationRadio.check();
     await page.getByRole("button", { name: "Request payout" }).click();
-    expect(payoutRequests).toEqual([{ destinationId: "dest-2" }]);
+    await expect
+      .poll(() => payoutRequests)
+      .toEqual([{ destinationId: "dest-2" }]);
     await expect(
       page.getByText("PENDING · 5000 UGX · MTN •••• 1234 · pay-1"),
     ).toBeVisible();
