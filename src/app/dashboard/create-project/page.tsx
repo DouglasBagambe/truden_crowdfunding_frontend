@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import CampaignVideo from "@/components/projects/CampaignVideo";
+import { resolveCampaignVideo } from "@/lib/campaign-video";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -471,23 +473,8 @@ export default function CreateProjectPage() {
 
   const addVideoUrl = (value: string) => {
     const url = value.trim();
-    if (!isProbablyUrl(url)) {
+    if (!resolveCampaignVideo(url)) {
       setError("Enter a valid YouTube, Vimeo, or direct video URL.");
-      return;
-    }
-    try {
-      const host = new URL(url).hostname.toLowerCase();
-      const isSupported =
-        host.includes("youtube.com") ||
-        host.includes("youtu.be") ||
-        host.includes("vimeo.com") ||
-        /\.(mp4|webm|ogg)(\?.*)?$/i.test(url);
-      if (!isSupported) {
-        setError("Use a YouTube, Vimeo, or direct video URL.");
-        return;
-      }
-    } catch {
-      setError("Enter a valid video URL.");
       return;
     }
     setFormData((current) => ({
@@ -587,12 +574,13 @@ export default function CreateProjectPage() {
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <button
+                  aria-pressed={formData.type === ProjectType.CHARITY}
                   onClick={() =>
                     setFormData({ ...formData, type: ProjectType.CHARITY })
                   }
                   className={`relative rounded-lg border p-5 text-left transition-colors ${
                     formData.type === ProjectType.CHARITY
-                      ? "border-emerald-600 bg-emerald-50/40"
+                      ? "border-emerald-600 bg-[var(--secondary)]"
                       : "border-[var(--border)] bg-[var(--card)] hover:border-emerald-300"
                   }`}
                 >
@@ -601,10 +589,10 @@ export default function CreateProjectPage() {
                   >
                     <Heart size={20} />
                   </div>
-                  <h3 className="text-lg font-semibold text-slate-900">
+                  <h3 className="text-lg font-semibold text-[var(--text-main)]">
                     Charity
                   </h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                  <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
                     Fund a cause, community initiative, organisation or
                     charitable project.
                   </p>
@@ -616,12 +604,13 @@ export default function CreateProjectPage() {
                 </button>
 
                 <button
+                  aria-pressed={formData.type === ProjectType.ROI}
                   onClick={() =>
                     setFormData({ ...formData, type: ProjectType.ROI })
                   }
                   className={`relative rounded-lg border p-5 text-left transition-colors ${
                     formData.type === ProjectType.ROI
-                      ? "border-violet-600 bg-violet-50/40"
+                      ? "border-violet-600 bg-[var(--secondary)]"
                       : "border-[var(--border)] bg-[var(--card)] hover:border-violet-300"
                   }`}
                 >
@@ -630,15 +619,15 @@ export default function CreateProjectPage() {
                   >
                     <TrendingUp size={20} />
                   </div>
-                  <h3 className="text-lg font-semibold text-slate-900">
+                  <h3 className="text-lg font-semibold text-[var(--text-main)]">
                     Investment
                   </h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                  <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
                     Raise capital for an investment opportunity with financial
                     and compliance requirements.
                   </p>
                   {!canCreateRoi && (
-                    <p className="mt-3 text-xs font-medium text-amber-700">
+                    <p className="mt-3 text-xs font-medium text-[var(--chip-warning-text)]">
                       Investment creation requires completed verification and
                       eligibility approval.
                     </p>
@@ -1283,6 +1272,14 @@ export default function CreateProjectPage() {
                       Add video
                     </button>
                   </div>
+                  {error && (
+                    <p
+                      role="alert"
+                      className="mt-3 text-sm text-[var(--chip-danger-text)]"
+                    >
+                      {error}
+                    </p>
+                  )}
                   {(formData.videoUrls?.length || 0) > 0 && (
                     <ul className="mt-4 space-y-2">
                       {formData.videoUrls?.map((url, index) => (
@@ -1399,7 +1396,7 @@ export default function CreateProjectPage() {
 
               <div className="space-y-5 text-left">
                 <div className="grid grid-cols-1 gap-5 rounded-lg border border-[var(--border)] bg-[var(--secondary)] p-5 sm:grid-cols-2">
-                  <div className="col-span-2">
+                  <div className="sm:col-span-2">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-2">
                       Project Name
                     </p>
@@ -1461,6 +1458,41 @@ export default function CreateProjectPage() {
                   </p>
                 </div>
 
+                {(formData.videoUrls?.length || 0) > 0 && (
+                  <section
+                    aria-label="Review campaign videos"
+                    className="space-y-4"
+                  >
+                    <h3 className="typography_h3">Campaign videos</h3>
+                    {formData.videoUrls?.map((url, index) => {
+                      const video = resolveCampaignVideo(url);
+                      return (
+                        <div
+                          key={`${url}-${index}`}
+                          className="min-w-0 space-y-2"
+                        >
+                          <div className="aspect-video overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--secondary)]">
+                            <CampaignVideo
+                              url={url}
+                              title={`Review video ${index + 1}`}
+                            />
+                          </div>
+                          {video && (
+                            <a
+                              href={video.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block break-all text-sm text-[var(--text-main)] underline"
+                            >
+                              {url}
+                            </a>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </section>
+                )}
+
                 {error && (
                   <div className="flex items-start gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4 text-rose-700">
                     <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
@@ -1479,6 +1511,7 @@ export default function CreateProjectPage() {
         <div className="sticky bottom-4 mt-6 flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 shadow-sm">
           <button
             onClick={prevStep}
+            aria-label="Back"
             disabled={step === 1 || loading}
             className="button_secondary gap-2"
           >

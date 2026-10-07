@@ -153,7 +153,7 @@ const Navbar = () => {
           </div>
 
           {/* Desktop Center: Explore dropdown + Search */}
-          <div className="hidden md:flex items-center gap-3 absolute left-1/2 -translate-x-1/2">
+          <div className="hidden md:flex min-w-0 flex-1 items-center justify-center gap-3 px-4">
             {/* Explore — click navigates, hover shows dropdown */}
             <div className="relative group">
               <Link
@@ -221,7 +221,10 @@ const Navbar = () => {
             </Link> */}
 
             {/* Search bar */}
-            <div ref={searchWrapRef} className="relative w-[320px]">
+            <div
+              ref={searchWrapRef}
+              className="relative w-full max-w-[320px] min-w-0"
+            >
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
                 <input
@@ -244,7 +247,7 @@ const Navbar = () => {
           </div>
 
           {/* Desktop Right: Auth */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden md:flex shrink-0 items-center gap-4">
             {user ? (
               <div className="flex items-center gap-3">
                 {hasRoiAccess ? (

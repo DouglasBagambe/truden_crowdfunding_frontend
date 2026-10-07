@@ -22,6 +22,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import CampaignVideo from "@/components/projects/CampaignVideo";
+import { resolveCampaignVideo } from "@/lib/campaign-video";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import Image from "next/image";
@@ -232,7 +234,7 @@ export default function ProjectDetailPageClient() {
             url,
           })),
         ...(project.videoUrls || [])
-          .filter(isDisplayableMediaUrl)
+          .filter((url) => resolveCampaignVideo(url) !== null)
           .map((url: string) => ({
             type: "video",
             url,
@@ -554,11 +556,9 @@ export default function ProjectDetailPageClient() {
                       />
                     )}
                     {currentMedia?.type === "video" && (
-                      <video
-                        src={currentMedia.url}
-                        controls
-                        className="w-full h-full object-cover"
-                        onError={() => setMediaFailed(true)}
+                      <CampaignVideo
+                        url={currentMedia.url}
+                        title={`${project.name ?? "Campaign"} video`}
                       />
                     )}
                     {/* Navigation */}

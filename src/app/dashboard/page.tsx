@@ -292,7 +292,7 @@ export default function DashboardPage() {
 
       <main className="container mx-auto p-4 sm:p-6 lg:p-10">
         <div className="flex flex-col lg:flex-row gap-8">
-          <div className="flex-1 space-y-6">
+          <div className="min-w-0 flex-1 space-y-6">
             {/* KYC Banner */}
             {hasRoiAccess &&
               isAuthenticated &&
@@ -672,8 +672,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <aside className="w-full lg:w-[360px] space-y-6">
-            <RightSidebar onTriggerCreate={handleTriggerCreate} />
+          <aside className="w-full shrink-0 lg:w-[320px] xl:w-[360px] space-y-6">
+            <RightSidebar />
           </aside>
         </div>
       </main>

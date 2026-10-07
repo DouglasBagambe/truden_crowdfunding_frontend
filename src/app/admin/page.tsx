@@ -568,6 +568,8 @@ export default function AdminPage() {
           {tabs.map((tab) => (
             <button
               key={tab.key}
+              aria-label={tab.label}
+              aria-current={activeTab === tab.key ? "page" : undefined}
               onClick={() => setActiveTab(tab.key)}
               className={`flex items-center justify-between rounded-md px-3 py-3 text-sm font-medium transition-colors ${
                 activeTab === tab.key
@@ -592,6 +594,7 @@ export default function AdminPage() {
           <div className="mt-auto pt-6 border-t border-[var(--border)] space-y-1">
             <Link
               href="/"
+              aria-label="Back to App"
               className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium text-[var(--text-muted)] transition-colors hover:bg-[var(--secondary)] hover:text-[var(--text-main)]"
             >
               <ArrowLeft size={16} />

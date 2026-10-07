@@ -1,15 +1,10 @@
-'use client';
+"use client";
 
-import React from 'react';
-import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { Vote, Zap, ShieldCheck } from 'lucide-react';
+import React from "react";
+import Link from "next/link";
+import { Zap } from "lucide-react";
 
-interface RightSidebarProps {
-  onTriggerCreate?: () => void;
-}
-
-const RightSidebar = ({ onTriggerCreate }: RightSidebarProps) => {
+const RightSidebar = () => {
   return (
     <div className="space-y-8">
       {/* Governance Card */}
@@ -48,12 +43,17 @@ const RightSidebar = ({ onTriggerCreate }: RightSidebarProps) => {
           <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/10">
             <Zap className="text-white" size={24} />
           </div>
-          <h3 className="text-white font-bold text-2xl tracking-tight">Got a Vision?</h3>
+          <h3 className="text-white font-bold text-2xl tracking-tight">
+            Got a Vision?
+          </h3>
           <p className="text-indigo-100 text-sm font-medium leading-relaxed">
             Submit your project and get funded by a global network of backers.
           </p>
         </div>
-        <Link href="/dashboard/create-project" className="relative z-10 w-full bg-white text-[var(--primary)] font-bold py-3.5 px-6 rounded-xl hover:bg-gray-50 transition-all active:scale-95 shadow-lg hover:shadow-xl text-lg tracking-wide">
+        <Link
+          href="/dashboard/create-project"
+          className="relative z-10 flex w-full items-center justify-center bg-white text-[var(--primary)] font-bold py-3.5 px-6 rounded-xl hover:bg-gray-50 transition-all active:scale-95 shadow-lg hover:shadow-xl text-lg tracking-wide"
+        >
           SUBMIT PROJECT
         </Link>
       </div>
@@ -76,7 +76,7 @@ const RightSidebar = ({ onTriggerCreate }: RightSidebarProps) => {
 //     </div>
 //     <div className="space-y-1.5">
 //         <div className="h-1.5 w-full bg-gray-100 dark:bg-[#1a1a1a] rounded-full overflow-hidden">
-//             <div 
+//             <div
 //                 className={`h-full rounded-full transition-all duration-1000 ${status === 'Passing' ? 'bg-emerald-500' : 'bg-rose-500'}`}
 //                 style={{ width: `${progress}%` }}
 //             />
