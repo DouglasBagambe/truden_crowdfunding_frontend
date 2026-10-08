@@ -134,3 +134,109 @@ test("one page has no fake controls and canonical category label agrees", async 
     page.getByRole("button", { name: /Category: NGO/ }).last(),
   ).toBeVisible();
 });
+
+for (const scenario of [
+  "profile-error",
+  "submit-error",
+  "hosted-session",
+] as const) {
+  test(`KYC ${scenario} exposes errors or hosted link without granting verification`, async ({
+    page,
+  }) => {
+    await page.context().addCookies([
+      {
+        name: "keibo_access",
+        value: "isolated-kyc-fixture",
+        url: "http://127.0.0.1:3000",
+      },
+    ]);
+    const requests: string[] = [];
+    await page.route("**/api/**", (route) => {
+      const path = new URL(route.request().url()).pathname;
+      if (path === "/api/users/me")
+        return route.fulfill({
+          json: {
+            id: "uat-user",
+            firstName: "Test",
+            lastName: "Tester",
+            roles: ["CREATOR"],
+            emailVerified: true,
+            kycStatus: "NOT_VERIFIED",
+            capabilities: {
+              viewRoi: true,
+              createRoi: false,
+              createCharity: true,
+            },
+          },
+        });
+      if (path === "/api/auth/csrf")
+        return route.fulfill({ json: { csrfToken: "isolated-kyc-fixture" } });
+      if (path === "/api/kyc/profile") {
+        if (route.request().method() === "PATCH") {
+          requests.push("profile");
+          if (scenario === "profile-error")
+            return route.fulfill({
+              status: 400,
+              json: {
+                message: ["dateOfBirth must be a valid ISO 8601 date string"],
+              },
+            });
+        }
+        return route.fulfill({
+          json: {
+            status: "DRAFT",
+            userKycStatus: "NOT_VERIFIED",
+            documents: [],
+          },
+        });
+      }
+      if (path === "/api/kyc/submit") {
+        requests.push("submit");
+        return scenario === "submit-error"
+          ? route.fulfill({
+              status: 503,
+              json: {
+                message:
+                  "Identity verification is temporarily unavailable. Please contact support.",
+              },
+            })
+          : route.fulfill({
+              json: {
+                status: "PENDING",
+                userKycStatus: "PENDING",
+                documents: [],
+                verificationUrl: "https://verify.didit.me/isolated-session",
+              },
+            });
+      }
+      return route.fulfill({ json: [] });
+    });
+    await page.goto("/dashboard?tab=kyc");
+    await page.getByRole("button", { name: "Start Verification" }).click();
+    await page
+      .getByRole("button", { name: "Continue to Verification" })
+      .click();
+    if (scenario === "hosted-session") {
+      await expect(
+        page.getByRole("link", { name: "Open Verification Page" }),
+      ).toHaveAttribute("href", "https://verify.didit.me/isolated-session");
+      expect(requests).toEqual(["profile", "submit"]);
+    } else {
+      await expect(
+        page.getByText(
+          scenario === "profile-error"
+            ? "dateOfBirth must be a valid ISO 8601 date string"
+            : "Identity verification is temporarily unavailable. Please contact support.",
+          { exact: true },
+        ),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Continue to Verification" }),
+      ).toBeEnabled();
+      expect(requests).toEqual(
+        scenario === "profile-error" ? ["profile"] : ["profile", "submit"],
+      );
+    }
+    await expect(page.getByText("Verified", { exact: true })).toHaveCount(0);
+  });
+}

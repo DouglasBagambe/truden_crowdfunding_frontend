@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/hooks/useAuth";
-import toast from "react-hot-toast";
+import { useToast } from "@/components/common/ToastProvider";
 import { isAxiosError } from "axios";
 
 interface KycProfile {
@@ -113,6 +113,7 @@ const STATUS_MAP: Record<
 
 export function KYCView() {
   const { user, refetchUser } = useAuth();
+  const { showError, showSuccess } = useToast();
   const [profile, setProfile] = useState<KycProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [step, setStep] = useState<Step>("overview");
@@ -143,11 +144,11 @@ export function KYCView() {
       const res = await apiClient.get("/kyc/profile");
       setProfile(res.data);
     } catch {
-      toast.error("Unable to load identity status. Try again.");
+      showError("Unable to load identity status. Try again.");
     } finally {
       setLoadingProfile(false);
     }
-  }, []);
+  }, [showError]);
 
   useEffect(() => {
     void loadProfile();
@@ -161,21 +162,21 @@ export function KYCView() {
       await refetchUser();
       const newStatus = res.data?.userKycStatus || res.data?.status;
       if (newStatus === "VERIFIED" || newStatus === "APPROVED") {
-        toast.success("Identity verified successfully!");
+        showSuccess("Identity verified successfully!");
         setStep("overview");
       } else if (newStatus === "REJECTED") {
-        toast.error("Verification was rejected. You can re-submit.");
+        showError("Verification was rejected. You can re-submit.");
         setStep("overview");
       }
     } catch {
       // Fallback to regular profile load
       await loadProfile();
     }
-  }, [loadProfile, refetchUser]);
+  }, [loadProfile, refetchUser, showError, showSuccess]);
 
   const handleSubmit = async () => {
     if (!form.firstName.trim() || !form.lastName.trim()) {
-      toast.error("First and last name are required");
+      showError("First and last name are required");
       return;
     }
 
@@ -207,7 +208,7 @@ export function KYCView() {
         setStep("redirect");
       } else {
         setStep("pending");
-        toast.success("KYC submitted for review!");
+        showSuccess("KYC submitted for review!");
       }
     } catch (err: unknown) {
       const message: unknown = isAxiosError(err)
@@ -216,8 +217,11 @@ export function KYCView() {
       const msg =
         typeof message === "string"
           ? message
-          : "Submission failed. Please try again.";
-      toast.error(msg);
+          : Array.isArray(message) &&
+              message.every((item) => typeof item === "string")
+            ? message.join(". ")
+            : "Submission failed. Please try again.";
+      showError(msg);
       setStep("form");
     } finally {
       setSubmitting(false);
