@@ -396,9 +396,19 @@ export default function DashboardPage() {
                         icon: <Briefcase size={14} />,
                       },
                       ...(hasRoiAccess
-                        ? [{ key: "nfts", label: "My Receipts", icon: <ImageIcon size={14} /> }]
+                        ? [
+                            {
+                              key: "nfts",
+                              label: "My Receipts",
+                              icon: <ImageIcon size={14} />,
+                            },
+                          ]
                         : []),
-                      { key: "kyc", label: "Identity", icon: <ShieldCheck size={14} /> },
+                      {
+                        key: "kyc",
+                        label: "Identity",
+                        icon: <ShieldCheck size={14} />,
+                      },
                     ].map((tab) => (
                       <button
                         key={tab.key}
