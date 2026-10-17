@@ -1421,7 +1421,6 @@ export default function AdminPage() {
                             key={uid}
                             className={`px-6 py-4 hover:bg-[var(--secondary)] transition-colors ${isBlocked ? "opacity-60" : ""}`}
                           >
-
                             <section className="mt-3 rounded-lg border border-[var(--border)] p-3 space-y-2">
                               {(() => {
                                 const verification = u.creatorVerification as
