@@ -1,0 +1,35 @@
+name: Temporary format admin
+
+on:
+  push:
+    branches:
+      - keibo/full-uat
+    paths:
+      - .github/workflows/format-admin.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: keibo/full-uat
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx prettier --write src/app/admin/page.tsx
+      - name: Commit formatting
+        run: |
+          if git diff --quiet -- src/app/admin/page.tsx; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app/admin/page.tsx
+          git commit -m "style: format admin creator eligibility review"
+          git push origin HEAD:keibo/full-uat
