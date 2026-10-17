@@ -397,6 +397,25 @@ export default function AdminPage() {
     }
   };
 
+
+  const reviewCreator = async (userId: string, status: "VERIFIED" | "REJECTED") => {
+    let reason: string | undefined;
+    if (status === "REJECTED") {
+      const entered = window.prompt("Reason for rejection (shown to applicant):");
+      if (!entered?.trim()) { toast.error("A rejection reason is required."); return; }
+      reason = entered.trim();
+    }
+    setActingOn(userId);
+    try {
+      await apiClient.patch(`/users/${userId}/creator-verification`, { status, reason });
+      toast.success(status === "VERIFIED" ? "Creator approved." : "Creator application rejected.");
+      await loadUsers();
+    } catch (error: unknown) {
+      const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(message || "Unable to update creator verification.");
+    } finally { setActingOn(null); }
+  };
+
   const changeRole = async (userId: string, role: string) => {
     setActingOn(userId);
     const tid = toast.loading("Updating role...");
@@ -1384,6 +1403,47 @@ export default function AdminPage() {
                             key={uid}
                             className={`px-6 py-4 hover:bg-[var(--secondary)] transition-colors ${isBlocked ? "opacity-60" : ""}`}
                           >
+
+                            <section className="mt-3 rounded-lg border border-[var(--border)] p-3 space-y-2">
+                              {(() => {
+                                const verification = u.creatorVerification as {
+                                  status?: string; submittedAt?: string; failureReason?: string;
+                                  evidenceUrls?: string[]; attachments?: { title?: string; url?: string; type?: string }[];
+                                } | undefined;
+                                const status = verification?.status ?? "NOT_SUBMITTED";
+                                return (
+                                  <>
+                                    <div className="flex flex-wrap gap-2 items-center justify-between">
+                                      <p className="text-xs font-semibold">Creator eligibility: {status}</p>
+                                      <p className="text-xs">KYC: {String(u.kycStatus ?? "UNKNOWN")}</p>
+                                    </div>
+                                    <p className="text-xs text-[var(--text-muted)]">Roles: {((u.roles as string[]) ?? []).join(", ") || "None"}</p>
+                                    {verification?.submittedAt && <p className="text-xs">Submitted {new Date(verification.submittedAt).toLocaleDateString()}</p>}
+                                    {verification?.failureReason && <p className="text-xs text-rose-700">Review reason: {verification.failureReason}</p>}
+                                    {verification?.evidenceUrls?.map((url, index) => (
+                                      <a key={index} href={url} target="_blank" rel="noopener noreferrer"
+                                        className="block text-xs text-[var(--primary)] break-all underline">Evidence {index + 1}: {url}</a>
+                                    ))}
+                                    {verification?.attachments?.map((item, index) => (
+                                      <a key={index} href={item.url} target="_blank" rel="noopener noreferrer"
+                                        className="block text-xs text-[var(--primary)] break-all underline">
+                                        {item.title || "Attachment"}{item.type ? ` (${item.type})` : ""}
+                                      </a>
+                                    ))}
+                                    {status === "PENDING" && (
+                                      <div className="flex flex-wrap gap-2">
+                                        <button type="button" disabled={actingOn === uid}
+                                          onClick={() => void reviewCreator(uid, "VERIFIED")}
+                                          className="button_primary px-3 py-2 text-xs">Approve creator</button>
+                                        <button type="button" disabled={actingOn === uid}
+                                          onClick={() => void reviewCreator(uid, "REJECTED")}
+                                          className="button_secondary px-3 py-2 text-xs">Reject with reason</button>
+                                      </div>
+                                    )}
+                                  </>
+                                );
+                              })()}
+                            </section>
                             {/* Mobile */}
                             <div className="lg:hidden space-y-2">
                               <div className="flex items-center gap-3">
