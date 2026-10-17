@@ -121,16 +121,35 @@ export function KYCView() {
   const [verificationUrl, setVerificationUrl] = useState("");
   const [creatorEvidence, setCreatorEvidence] = useState("");
   const [submittingCreator, setSubmittingCreator] = useState(false);
-  const creator = (user as { creatorVerification?: {
-    status?: string; submittedAt?: string; failureReason?: string;
-  } } | null)?.creatorVerification;
+  const creator = (
+    user as {
+      creatorVerification?: {
+        status?: string;
+        submittedAt?: string;
+        failureReason?: string;
+      };
+    } | null
+  )?.creatorVerification;
   const creatorStatus = creator?.status ?? "NOT_SUBMITTED";
 
   const submitCreator = async () => {
-    const evidenceUrls = creatorEvidence.split(/\n/).map(url => url.trim()).filter(Boolean);
-    if (!evidenceUrls.length || evidenceUrls.some(url => {
-      try { return new URL(url).protocol !== "https:"; } catch { return true; }
-    })) { showError("Provide HTTPS evidence links, one per line."); return; }
+    const evidenceUrls = creatorEvidence
+      .split(/\n/)
+      .map((url) => url.trim())
+      .filter(Boolean);
+    if (
+      !evidenceUrls.length ||
+      evidenceUrls.some((url) => {
+        try {
+          return new URL(url).protocol !== "https:";
+        } catch {
+          return true;
+        }
+      })
+    ) {
+      showError("Provide HTTPS evidence links, one per line.");
+      return;
+    }
     setSubmittingCreator(true);
     try {
       await apiClient.patch("/users/me/creator-verification", { evidenceUrls });
@@ -138,9 +157,17 @@ export function KYCView() {
       setCreatorEvidence("");
       showSuccess("Creator verification submitted for review.");
     } catch (error: unknown) {
-      const message = isAxiosError(error) ? error.response?.data?.message : undefined;
-      showError(typeof message === "string" ? message : "Creator verification submission failed.");
-    } finally { setSubmittingCreator(false); }
+      const message = isAxiosError(error)
+        ? error.response?.data?.message
+        : undefined;
+      showError(
+        typeof message === "string"
+          ? message
+          : "Creator verification submission failed.",
+      );
+    } finally {
+      setSubmittingCreator(false);
+    }
   };
 
 
@@ -524,25 +551,57 @@ export function KYCView() {
 
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 space-y-3">
         <h3 className="font-semibold">Investment creator eligibility</h3>
-        <p className="text-sm text-[var(--text-muted)]">Identity status: {kycStatus}.
-          Investment creation requires creator approval and platform ROI access.</p>
-        <p className="text-sm font-medium">Creator status: {creatorStatus.replace(/_/g, " ")}</p>
-        {creator?.submittedAt && <p className="text-xs">Submitted {new Date(creator.submittedAt).toLocaleDateString()}</p>}
-        {creator?.failureReason && <p className="text-sm text-rose-700">Reason: {creator.failureReason}</p>}
-        {(creatorStatus === "NOT_SUBMITTED" || creatorStatus === "REJECTED") && (
+        <p className="text-sm text-[var(--text-muted)]">
+          Identity status: {kycStatus}. Investment creation requires creator
+          approval and platform ROI access.
+        </p>
+        <p className="text-sm font-medium">
+          Creator status: {creatorStatus.replace(/_/g, " ")}
+        </p>
+        {creator?.submittedAt && (
+          <p className="text-xs">
+            Submitted {new Date(creator.submittedAt).toLocaleDateString()}
+          </p>
+        )}
+        {creator?.failureReason && (
+          <p className="text-sm text-rose-700">
+            Reason: {creator.failureReason}
+          </p>
+        )}
+        {(creatorStatus === "NOT_SUBMITTED" ||
+          creatorStatus === "REJECTED") && (
           <div className="space-y-2">
-            <label htmlFor="creator-evidence" className="block text-sm">Supporting HTTPS links, one per line</label>
-            <textarea id="creator-evidence" value={creatorEvidence}
-              onChange={event => setCreatorEvidence(event.target.value)} rows={3}
-              className="input_field w-full" placeholder="https://example.com/verification-evidence" />
-            <button type="button" className="button_primary px-4 py-2"
-              disabled={submittingCreator} onClick={() => void submitCreator()}>
-              {submittingCreator ? "Submitting..." : "Submit for creator approval"}
+            <label htmlFor="creator-evidence" className="block text-sm">
+              Supporting HTTPS links, one per line
+            </label>
+            <textarea
+              id="creator-evidence"
+              value={creatorEvidence}
+              onChange={(event) => setCreatorEvidence(event.target.value)}
+              rows={3}
+              className="input_field w-full"
+              placeholder="https://example.com/verification-evidence"
+            />
+            <button
+              type="button"
+              className="button_primary px-4 py-2"
+              disabled={submittingCreator}
+              onClick={() => void submitCreator()}
+            >
+              {submittingCreator
+                ? "Submitting..."
+                : "Submit for creator approval"}
             </button>
           </div>
         )}
-        {creatorStatus === "PENDING" && <p className="text-sm">Awaiting administrative review.</p>}
-        {creatorStatus === "VERIFIED" && <p className="text-sm">Creator approved. Other investment gates may still apply.</p>}
+        {creatorStatus === "PENDING" && (
+          <p className="text-sm">Awaiting administrative review.</p>
+        )}
+        {creatorStatus === "VERIFIED" && (
+          <p className="text-sm">
+            Creator approved. Other investment gates may still apply.
+          </p>
+        )}
       </section>
       {/* Status banner */}
       <div
