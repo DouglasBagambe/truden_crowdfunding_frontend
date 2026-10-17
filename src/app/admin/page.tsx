@@ -425,9 +425,8 @@ export default function AdminPage() {
       );
       await loadUsers();
     } catch (error: unknown) {
-      const message = (
-        error as { response?: { data?: { message?: string } } }
-      )?.response?.data?.message;
+      const message = (error as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message;
       toast.error(message || "Unable to update creator verification.");
     } finally {
       setActingOn(null);
@@ -1445,8 +1444,7 @@ export default function AdminPage() {
                                         Creator eligibility: {status}
                                       </p>
                                       <p className="text-xs">
-                                        KYC:{" "}
-                                        {String(u.kycStatus ?? "UNKNOWN")}
+                                        KYC: {String(u.kycStatus ?? "UNKNOWN")}
                                       </p>
                                     </div>
                                     <p className="text-xs text-[var(--text-muted)]">
