@@ -119,7 +119,7 @@ export default function DashboardPage() {
         setIsCreateModalOpen(true);
         window.history.replaceState({}, "", "/dashboard");
       }
-      if (hasRoiAccess && urlParams.get("tab") === "kyc") {
+      if (urlParams.get("tab") === "kyc") {
         setActiveTab("kyc");
         window.history.replaceState({}, "", "/dashboard");
       }
@@ -127,7 +127,7 @@ export default function DashboardPage() {
   }, [hasRoiAccess]);
 
   useEffect(() => {
-    if (!hasRoiAccess && ["investments", "nfts", "kyc"].includes(activeTab)) {
+    if (!hasRoiAccess && ["investments", "nfts"].includes(activeTab)) {
       setActiveTab("donations");
     }
   }, [activeTab, hasRoiAccess]);
@@ -396,19 +396,9 @@ export default function DashboardPage() {
                         icon: <Briefcase size={14} />,
                       },
                       ...(hasRoiAccess
-                        ? [
-                            {
-                              key: "nfts",
-                              label: "My Receipts",
-                              icon: <ImageIcon size={14} />,
-                            },
-                            {
-                              key: "kyc",
-                              label: "Identity",
-                              icon: <ShieldCheck size={14} />,
-                            },
-                          ]
+                        ? [{ key: "nfts", label: "My Receipts", icon: <ImageIcon size={14} /> }]
                         : []),
+                      { key: "kyc", label: "Identity", icon: <ShieldCheck size={14} /> },
                     ].map((tab) => (
                       <button
                         key={tab.key}
