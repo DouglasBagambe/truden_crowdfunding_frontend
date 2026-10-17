@@ -170,7 +170,6 @@ export function KYCView() {
     }
   };
 
-
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -548,7 +547,6 @@ export function KYCView() {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 space-y-3">
         <h3 className="font-semibold">Investment creator eligibility</h3>
         <p className="text-sm text-[var(--text-muted)]">
