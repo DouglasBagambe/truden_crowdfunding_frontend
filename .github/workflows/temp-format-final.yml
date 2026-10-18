@@ -1,0 +1,31 @@
+name: Temporary format final KEIBO files
+on:
+  push:
+    branches: ["keibo/full-uat"]
+    paths: [".github/workflows/temp-format-final.yml"]
+permissions:
+  contents: write
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: keibo/full-uat
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.3
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx prettier --write src/app/admin/page.tsx tests/browser/stabilization.spec.ts
+      - name: Commit formatter output and remove temporary workflow
+        shell: bash
+        run: |
+          rm -f .github/workflows/temp-format-final.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app/admin/page.tsx tests/browser/stabilization.spec.ts .github/workflows/temp-format-final.yml
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: format final KEIBO frontend fixes"
+            git push origin HEAD:keibo/full-uat
+          fi
