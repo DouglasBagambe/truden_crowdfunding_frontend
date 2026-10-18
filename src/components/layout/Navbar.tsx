@@ -22,7 +22,8 @@ import {
   Wallet,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useAccount } from "wagmi";
+import { useAccount, useConnect } from "wagmi";
+import toast from "react-hot-toast";
 import { openWeb3Modal } from "@/providers/Web3Provider";
 
 function getNavbarWalletAddress(
@@ -55,6 +56,30 @@ const Navbar = () => {
   const router = useRouter();
   const pathname = usePathname();
   const { address, isConnected } = useAccount();
+  const {
+    connectors,
+    connectAsync,
+    isPending: walletConnecting,
+  } = useConnect();
+
+  const connectWallet = async () => {
+    if (openWeb3Modal()) return;
+    const connector =
+      connectors.find(
+        (item) => item.id === "io.metamask" || item.name === "MetaMask",
+      ) || connectors.find((item) => item.id === "injected");
+    if (!connector) {
+      toast.error("Install or enable MetaMask, then try Connect Wallet again.");
+      return;
+    }
+    try {
+      await connectAsync({ connector });
+    } catch (error: unknown) {
+      toast.error(
+        error instanceof Error ? error.message : "Wallet connection failed.",
+      );
+    }
+  };
 
   const isAdmin = React.useMemo(() => {
     if (!user) return false;
@@ -253,20 +278,16 @@ const Navbar = () => {
                 {hasRoiAccess ? (
                   <button
                     type="button"
-                    onClick={() => {
-                      if (walletAddress) {
-                        openWeb3Modal();
-                        return;
-                      }
-
-                      openWeb3Modal();
-                    }}
-                    className="hidden lg:flex items-center gap-2 rounded-md bg-[var(--primary)] px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-[var(--primary-hover)]"
+                    onClick={() => void connectWallet()}
+                    disabled={walletConnecting}
+                    className="flex items-center gap-2 rounded-md bg-[var(--primary)] px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-[var(--primary-hover)] disabled:opacity-60"
                   >
                     <Wallet size={14} />
-                    {walletAddress
-                      ? formatWalletAddress(walletAddress)
-                      : "Connect Wallet"}
+                    {walletConnecting
+                      ? "Connecting..."
+                      : walletAddress
+                        ? formatWalletAddress(walletAddress)
+                        : "Connect Wallet"}
                   </button>
                 ) : (
                   <Link

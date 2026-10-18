@@ -46,7 +46,9 @@ export const wagmiConfig = defaultWagmiConfig({
 });
 
 export function openWeb3Modal() {
-  web3ModalInstance?.open();
+  if (!web3ModalInstance) return false;
+  web3ModalInstance.open();
+  return true;
 }
 
 export function Web3Provider({ children }: { children: ReactNode }) {
