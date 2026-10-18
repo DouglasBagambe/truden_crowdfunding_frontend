@@ -58,6 +58,13 @@ export function CreatorProvisioning({ projectId }: { projectId: string }) {
     } catch (error: unknown) {
       const message = (error as { response?: { data?: { message?: string } } })
         .response?.data?.message;
+      if (
+        message?.includes("transaction reverted") &&
+        message.includes("consumed creator nonce was released")
+      ) {
+        localStorage.removeItem(key);
+        setRecoveryHash("");
+      }
       toast.error(
         message ||
           (error instanceof Error
