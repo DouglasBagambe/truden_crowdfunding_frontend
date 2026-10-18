@@ -395,7 +395,8 @@ export default function AdminPage() {
       const detail = `${response?.status ? `HTTP ${response.status}: ` : ""}${
         Array.isArray(message)
           ? message.join(". ")
-          : message || "Approval request failed. Check your connection and retry."
+          : message ||
+            "Approval request failed. Check your connection and retry."
       }`;
       setDecisionErrors((previous) => ({ ...previous, [id]: detail }));
       toast.error(detail, { id: tid, duration: 10000 });
