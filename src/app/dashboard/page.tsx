@@ -47,6 +47,7 @@ interface Project {
   targetAmount?: number;
   goalAmount?: number;
   status?: string;
+  currency?: string;
   imageUrl?: string;
 }
 
@@ -562,6 +563,7 @@ export default function DashboardPage() {
                           const target =
                             project.targetAmount || project.goalAmount || 1;
                           const pct = Math.min((raised / target) * 100, 100);
+                          const currency = project.currency || "UGX";
                           const pId = project.id || project._id;
                           const pName = encodeURIComponent(
                             project.name || "Project",
@@ -615,7 +617,7 @@ export default function DashboardPage() {
                                       />
                                     </div>
                                     <span className="text-[10px] font-black text-[var(--text-muted)] whitespace-nowrap">
-                                      UGX {raised.toLocaleString()} /{" "}
+                                      {currency} {raised.toLocaleString()} /{" "}
                                       {target.toLocaleString()}
                                     </span>
                                   </div>
