@@ -44,15 +44,20 @@ const Navbar = () => {
   const { connectors, connectAsync, isPending: isConnecting } = useConnect();
 
   const connectWallet = async () => {
-    if (openWeb3Modal()) return;
     const connector =
       connectors.find(
         (item) => item.id === "io.metamask" || item.name === "MetaMask",
       ) || connectors.find((item) => item.id === "injected");
-    if (!connector) {
+    const hasInjectedProvider =
+      typeof window !== "undefined" &&
+      Boolean((window as Window & { ethereum?: unknown }).ethereum);
+
+    if (!connector || !hasInjectedProvider) {
+      if (openWeb3Modal()) return;
       toast.error("Install or enable MetaMask, then try Connect Wallet again.");
       return;
     }
+
     try {
       await connectAsync({ connector });
     } catch (error: unknown) {
