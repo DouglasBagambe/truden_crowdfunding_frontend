@@ -146,31 +146,39 @@ async function injectWallet(page: Page, rejectSignature = true) {
         emit(event: string, ...args: unknown[]) {
           for (const listener of listeners.get(event) || []) listener(...args);
         },
+        grantAccounts() {
+          const wasConnected = connected;
+          connected = true;
+          sessionStorage.setItem("fixture-wallet-connected", "true");
+          if (!wasConnected)
+            queueMicrotask(() => {
+              provider.emit("connect", { chainId: "0xaa36a7" });
+              provider.emit("accountsChanged", [wallet]);
+            });
+        },
         async request({ method }: { method: string; params?: unknown[] }) {
           if (method === "eth_chainId") return "0xaa36a7";
           if (method === "net_version") return "11155111";
           if (method === "eth_accounts") return connected ? [wallet] : [];
           if (method === "eth_requestAccounts") {
-            connected = true;
-            sessionStorage.setItem("fixture-wallet-connected", "true");
-            queueMicrotask(() => {
-              provider.emit("connect", { chainId: "0xaa36a7" });
-              provider.emit("accountsChanged", [wallet]);
-            });
+            provider.grantAccounts();
             return [wallet];
           }
+          if (method === "wallet_requestPermissions") provider.grantAccounts();
           if (
             method === "wallet_requestPermissions" ||
             method === "wallet_getPermissions"
           )
-            return [
-              {
-                parentCapability: "eth_accounts",
-                caveats: [
-                  { type: "restrictReturnedAccounts", value: [wallet] },
-                ],
-              },
-            ];
+            return connected
+              ? [
+                  {
+                    parentCapability: "eth_accounts",
+                    caveats: [
+                      { type: "restrictReturnedAccounts", value: [wallet] },
+                    ],
+                  },
+                ]
+              : [];
           if (method === "personal_sign") {
             if (!rejectSignature) return `0x${"11".repeat(65)}`;
             const error = new Error("User rejected the signature") as Error & {
