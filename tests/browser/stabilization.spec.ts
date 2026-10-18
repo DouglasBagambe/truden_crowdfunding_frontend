@@ -130,10 +130,7 @@ async function injectWallet(page: Page, rejectSignature = true) {
         on(event: string, listener: (...args: unknown[]) => void) {
           listeners.set(event, [...(listeners.get(event) || []), listener]);
         },
-        removeListener(
-          event: string,
-          listener: (...args: unknown[]) => void,
-        ) {
+        removeListener(event: string, listener: (...args: unknown[]) => void) {
           listeners.set(
             event,
             (listeners.get(event) || []).filter((item) => item !== listener),
