@@ -28,7 +28,11 @@ export function CreatorProvisioning({ projectId }: { projectId: string }) {
           transactionHash?: string;
           nonce: number;
           requiresTransactionHash: boolean;
-        }>(`/projects/${projectId}/provisioning/prepare`);
+        }>(
+          `/projects/${projectId}/provisioning/prepare`,
+          undefined,
+          { timeout: 30_000 },
+        );
         if (!address || address.toLowerCase() !== data.account.toLowerCase())
           throw new Error("Connect the verified primary creator wallet first");
         if (chainId !== data.chainId)
