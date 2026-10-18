@@ -215,8 +215,13 @@ for (const viewport of viewports) {
     await page.setViewportSize(viewport);
     const fixture = await fixtures(page);
     await page.goto("/admin");
-    await expect(page.getByText("Platform Overview", { exact: true })).toBeVisible();
-    const campaignsTab = page.getByRole("button", { name: "Campaigns", exact: true });
+    await expect(
+      page.getByText("Platform Overview", { exact: true }),
+    ).toBeVisible();
+    const campaignsTab = page.getByRole("button", {
+      name: "Campaigns",
+      exact: true,
+    });
     await expect(campaignsTab).toBeVisible();
     await campaignsTab.click();
     await page.getByRole("button", { name: "Approve", exact: true }).click();

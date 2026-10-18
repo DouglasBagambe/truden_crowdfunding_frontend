@@ -1127,8 +1127,8 @@ export default function AdminPage() {
                                     String(p.onchainProvisioningError)}
                                 </p>
                                 <p className="mt-2">
-                                  Resolve the reported error, then retry Approve.
-                                  Project status: {status}
+                                  Resolve the reported error, then retry
+                                  Approve. Project status: {status}
                                 </p>
                               </div>
                             )}
