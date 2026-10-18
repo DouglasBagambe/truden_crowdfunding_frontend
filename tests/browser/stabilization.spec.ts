@@ -130,7 +130,18 @@ async function injectWallet(page: Page, rejectSignature = true) {
         on(event: string, listener: (...args: unknown[]) => void) {
           listeners.set(event, [...(listeners.get(event) || []), listener]);
         },
-        removeListener() {},
+        removeListener(
+          event: string,
+          listener: (...args: unknown[]) => void,
+        ) {
+          listeners.set(
+            event,
+            (listeners.get(event) || []).filter((item) => item !== listener),
+          );
+        },
+        emit(event: string, ...args: unknown[]) {
+          for (const listener of listeners.get(event) || []) listener(...args);
+        },
         async request({ method }: { method: string; params?: unknown[] }) {
           if (method === "eth_chainId") return "0xaa36a7";
           if (method === "net_version") return "11155111";
@@ -138,6 +149,10 @@ async function injectWallet(page: Page, rejectSignature = true) {
           if (method === "eth_requestAccounts") {
             connected = true;
             sessionStorage.setItem("fixture-wallet-connected", "true");
+            queueMicrotask(() => {
+              provider.emit("connect", { chainId: "0xaa36a7" });
+              provider.emit("accountsChanged", [wallet]);
+            });
             return [wallet];
           }
           if (
@@ -218,11 +233,8 @@ for (const viewport of viewports) {
     await expect(
       page.getByText("Platform Overview", { exact: true }),
     ).toBeVisible();
-    const campaignsTab = page.getByRole("button", {
-      name: "Campaigns",
-      exact: true,
-    });
-    await expect(campaignsTab).toBeVisible();
+    const campaignsTab = page.locator('button[aria-label="Campaigns"]');
+    await expect(campaignsTab).toHaveCount(1);
     await campaignsTab.click();
     await page.getByRole("button", { name: "Approve", exact: true }).click();
     await expect(
