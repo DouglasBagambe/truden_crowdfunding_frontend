@@ -54,7 +54,7 @@ export const userService = {
     return response.data;
   },
   async submitCreatorVerification(data: CreatorVerificationSubmission) {
-    const response = await apiClient.post(
+    const response = await apiClient.patch(
       "/users/me/creator-verification",
       data,
     );

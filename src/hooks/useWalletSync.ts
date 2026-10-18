@@ -1,111 +1,110 @@
-import { useAccount } from "wagmi";
+"use client";
+import { useAccount, useSignMessage, useChainId } from "wagmi";
 import { useAuth } from "./useAuth";
 import { userService } from "../lib/user-service";
-import { useEffect, useState, useRef } from "react";
-import toast from "react-hot-toast"; // Assuming we might add this later
-import { useSignMessage, useChainId } from "wagmi";
+import { useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { SiweMessage } from "siwe";
+import { getAddress } from "viem";
 
-function getApiErrorMessage(error: unknown, fallback: string): string {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "response" in error &&
-    typeof error.response === "object" &&
-    error.response !== null &&
-    "data" in error.response &&
-    typeof error.response.data === "object" &&
-    error.response.data !== null &&
-    "message" in error.response.data &&
-    typeof error.response.data.message === "string"
-  ) {
-    return error.response.data.message;
-  }
-  return fallback;
+export type WalletLinkState =
+  "DISCONNECTED" | "CONNECTED_NOT_LINKED" | "LINKING" | "LINKED" | "ERROR";
+export function hasLinkedWallet(
+  user: { primaryWallet?: string; linkedWallets?: string[] } | null,
+  address?: string,
+) {
+  return (
+    !!address &&
+    [user?.primaryWallet, ...(user?.linkedWallets || [])].some(
+      (wallet) => wallet?.toLowerCase() === address.toLowerCase(),
+    )
+  );
 }
-
 export function useWalletSync() {
   const { address, isConnected } = useAccount();
   const { user, isAuthenticated, refetchUser } = useAuth();
-  const [isLinking, setIsLinking] = useState(false);
   const { signMessageAsync } = useSignMessage();
   const chainId = useChainId();
-  const attemptedRef = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    const syncWallet = async () => {
-      if (!isAuthenticated || !isConnected || !address || !user || isLinking)
-        return;
-
-      const normalizedAddress = address.toLowerCase();
-      const currentPrimary = user.primaryWallet?.toLowerCase();
-      const linkedWallets =
-        user.linkedWallets?.map((w: string) => w.toLowerCase()) || [];
-
-      const wasAttempted = attemptedRef.current.has(normalizedAddress);
-      // If the currently connected wallet is not the primary AND not in linked wallets
-      if (
-        !wasAttempted &&
-        normalizedAddress !== currentPrimary &&
-        !linkedWallets.includes(normalizedAddress)
-      ) {
-        let tId: string | undefined;
-        try {
-          setIsLinking(true);
-          tId = toast.loading("Linking wallet...");
-
-          const challenge = await userService.getSiweChallenge(address);
-          if (!challenge.chainIds.includes(chainId)) {
-            throw new Error(
-              "Switch to a supported wallet network before linking",
-            );
-          }
-          const siweMessage = new SiweMessage({
-            domain: challenge.domain,
-            address,
-            statement: "Link this wallet to your Keibo account",
-            uri: challenge.uri,
-            version: "1",
-            chainId,
-            nonce: challenge.nonce,
-            issuedAt: challenge.issuedAt,
-            expirationTime: challenge.expiresAt,
-          });
-
-          const message = siweMessage.prepareMessage();
-          const signature = await signMessageAsync({ message });
-
-          await userService.linkWallet({ wallet: address, message, signature });
-          await refetchUser();
-          toast.success(`Wallet ${address.slice(0, 6)}... linked to profile`, {
-            id: tId,
-          });
-        } catch (err: unknown) {
-          attemptedRef.current.add(normalizedAddress);
-          try {
-            setTimeout(
-              () => attemptedRef.current.delete(normalizedAddress),
-              30000,
-            );
-          } catch {}
-          const msg = getApiErrorMessage(err, "Failed to link wallet");
-          toast.error(msg, { id: tId });
-        } finally {
-          setIsLinking(false);
-        }
-      }
-    };
-
-    syncWallet();
-  }, [
-    address,
-    isConnected,
-    isAuthenticated,
-    user,
-    refetchUser,
-    signMessageAsync,
-    chainId,
-    isLinking,
-  ]);
-
-  return { isLinking };
+  const [isLinking, setIsLinking] = useState(false);
+  const [failedIdentity, setFailedIdentity] = useState("");
+  const inFlight = useRef(false);
+  const identity = `${user?.id || user?._id || ""}:${address?.toLowerCase() || ""}`;
+  const latestIdentity = useRef(identity);
+  latestIdentity.current = identity;
+  const linked = hasLinkedWallet(user, address);
+  // Deliberately no linking effect. Only an explicit user action may prompt a signature.
+  const linkWallet = async () => {
+    if (
+      inFlight.current ||
+      linked ||
+      !isAuthenticated ||
+      !isConnected ||
+      !address
+    )
+      return;
+    inFlight.current = true;
+    setIsLinking(true);
+    setFailedIdentity("");
+    const startedIdentity = identity;
+    try {
+      const wallet = getAddress(address);
+      const challenge = await userService.getSiweChallenge(wallet);
+      if (!challenge.chainIds.includes(chainId))
+        throw new Error("Switch to a supported wallet network before linking");
+      const message = new SiweMessage({
+        domain: challenge.domain,
+        address: wallet,
+        statement: "Link this wallet to your Keibo account",
+        uri: challenge.uri,
+        version: "1",
+        chainId,
+        nonce: challenge.nonce,
+        issuedAt: challenge.issuedAt,
+        expirationTime: challenge.expiresAt,
+      }).prepareMessage();
+      const signature = await signMessageAsync({ message });
+      if (latestIdentity.current !== startedIdentity)
+        throw new Error(
+          "Account or wallet changed. Retry linking the current wallet.",
+        );
+      await userService.linkWallet({ wallet, message, signature });
+      const refreshed = await refetchUser();
+      const persisted = refreshed.data?.user || refreshed.data;
+      if (refreshed.error || !hasLinkedWallet(persisted, wallet))
+        throw new Error(
+          "Wallet persistence could not be confirmed. Refresh your account before retrying.",
+        );
+      toast.success(
+        "Wallet ownership verified and linked to your KEIBO account",
+      );
+    } catch (error: unknown) {
+      setFailedIdentity(startedIdentity);
+      const response = (
+        error as { response?: { data?: { message?: string | string[] } } }
+      ).response;
+      const message = response?.data?.message;
+      toast.error(
+        Array.isArray(message)
+          ? message.join(". ")
+          : message ||
+              (error instanceof Error &&
+              error.message.includes("supported wallet")
+                ? error.message
+                : "Wallet linking cancelled or failed. Use Link Wallet to retry."),
+      );
+    } finally {
+      inFlight.current = false;
+      setIsLinking(false);
+    }
+  };
+  const state: WalletLinkState = !isConnected
+    ? "DISCONNECTED"
+    : linked
+      ? "LINKED"
+      : isLinking
+        ? "LINKING"
+        : failedIdentity === identity
+          ? "ERROR"
+          : "CONNECTED_NOT_LINKED";
+  return { state, isLinking, linkWallet };
 }

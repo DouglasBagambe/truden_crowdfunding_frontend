@@ -1,4 +1,6 @@
 "use client";
+import { displayDate } from "@/lib/display-date";
+import { CreatorProvisioning } from "@/components/projects/CreatorProvisioning";
 
 import React, { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -43,6 +45,28 @@ type ProjectMilestone = {
 };
 
 type ProjectDetail = {
+  risks?: string;
+  riskFactors?: string[];
+  disclosures?: string[];
+  agreements?: {
+    title: string;
+    description?: string;
+    requiresAcceptance?: boolean;
+    templateId?: string;
+    templateVersion?: number;
+    content?: string;
+    url?: string;
+  }[];
+  roiAgreements?: {
+    title: string;
+    description?: string;
+    requiresAcceptance?: boolean;
+    templateId?: string;
+    templateVersion?: number;
+    content?: string;
+    url?: string;
+  }[];
+  onchainProvisioningStatus?: string;
   backerCount?: number;
   category?: string;
   creator?: {
@@ -416,7 +440,8 @@ export default function ProjectDetailPageClient() {
     project.projectType === "CHARITY" || project.type === "CHARITY";
   const contributionEligible = charityProject
     ? project.status === "APPROVED"
-    : ["APPROVED", "FUNDING"].includes(project.status ?? "");
+    : project.status === "FUNDING" &&
+      project.onchainProvisioningStatus === "READY";
   const accentBg = charityProject ? "bg-emerald-600" : "bg-blue-600";
   const accentShadow = charityProject
     ? "shadow-emerald-500/20"
@@ -446,12 +471,14 @@ export default function ProjectDetailPageClient() {
             project.status === "CHANGES_REQUESTED") &&
             isOwner && (
               <div
+                role="status"
+                aria-label="Campaign review status"
                 className={`mb-8 p-4 rounded-2xl flex items-start gap-3 ${
                   project.status === "REJECTED"
                     ? "bg-rose-50 border border-rose-200 dark:bg-rose-950/20 dark:border-rose-900/30"
                     : project.status === "CHANGES_REQUESTED"
                       ? "bg-orange-50 border border-orange-200 dark:bg-orange-950/20 dark:border-orange-900/30"
-                      : "bg-amber-50 border border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/30"
+                      : "bg-amber-50 border border-amber-300 dark:bg-amber-950 dark:border-amber-600"
                 }`}
               >
                 <AlertCircle
@@ -740,7 +767,8 @@ export default function ProjectDetailPageClient() {
                               </p>
                               {(m.dueDate || m.date) && (
                                 <p className="text-xs text-[var(--text-muted)] mt-2 flex items-center gap-1">
-                                  <Calendar size={12} /> {m.dueDate || m.date}
+                                  <Calendar size={12} />{" "}
+                                  {displayDate(m.dueDate || m.date)}
                                 </p>
                               )}
                             </div>
@@ -1079,11 +1107,63 @@ export default function ProjectDetailPageClient() {
                   </div>
                 )}
 
+                {!isCharity && (
+                  <section
+                    className="p-5 border rounded-xl space-y-3 break-words"
+                    aria-label="Investment risks and agreements"
+                  >
+                    <h3 className="font-bold">
+                      Investment risks and agreements
+                    </h3>
+                    <p className="whitespace-pre-wrap">
+                      {project.risks ||
+                        "Review the investment risks before committing funds."}
+                    </p>
+                    {project.riskFactors?.map((risk, i) => (
+                      <p key={i}>{risk}</p>
+                    ))}
+                    {project.disclosures?.map((disclosure, i) => (
+                      <p key={i}>{disclosure}</p>
+                    ))}
+                    {[
+                      ...(project.agreements || []),
+                      ...(project.roiAgreements || []),
+                    ].map((agreement, i) => (
+                      <div key={i}>
+                        <h4>{agreement.title}</h4>
+                        <p>{agreement.description || agreement.content}</p>
+                        {agreement.url?.startsWith("https://") && (
+                          <a
+                            href={agreement.url}
+                            className="underline"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Read agreement
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </section>
+                )}
+                {!isCharity &&
+                  project.status === "APPROVED" &&
+                  project.onchainProvisioningStatus === "AWAITING_CREATOR" &&
+                  (typeof project.creatorId === "string"
+                    ? project.creatorId
+                    : (project.creatorId as { _id?: string } | undefined)
+                        ?._id) === (user?.id || user?._id) && (
+                    <CreatorProvisioning projectId={projectId} />
+                  )}
                 {/* Trust Badges */}
                 <div className="bg-[var(--card)] p-6 rounded-2xl border border-[var(--border)] space-y-3">
                   <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
                     <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                    <span>Donation Transparency Tracking</span>
+                    <span>
+                      {isCharity
+                        ? "Donation Transparency Tracking"
+                        : "Investment Escrow Tracking"}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
                     <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
@@ -1100,13 +1180,15 @@ export default function ProjectDetailPageClient() {
                   <div className="flex items-center gap-2 text-amber-400">
                     <Flag size={16} />
                     <h4 className="font-black text-xs uppercase tracking-widest">
-                      Donation Disclosure
+                      {isCharity
+                        ? "Donation Disclosure"
+                        : "Investment Disclosure"}
                     </h4>
                   </div>
                   <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-                    Keibo facilitates fundraising but doesn&apos;t guarantee
-                    project delivery or outcomes. Donations are non-refundable
-                    unless explicitly stated. Contribute what you can afford.
+                    {isCharity
+                      ? "Keibo facilitates fundraising but does not guarantee project delivery or outcomes. Donations are non-refundable unless explicitly stated. Contribute what you can afford."
+                      : "Investments carry risk, including loss of capital. Returns and project delivery are not guaranteed. Review the campaign agreements, risks and escrow milestone conditions before investing."}
                   </p>
                 </div>
               </div>

@@ -1,4 +1,5 @@
 "use client";
+import { displayDate } from "@/lib/display-date";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -232,6 +233,22 @@ export default function CreateProjectPage() {
       ) {
         errors.milestones = "Add at least one milestone for ROI projects.";
       }
+      if (formData.type === ProjectType.ROI && formData.milestones?.length) {
+        if (
+          formData.milestones.some(
+            (milestone) =>
+              milestone.title.trim().length < 2 ||
+              !Number.isInteger(milestone.payoutPercentage) ||
+              (milestone.payoutPercentage || 0) <= 0,
+          ) ||
+          formData.milestones.reduce(
+            (total, milestone) => total + (milestone.payoutPercentage || 0),
+            0,
+          ) !== 100
+        )
+          errors.milestones =
+            "Milestones need a title and positive whole-number allocations totaling 100%.";
+      }
       if (!isFutureCampaignDeadline(formData.fundingEndDate || "")) {
         errors.fundingEndDate = "Choose a valid future campaign end date.";
       }
@@ -266,6 +283,10 @@ export default function CreateProjectPage() {
       setShowConfirmModal(false);
       return;
     }
+    setFormData((previous) => ({
+      ...previous,
+      currency: previous.type === ProjectType.ROI ? "USDC" : "UGX",
+    }));
     setShowConfirmModal(false);
     setStep(2);
   };
@@ -933,7 +954,7 @@ export default function CreateProjectPage() {
                   </label>
                   <div className="flex min-w-0 items-center gap-3 md:gap-4">
                     <span className="shrink-0 text-xl font-black text-gray-400 md:text-2xl">
-                      UGX
+                      {formData.currency}
                     </span>
                     <div className="min-w-0 flex-1 max-w-[10rem] overflow-hidden md:max-w-[12rem]">
                       <input
@@ -1012,6 +1033,9 @@ export default function CreateProjectPage() {
                     </div>
                   )}
 
+                  {formData.milestones?.length
+                    ? renderFieldError("milestones")
+                    : null}
                   <div className="space-y-6">
                     {formData.milestones?.map((milestone, idx) => (
                       <div
@@ -1037,6 +1061,26 @@ export default function CreateProjectPage() {
                               }
                               placeholder="e.g. Groundbreaking & Foundations"
                               className="w-full bg-transparent border-b-4 border-gray-100 py-2 text-2xl font-black text-gray-900 focus:border-blue-500 outline-none transition-colors"
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label
+                              htmlFor={`milestone-description-${idx}`}
+                              className="block text-sm"
+                            >
+                              Milestone description (optional)
+                            </label>
+                            <textarea
+                              id={`milestone-description-${idx}`}
+                              className="w-full border rounded-xl p-3"
+                              value={milestone.description}
+                              onChange={(event) =>
+                                updateMilestone(
+                                  idx,
+                                  "description",
+                                  event.target.value,
+                                )
+                              }
                             />
                           </div>
                           <div>
@@ -1376,6 +1420,33 @@ export default function CreateProjectPage() {
                   </div>
                 </div>
               </div>
+              {step === 5 && formData.type === ProjectType.ROI && (
+                <section className="card_base space-y-3">
+                  <label htmlFor="roi-risks">Investment risks</label>
+                  <textarea
+                    id="roi-risks"
+                    className="w-full border p-3"
+                    value={formData.risks || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, risks: e.target.value })
+                    }
+                  />
+                  <label htmlFor="roi-disclosures">
+                    Disclosures (one per line)
+                  </label>
+                  <textarea
+                    id="roi-disclosures"
+                    className="w-full border p-3"
+                    value={formData.disclosures?.join("\n") || ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        disclosures: e.target.value.split("\n"),
+                      })
+                    }
+                  />
+                </section>
+              )}
             </motion.div>
           )}
 
@@ -1433,19 +1504,21 @@ export default function CreateProjectPage() {
                         "Not set"}
                     </p>
                   </div>
-                  <div className="col-span-2 border-t border-gray-100 pt-6">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-3">
-                      Beneficiary
-                    </p>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
-                        <Users size={16} />
-                      </div>
-                      <p className="text-base font-semibold text-gray-800">
-                        {formData.beneficiary}
+                  {formData.type === ProjectType.CHARITY && (
+                    <div className="sm:col-span-2 border-t border-gray-100 pt-6">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-3">
+                        Beneficiary
                       </p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                          <Users size={16} />
+                        </div>
+                        <p className="text-base font-semibold text-gray-800">
+                          {formData.beneficiary}
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 <div className="space-y-3">
@@ -1457,6 +1530,79 @@ export default function CreateProjectPage() {
                     {formData.summary}
                   </p>
                 </div>
+
+                <section
+                  aria-label="Review campaign details"
+                  className="space-y-4 break-words"
+                >
+                  <h3 className="font-bold">Location</h3>
+                  <p>
+                    {[formData.location, formData.country]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </p>
+                  {formData.website && <p>Website: {formData.website}</p>}
+                  <h3 className="font-bold">Story</h3>
+                  <p className="whitespace-pre-wrap">{formData.story}</p>
+                  <p>
+                    Funding starts: {displayDate(formData.fundingStartDate)}
+                  </p>
+                  <h3 className="font-bold">Milestones</h3>
+                  {formData.milestones?.length ? (
+                    formData.milestones.map((milestone, index) => (
+                      <div key={index}>
+                        <h4>{milestone.title}</h4>
+                        <p>{milestone.description}</p>
+                        <p>
+                          {displayDate(milestone.dueDate)} ·{" "}
+                          {milestone.payoutPercentage || 0}% of goal
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <p>No milestones provided</p>
+                  )}
+                  {!!formData.useOfFunds?.length && (
+                    <>
+                      <h3 className="font-bold">Use of funds</h3>
+                      {formData.useOfFunds.map((item, index) => (
+                        <p key={index}>
+                          {item.item} · {item.percentage}%
+                        </p>
+                      ))}
+                    </>
+                  )}
+                  {formData.type === ProjectType.ROI && (
+                    <>
+                      <h3 className="font-bold">
+                        Investment risks and disclosures
+                      </h3>
+                      <p className="whitespace-pre-wrap">
+                        {formData.risks || "No additional risks provided"}
+                      </p>
+                      {formData.riskFactors?.map((risk, i) => (
+                        <p key={i}>{risk}</p>
+                      ))}
+                      {formData.disclosures?.map((disclosure, i) => (
+                        <p key={i}>{disclosure}</p>
+                      ))}
+                      <p>
+                        Investment agreements are applied from administrator
+                        templates after creation. Review and accept the
+                        applicable terms before investing. Returns are not
+                        guaranteed.
+                      </p>
+                    </>
+                  )}
+                  <h3 className="font-bold">Media summary</h3>
+                  <p>
+                    {formData.imageUrl
+                      ? "Cover image provided"
+                      : "No cover image"}{" "}
+                    · {formData.galleryImages?.length || 0} gallery images ·{" "}
+                    {formData.videoUrls?.length || 0} videos
+                  </p>
+                </section>
 
                 {(formData.videoUrls?.length || 0) > 0 && (
                   <section
@@ -1500,6 +1646,14 @@ export default function CreateProjectPage() {
                       <p className="text-sm font-semibold">Submission issue</p>
                       <p className="mt-1 text-sm leading-relaxed">{error}</p>
                     </div>
+                    <button
+                      type="button"
+                      aria-label="Dismiss submission error"
+                      className="ml-auto shrink-0 p-2 pointer-events-auto"
+                      onClick={() => setError("")}
+                    >
+                      ×
+                    </button>
                   </div>
                 )}
               </div>

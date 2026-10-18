@@ -72,6 +72,8 @@ export interface CreateProjectParams {
     percentage: number;
   }>;
   risks?: string;
+  riskFactors?: string[];
+  disclosures?: string[];
   challenges?: string;
 }
 

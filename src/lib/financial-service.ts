@@ -1,6 +1,7 @@
 import { apiClient } from "./api-client";
 
 export interface PaymentIntentRequest {
+  acceptedAgreements?: string[];
   projectId: string;
   /** Integer smallest currency units. Never pass floating-point settlement amounts. */
   amountMinor: string;
@@ -78,6 +79,7 @@ export async function createPaymentIntent(
     "/financial/payment-intents",
     {
       projectId: input.projectId,
+      acceptedAgreements: input.acceptedAgreements,
       amountMinor: input.amountMinor,
       currency: input.currency,
     },

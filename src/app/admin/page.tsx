@@ -175,6 +175,9 @@ export default function AdminPage() {
   // Actions
   const [actingOn, setActingOn] = useState<string | null>(null);
   const [reasons, setReasons] = useState<Record<string, string>>({});
+  const [dismissedDiagnostics, setDismissedDiagnostics] = useState<
+    Record<string, string>
+  >({});
   const [decisionErrors, setDecisionErrors] = useState<Record<string, string>>(
     {},
   );
@@ -361,33 +364,41 @@ export default function AdminPage() {
       return;
     }
     setActingOn(id);
-    setDecisionErrors((errors) => ({ ...errors, [id]: "" }));
+    setDecisionErrors((previous) => {
+      const next = { ...previous };
+      delete next[id];
+      return next;
+    });
     const tid = toast.loading("Processing...");
     try {
-      await projectService.adminDecision(id, {
+      const decision = await projectService.adminDecision(id, {
         finalStatus,
         reason: reasons[id],
       });
-      toast.success(`Project ${finalStatus.replace(/_/g, " ").toLowerCase()}`, {
-        id: tid,
-      });
+      toast.success(
+        decision?.onchainProvisioningStatus === "AWAITING_CREATOR"
+          ? "Review accepted; creator escrow setup required before funding"
+          : `Project ${finalStatus.replace(/_/g, " ").toLowerCase()}`,
+        { id: tid },
+      );
       await loadProjects();
     } catch (e: unknown) {
       const response = (
-        e as { response?: { status?: number; data?: { message?: unknown } } }
-      )?.response;
+        e as {
+          response?: {
+            status?: number;
+            data?: { message?: string | string[] };
+          };
+        }
+      ).response;
       const message = response?.data?.message;
-      const msg =
-        typeof message === "string"
-          ? message
-          : Array.isArray(message)
-            ? message.filter((part) => typeof part === "string").join("; ")
-            : "Approval request failed. Check your connection and retry.";
-      setDecisionErrors((errors) => ({
-        ...errors,
-        [id]: response?.status ? `HTTP ${response.status}: ${msg}` : msg,
-      }));
-      toast.error(msg, { id: tid, duration: 10000 });
+      const detail = `${response?.status ? `HTTP ${response.status}: ` : ""}${
+        Array.isArray(message)
+          ? message.join(". ")
+          : message || "Approval request failed. Check your connection and retry."
+      }`;
+      setDecisionErrors((previous) => ({ ...previous, [id]: detail }));
+      toast.error(detail, { id: tid, duration: 10000 });
       await loadProjects();
     } finally {
       setActingOn(null);
@@ -1081,11 +1092,32 @@ export default function AdminPage() {
                           <div className="p-5 grid grid-cols-1 lg:grid-cols-12 gap-6">
                             {(decisionErrors[id] ||
                               (typeof p.onchainProvisioningError === "string" &&
-                                p.onchainProvisioningError)) && (
+                                p.onchainProvisioningError !==
+                                  dismissedDiagnostics[id])) && (
                               <div
                                 role="alert"
-                                className="lg:col-span-12 rounded-lg border border-rose-300 bg-rose-50 p-4 text-sm text-rose-900"
+                                className="lg:col-span-12 rounded-lg border border-rose-300 bg-rose-50 p-4 text-sm text-rose-900 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-100"
                               >
+                                <button
+                                  type="button"
+                                  aria-label="Dismiss campaign action error"
+                                  className="float-right p-2 pointer-events-auto"
+                                  onClick={() => {
+                                    setDismissedDiagnostics((previous) => ({
+                                      ...previous,
+                                      [id]: String(
+                                        p.onchainProvisioningError || "",
+                                      ),
+                                    }));
+                                    setDecisionErrors((previous) => {
+                                      const next = { ...previous };
+                                      delete next[id];
+                                      return next;
+                                    });
+                                  }}
+                                >
+                                  ×
+                                </button>
                                 <p className="font-bold">
                                   Campaign action failed
                                 </p>
@@ -1094,10 +1126,8 @@ export default function AdminPage() {
                                     String(p.onchainProvisioningError)}
                                 </p>
                                 <p className="mt-2">
-                                  Resolve the reported error, then retry
-                                  Approve. A missing creator wallet must be
-                                  linked by its owner using Connect Wallet in
-                                  the account menu.
+                                  Resolve the reported error before retrying the
+                                  campaign action. Project status: {status}
                                 </p>
                               </div>
                             )}
@@ -1807,7 +1837,7 @@ export default function AdminPage() {
                                 </div>
                                 <div>
                                   <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-wider mb-1">
-                                    Fee (2%)
+                                    Platform fee (5%)
                                   </p>
                                   <p className="font-bold text-sm text-amber-700 dark:text-amber-300">
                                     UGX{" "}

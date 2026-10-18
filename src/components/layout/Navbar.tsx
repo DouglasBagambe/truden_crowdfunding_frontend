@@ -22,26 +22,10 @@ import {
   Wallet,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
+import { useWalletLink } from "@/providers/AuthSyncProvider";
 import { useAccount, useConnect } from "wagmi";
 import toast from "react-hot-toast";
 import { openWeb3Modal } from "@/providers/Web3Provider";
-
-function getNavbarWalletAddress(
-  user: unknown,
-  connectedAddress?: string,
-): string {
-  const currentUser = user as {
-    primaryWallet?: string;
-    linkedWallets?: string[];
-  } | null;
-
-  return (
-    connectedAddress ||
-    currentUser?.primaryWallet ||
-    currentUser?.linkedWallets?.[0] ||
-    ""
-  );
-}
 
 function formatWalletAddress(address: string): string {
   if (address.length <= 12) {
@@ -56,11 +40,8 @@ const Navbar = () => {
   const router = useRouter();
   const pathname = usePathname();
   const { address, isConnected } = useAccount();
-  const {
-    connectors,
-    connectAsync,
-    isPending: walletConnecting,
-  } = useConnect();
+  const { state: walletState, linkWallet } = useWalletLink();
+  const { connectors, connectAsync, isPending: isConnecting } = useConnect();
 
   const connectWallet = async () => {
     if (openWeb3Modal()) return;
@@ -90,10 +71,19 @@ const Navbar = () => {
   }, [user]);
 
   const hasRoiAccess = React.useMemo(() => canAccessROI(user), [user]);
-  const walletAddress = React.useMemo(
-    () => getNavbarWalletAddress(user, isConnected ? address : undefined),
-    [address, isConnected, user],
-  );
+  const walletLabel = isConnecting
+    ? "Connecting…"
+    : walletState === "LINKING"
+      ? "Linking…"
+      : isConnected && walletState !== "LINKED"
+        ? "Link Wallet"
+        : walletState === "LINKED" && address
+          ? `Linked ${formatWalletAddress(address)}`
+          : "Connect Wallet";
+  const walletAction = () => {
+    if (isConnected && walletState !== "LINKED") void linkWallet();
+    else void connectWallet();
+  };
 
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -271,32 +261,30 @@ const Navbar = () => {
             </div>
           </div>
 
+          {user && (
+            <button
+              type="button"
+              onClick={walletAction}
+              disabled={isConnecting || walletState === "LINKING"}
+              className="md:hidden ml-auto mr-2 max-w-36 rounded-md bg-[var(--primary)] px-2 py-2 text-xs text-white disabled:opacity-60"
+            >
+              {walletLabel}
+            </button>
+          )}
+
           {/* Desktop Right: Auth */}
           <div className="hidden md:flex shrink-0 items-center gap-4">
             {user ? (
               <div className="flex items-center gap-3">
-                {hasRoiAccess ? (
-                  <button
-                    type="button"
-                    onClick={() => void connectWallet()}
-                    disabled={walletConnecting}
-                    className="flex items-center gap-2 rounded-md bg-[var(--primary)] px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-[var(--primary-hover)] disabled:opacity-60"
-                  >
-                    <Wallet size={14} />
-                    {walletConnecting
-                      ? "Connecting..."
-                      : walletAddress
-                        ? formatWalletAddress(walletAddress)
-                        : "Connect Wallet"}
-                  </button>
-                ) : (
-                  <Link
-                    href="/dashboard/create-project"
-                    className="hidden lg:flex items-center gap-1.5 rounded-md bg-[var(--primary)] px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-[var(--primary-hover)]"
-                  >
-                    + Start Campaign
-                  </Link>
-                )}
+                <button
+                  type="button"
+                  onClick={walletAction}
+                  disabled={isConnecting || walletState === "LINKING"}
+                  className="flex items-center gap-2 rounded-md bg-[var(--primary)] px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-[var(--primary-hover)] disabled:opacity-60"
+                >
+                  <Wallet size={14} />
+                  {walletLabel}
+                </button>
                 <div className="relative group">
                   <button
                     className="flex h-9 w-9 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--secondary)] text-[var(--primary)] transition-colors hover:border-[var(--primary)]"

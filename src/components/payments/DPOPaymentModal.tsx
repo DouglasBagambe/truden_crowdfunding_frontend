@@ -24,6 +24,20 @@ interface PaymentProject {
   name?: string;
   title?: string;
   currency?: string;
+  agreements?: {
+    title: string;
+    description?: string;
+    requiresAcceptance?: boolean;
+    templateId?: string;
+    templateVersion?: number;
+  }[];
+  roiAgreements?: {
+    title: string;
+    description?: string;
+    requiresAcceptance?: boolean;
+    templateId?: string;
+    templateVersion?: number;
+  }[];
   projectType?: string;
   type?: string;
   [key: string]: unknown;
@@ -242,6 +256,11 @@ export default function DPOPaymentModal({
       return;
     }
 
+    if (isROI && currency.toUpperCase() === "USDC") {
+      setQuote(null);
+      setIsLoadingQuote(false);
+      return;
+    }
     const normalizedAmount = Number(amount);
     if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
       setQuote(null);
@@ -289,7 +308,7 @@ export default function DPOPaymentModal({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [amount, currency, isOpen, projectId]);
+  }, [amount, currency, isOpen, projectId, isROI]);
 
   useEffect(() => {
     idempotencyKey.current = null;
@@ -393,7 +412,9 @@ export default function DPOPaymentModal({
       return;
     }
     if (isROI && !walletAddress.trim()) {
-      setError("Wallet address is required so your NFT can be minted.");
+      setError(
+        "A verified linked wallet is required for investment settlement and its non-transferable receipt.",
+      );
       return;
     }
     if (!quote) {
@@ -500,7 +521,11 @@ export default function DPOPaymentModal({
                 <button
                   type="button"
                   onClick={handleClose}
-                  aria-label="Close donation dialog"
+                  aria-label={
+                    isCharity
+                      ? "Close donation dialog"
+                      : "Close investment dialog"
+                  }
                   className="rounded-xl p-2 transition hover:bg-white/5"
                 >
                   <X className="h-5 w-5 text-[var(--text-muted)]" />
@@ -631,33 +656,14 @@ export default function DPOPaymentModal({
                     </div>
                   </div>
                 )}
-                {/* Testing-mode bypass banner — shown when backend has ROI_REQUIRE_ONCHAIN_PROVISIONING=false */}
-                {quote?.roi?.bypassActive && (
-                  <div
-                    role="status"
-                    aria-live="polite"
-                    className="flex items-start gap-2.5 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900"
-                  >
-                    <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
-                    <div className="space-y-0.5">
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">
-                        Testing mode active
-                      </p>
-                      <p className="font-medium leading-5">
-                        ROI provisioning checks are bypassed on this platform
-                        instance.
-                        {!quote.roi.nftMintingEnabled &&
-                          " NFT minting is also disabled."}{" "}
-                        Your investment will be recorded but may not be backed
-                        by an on-chain NFT until production provisioning is
-                        complete.
-                      </p>
-                    </div>
-                  </div>
-                )}
                 {isROI && currency.toUpperCase() === "USDC" && (
                   <OnchainContributionButton
                     projectId={projectId}
+                    agreements={
+                      project.roiAgreements?.length
+                        ? project.roiAgreements
+                        : project.agreements
+                    }
                     projectOnchainId={
                       typeof project.projectOnchainId === "string"
                         ? project.projectOnchainId
@@ -759,25 +765,27 @@ export default function DPOPaymentModal({
                 >
                   Cancel
                 </button>
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  disabled={isSubmitting || isLoadingQuote}
-                  className={`flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-[10px] font-black uppercase tracking-widest text-white transition disabled:opacity-50 ${
-                    isCharity
-                      ? "bg-emerald-600 hover:bg-emerald-500"
-                      : "bg-blue-600 hover:bg-blue-500"
-                  }`}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Redirecting...
-                    </>
-                  ) : (
-                    <>{isCharity ? "Donate" : "Invest"}</>
-                  )}
-                </button>
+                {!(isROI && currency.toUpperCase() === "USDC") && (
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={isSubmitting || isLoadingQuote}
+                    className={`flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-[10px] font-black uppercase tracking-widest text-white transition disabled:opacity-50 ${
+                      isCharity
+                        ? "bg-emerald-600 hover:bg-emerald-500"
+                        : "bg-blue-600 hover:bg-blue-500"
+                    }`}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Redirecting...
+                      </>
+                    ) : (
+                      <>{isCharity ? "Donate" : "Invest"}</>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           </motion.div>
