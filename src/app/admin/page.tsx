@@ -175,6 +175,9 @@ export default function AdminPage() {
   // Actions
   const [actingOn, setActingOn] = useState<string | null>(null);
   const [reasons, setReasons] = useState<Record<string, string>>({});
+  const [decisionErrors, setDecisionErrors] = useState<Record<string, string>>(
+    {},
+  );
 
   const extractArray = useCallback(
     (payload: unknown, candidates: string[]): Record<string, unknown>[] => {
@@ -358,6 +361,7 @@ export default function AdminPage() {
       return;
     }
     setActingOn(id);
+    setDecisionErrors((errors) => ({ ...errors, [id]: "" }));
     const tid = toast.loading("Processing...");
     try {
       await projectService.adminDecision(id, {
@@ -369,9 +373,18 @@ export default function AdminPage() {
       });
       await loadProjects();
     } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { message?: string } } })
-        ?.response?.data?.message;
-      toast.error(msg || "Action failed", { id: tid });
+      const response = (e as { response?: { data?: { message?: unknown } } })
+        ?.response?.data;
+      const message = response?.message;
+      const msg =
+        typeof message === "string"
+          ? message
+          : Array.isArray(message)
+            ? message.filter((part) => typeof part === "string").join("; ")
+            : "Approval request failed. Check your connection and retry.";
+      setDecisionErrors((errors) => ({ ...errors, [id]: msg }));
+      toast.error(msg, { id: tid, duration: 10000 });
+      await loadProjects();
     } finally {
       setActingOn(null);
     }
@@ -1062,6 +1075,28 @@ export default function AdminPage() {
                           </div>
 
                           <div className="p-5 grid grid-cols-1 lg:grid-cols-12 gap-6">
+                            {(decisionErrors[id] ||
+                              (typeof p.onchainProvisioningError === "string" &&
+                                p.onchainProvisioningError)) && (
+                              <div
+                                role="alert"
+                                className="lg:col-span-12 rounded-lg border border-rose-300 bg-rose-50 p-4 text-sm text-rose-900"
+                              >
+                                <p className="font-bold">
+                                  Campaign action failed
+                                </p>
+                                <p>
+                                  {decisionErrors[id] ||
+                                    String(p.onchainProvisioningError)}
+                                </p>
+                                <p className="mt-2">
+                                  Resolve the reported error, then retry
+                                  Approve. A missing creator wallet must be
+                                  linked by its owner using Connect Wallet in
+                                  the account menu.
+                                </p>
+                              </div>
+                            )}
                             <div className="lg:col-span-4 space-y-2">
                               <h3 className="font-black text-base leading-tight">
                                 {(p.name as string) || "(Untitled)"}

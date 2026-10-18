@@ -73,6 +73,39 @@ async function noOverflow(page: Page) {
   ).toBeLessThanOrEqual(1);
 }
 
+test("admin approval failure stays visible and can be retried without changing campaign status", async ({
+  page,
+}) => {
+  await fixtures(page);
+  const message =
+    "Approval blocked: on-chain provisioning failed: creator has no linked wallet. Project status is unchanged.";
+  let attempts = 0;
+  await page.route("**/api/admin/projects/all", (route) =>
+    route.fulfill({
+      json: [{ ...campaign, projectType: "ROI", status: "PENDING_REVIEW" }],
+    }),
+  );
+  await page.route(`**/api/admin/projects/${id}/decision`, (route) => {
+    expect(route.request().postDataJSON().finalStatus).toBe("APPROVED");
+    attempts += 1;
+    return route.fulfill({ status: 400, json: { message } });
+  });
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Campaigns", exact: true }).click();
+  const approve = page.getByRole("button", { name: "Approve", exact: true });
+  await approve.click();
+  const error = page
+    .getByRole("alert")
+    .filter({ hasText: "Campaign action failed" });
+  await expect(error).toContainText(message);
+  await expect(error).toContainText("retry Approve");
+  await expect(page.getByText("PENDING REVIEW", { exact: true })).toBeVisible();
+  await expect(approve).toBeEnabled();
+  await approve.click();
+  await expect(error).toContainText(message);
+  expect(attempts).toBe(2);
+});
+
 test("video URL contract rejects unsafe lookalikes and resolves existing supported formats", () => {
   for (const url of [
     youtube,

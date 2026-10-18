@@ -5,6 +5,7 @@ import { AuthSyncProvider } from "@/providers/AuthSyncProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { ToastProvider } from "@/components/common/ToastProvider";
 import { BlockchainEventMonitor } from "@/components/common/BlockchainEventMonitor";
+import { NotificationToaster } from "@/components/common/NotificationToaster";
 
 export const metadata: Metadata = {
   title: "KEIBO | Crowdfunding",
@@ -23,6 +24,7 @@ export default function RootLayout({
           <Web3Provider>
             <AuthSyncProvider>
               <ToastProvider>
+                <NotificationToaster />
                 <BlockchainEventMonitor />
                 {children}
               </ToastProvider>
