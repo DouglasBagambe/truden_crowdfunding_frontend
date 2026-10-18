@@ -42,7 +42,9 @@ export const wagmiConfig = defaultWagmiConfig({
   enableInjected: isBrowser,
   enableEIP6963: isBrowser,
   enableCoinbase: isBrowser,
-  auth: isBrowser ? undefined : { email: false, socials: [] },
+  // KEIBO owns authentication. Embedded email/social auth adds an iframe-backed
+  // connector whose authorization check can stall Wagmi reconnect on page load.
+  auth: { email: false, socials: [] },
 });
 
 export function openWeb3Modal() {
