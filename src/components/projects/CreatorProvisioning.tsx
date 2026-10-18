@@ -48,9 +48,11 @@ export function CreatorProvisioning({ projectId }: { projectId: string }) {
           }));
         localStorage.setItem(key, hash);
       }
-      await apiClient.post(`/projects/${projectId}/provisioning/confirm`, {
-        transactionHash: hash,
-      });
+      await apiClient.post(
+        `/projects/${projectId}/provisioning/confirm`,
+        { transactionHash: hash },
+        { timeout: 90_000 },
+      );
       toast.success("Campaign confirmed on chain and open for funding");
       window.location.reload();
     } catch (error: unknown) {
@@ -80,6 +82,7 @@ export function CreatorProvisioning({ projectId }: { projectId: string }) {
       await apiClient.post(
         `/projects/${projectId}/provisioning/retry-reverted`,
         { transactionHash },
+        { timeout: 90_000 },
       );
       localStorage.removeItem(`keibo:campaign:${projectId}`);
       setRecoveryHash("");
