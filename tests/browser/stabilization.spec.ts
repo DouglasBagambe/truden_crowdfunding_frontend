@@ -42,6 +42,13 @@ async function fixtures(
       });
     if (path === "/api/auth/csrf")
       return route.fulfill({ json: { csrfToken: "isolated-stabilization" } });
+    // Admin consumes the paginated KYC envelope, even on the overview tab.
+    // Returning the catch-all [] sets kycProfiles to undefined and crashes
+    // the next render at kycProfiles.filter before Campaigns can be selected.
+    if (path === "/api/kyc/admin/profiles")
+      return route.fulfill({
+        json: { items: [], total: 0, page: 1, pageSize: 50 },
+      });
     if (path === "/api/auth/siwe/nonce") {
       challenges++;
       return route.fulfill({
