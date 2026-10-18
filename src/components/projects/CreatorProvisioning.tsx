@@ -9,11 +9,13 @@ export function CreatorProvisioning({ projectId }: { projectId: string }) {
   const { sendTransactionAsync } = useSendTransaction();
   const [busy, setBusy] = useState(false);
   const [recoveryHash, setRecoveryHash] = useState("");
+  const [lastError, setLastError] = useState("");
   const inFlight = useRef(false);
   const run = async () => {
     if (inFlight.current) return;
     inFlight.current = true;
     setBusy(true);
+    setLastError("");
     const key = `keibo:campaign:${projectId}`;
     try {
       let hash = recoveryHash.trim() || localStorage.getItem(key);
@@ -69,12 +71,13 @@ export function CreatorProvisioning({ projectId }: { projectId: string }) {
         localStorage.removeItem(key);
         setRecoveryHash("");
       }
-      toast.error(
+      const displayMessage =
         message ||
-          (error instanceof Error
-            ? error.message
-            : "Campaign confirmation failed. Retry the saved transaction."),
-      );
+        (error instanceof Error
+          ? error.message
+          : "Campaign confirmation failed. Retry the saved transaction.");
+      setLastError(displayMessage);
+      toast.error(displayMessage);
     } finally {
       inFlight.current = false;
       setBusy(false);
@@ -132,6 +135,11 @@ export function CreatorProvisioning({ projectId }: { projectId: string }) {
       >
         Retry a mined reverted creator transaction
       </button>
+      {lastError ? (
+        <p role="alert" className="text-sm text-red-600 break-words">
+          {lastError}
+        </p>
+      ) : null}
     </section>
   );
 }
