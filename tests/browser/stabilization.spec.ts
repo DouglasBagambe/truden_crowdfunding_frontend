@@ -215,10 +215,10 @@ for (const viewport of viewports) {
     await page.setViewportSize(viewport);
     const fixture = await fixtures(page);
     await page.goto("/admin");
-    await page
-      .getByRole("button", { name: /Campaigns/ })
-      .first()
-      .click();
+    await expect(page.getByText("Platform Overview", { exact: true })).toBeVisible();
+    const campaignsTab = page.getByRole("button", { name: "Campaigns", exact: true });
+    await expect(campaignsTab).toBeVisible();
+    await campaignsTab.click();
     await page.getByRole("button", { name: "Approve", exact: true }).click();
     await expect(
       page.getByRole("alert").filter({ hasText: "Campaign action failed" }),
