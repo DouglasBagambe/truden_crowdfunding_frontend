@@ -1,7 +1,7 @@
 "use client";
 
 import { createWeb3Modal, defaultWagmiConfig } from "@web3modal/wagmi/react";
-import { WagmiProvider } from "wagmi";
+import { WagmiProvider, http } from "wagmi";
 import { sepolia } from "viem/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useEffect, useState } from "react";
@@ -38,6 +38,13 @@ export const wagmiConfig = defaultWagmiConfig({
   projectId,
   metadata,
   ssr: true,
+  // Read-only Sepolia RPC must not depend on WalletConnect project authorization.
+  transports: {
+    [sepolia.id]: http(
+      process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL?.trim() ||
+        "https://ethereum-sepolia-rpc.publicnode.com",
+    ),
+  },
   enableWalletConnect: isBrowser && isUsableWalletConnectProjectId,
   enableInjected: isBrowser,
   enableEIP6963: isBrowser,

@@ -18,6 +18,8 @@ import { openWeb3Modal } from "@/providers/Web3Provider";
 import { createPaymentIntent } from "@/lib/financial-service";
 import { OnchainContributionButton } from "@/components/payments/OnchainContributionButton";
 
+import { investmentPresets } from "@/lib/investment-presets";
+
 interface PaymentProject {
   id?: string;
   _id?: string;
@@ -207,10 +209,13 @@ export default function DPOPaymentModal({
   const isCharity = isCharityProject(project);
   const isROI = isROIProject(project);
   const donorQuickAmounts = useMemo(() => [5000, 10000, 50000, 100000], []);
-  const investmentQuickAmounts = useMemo(
-    () => [50000, 100000, 500000, 1000000],
-    [],
+  const progress = project.progress as { raisedAmount?: number } | undefined;
+  const remaining = Math.max(
+    0,
+    Number(project.targetAmount ?? project.goalAmount ?? 0) -
+      Number(project.raisedAmount ?? progress?.raisedAmount ?? 0),
   );
+  const investmentQuickAmounts = investmentPresets(currency, remaining);
   const preferredWalletAddress = useMemo(
     () => getPreferredWalletAddress(user, isConnected ? address : undefined),
     [address, isConnected, user],
@@ -659,14 +664,16 @@ export default function DPOPaymentModal({
                 {isROI && currency.toUpperCase() === "USDC" && (
                   <OnchainContributionButton
                     projectId={projectId}
+                    projectName={projectName}
                     agreements={
                       project.roiAgreements?.length
                         ? project.roiAgreements
                         : project.agreements
                     }
                     projectOnchainId={
-                      typeof project.projectOnchainId === "string"
-                        ? project.projectOnchainId
+                      typeof project.projectOnchainId === "string" ||
+                      typeof project.projectOnchainId === "number"
+                        ? String(project.projectOnchainId)
                         : undefined
                     }
                     investorWallet={
