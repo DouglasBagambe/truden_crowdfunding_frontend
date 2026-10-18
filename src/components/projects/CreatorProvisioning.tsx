@@ -65,13 +65,19 @@ export function CreatorProvisioning({ projectId }: { projectId: string }) {
       const message = (error as { response?: { data?: { message?: string } } })
         .response?.data?.message;
       if (
-        message?.includes("transaction reverted") &&
-        message.includes("consumed creator nonce was released")
+        (message?.includes("transaction reverted") &&
+          message.includes("consumed creator nonce was released")) ||
+        message ===
+          "Prepare and reserve the creator transaction before confirmation"
       ) {
         localStorage.removeItem(key);
         setRecoveryHash("");
       }
       const displayMessage =
+        message ===
+        "Prepare and reserve the creator transaction before confirmation"
+          ? "A stale reverted transaction recovery was cleared. Click creator setup again to prepare a fresh preflight."
+          :
         message ||
         (error instanceof Error
           ? error.message
