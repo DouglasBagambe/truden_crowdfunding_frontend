@@ -1538,7 +1538,18 @@ export default function CreateProjectPage() {
                   <h3 className="font-bold">Location</h3>
                   <p>
                     {[formData.location, formData.country]
-                      .filter(Boolean)
+                      .filter(
+                        (value, index, values) =>
+                          value &&
+                          !values
+                            .slice(0, index)
+                            .some((previous) =>
+                              previous
+                                ?.trim()
+                                .toLowerCase()
+                                .includes(value.trim().toLowerCase()),
+                            ),
+                      )
                       .join(", ")}
                   </p>
                   {formData.website && <p>Website: {formData.website}</p>}
