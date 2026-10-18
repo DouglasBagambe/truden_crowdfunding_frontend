@@ -373,16 +373,20 @@ export default function AdminPage() {
       });
       await loadProjects();
     } catch (e: unknown) {
-      const response = (e as { response?: { data?: { message?: unknown } } })
-        ?.response?.data;
-      const message = response?.message;
+      const response = (
+        e as { response?: { status?: number; data?: { message?: unknown } } }
+      )?.response;
+      const message = response?.data?.message;
       const msg =
         typeof message === "string"
           ? message
           : Array.isArray(message)
             ? message.filter((part) => typeof part === "string").join("; ")
             : "Approval request failed. Check your connection and retry.";
-      setDecisionErrors((errors) => ({ ...errors, [id]: msg }));
+      setDecisionErrors((errors) => ({
+        ...errors,
+        [id]: response?.status ? `HTTP ${response.status}: ${msg}` : msg,
+      }));
       toast.error(msg, { id: tid, duration: 10000 });
       await loadProjects();
     } finally {
@@ -1104,6 +1108,24 @@ export default function AdminPage() {
                               <p className="text-xs text-[var(--text-muted)] line-clamp-2 leading-relaxed">
                                 {p.summary as string}
                               </p>
+                              {((p.projectType as string) ||
+                                (p.type as string)) === "ROI" && (
+                                <div className="text-xs text-[var(--text-muted)]">
+                                  <p>
+                                    On-chain provisioning:{" "}
+                                    {String(
+                                      p.onchainProvisioningStatus ||
+                                        "NOT_STARTED",
+                                    )}
+                                  </p>
+                                  <p className="break-all">
+                                    On-chain project ID:{" "}
+                                    {String(
+                                      p.projectOnchainId || "Not assigned",
+                                    )}
+                                  </p>
+                                </div>
+                              )}
                               <div className="flex items-center gap-2 pt-1">
                                 <div className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
                                   <span className="text-white text-[10px] font-black">
