@@ -23,6 +23,7 @@ interface ProjectCardProps {
     projectType?: "CHARITY" | "ROI";
     type?: string;
     status?: string;
+    currency?: string;
     category?: string;
     industry?: string;
     galleryImages?: string[];
@@ -39,6 +40,7 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
   const goal = project.goalAmount || project.targetAmount;
   const percentage =
     goal && goal > 0 ? Math.min((raised / goal) * 100, 100) : 0;
+  const currency = project.currency || "UGX";
 
   const isCharity = isCharityProject(project);
 
@@ -117,11 +119,11 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
             <div className="space-y-2">
               <div className="flex justify-between text-xs font-semibold tabular-nums">
                 <span className={accentText}>
-                  UGX {raised.toLocaleString()}
+                  {currency} {raised.toLocaleString()}
                 </span>
                 <span className="text-[var(--text-muted)]">
                   {goal
-                    ? `${percentage.toFixed(0)}% of UGX ${goal.toLocaleString()}`
+                    ? `${percentage.toFixed(0)}% of ${currency} ${goal.toLocaleString()}`
                     : "Goal not published"}
                 </span>
               </div>
