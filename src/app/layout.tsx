@@ -9,7 +9,8 @@ import { NotificationToaster } from "@/components/common/NotificationToaster";
 
 export const metadata: Metadata = {
   title: "KEIBO | Crowdfunding",
-  description: "Campaign funding with verified payment and milestone records.",
+  description:
+    "Charity crowdfunding with verified payments and transparent campaign records.",
 };
 
 export default function RootLayout({

@@ -541,3 +541,41 @@ test("KEIBO uploads survive a backend move without rewriting external media", ()
   );
   expect(campaignMediaUrl(path)).toBe(path);
 });
+
+test("charity sessions never initialize or reconnect injected crypto wallets", async ({
+  page,
+}) => {
+  await charitySession(page);
+  await page.addInitScript(() => {
+    const requests: string[] = [];
+    Object.defineProperty(window, "__charityWalletRequests", {
+      value: requests,
+    });
+    Object.defineProperty(window, "ethereum", {
+      value: {
+        isMetaMask: true,
+        request: async ({ method }: { method: string }) => {
+          requests.push(method);
+          if (method === "eth_chainId") return "0xaa36a7";
+          return [];
+        },
+        on: () => undefined,
+        removeListener: () => undefined,
+      },
+    });
+  });
+  await page.goto("/dashboard");
+  await expect(
+    page.getByRole("navigation", { name: "Dashboard sections" }),
+  ).toBeVisible();
+  await page.goto("/profile");
+  await expect(
+    page.getByRole("button", { name: "Wallet", exact: true }),
+  ).toBeVisible();
+  const requests = await page.evaluate(
+    () =>
+      (window as unknown as { __charityWalletRequests: string[] })
+        .__charityWalletRequests,
+  );
+  expect(requests).toEqual([]);
+});

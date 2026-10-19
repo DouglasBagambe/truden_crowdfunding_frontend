@@ -1,5 +1,6 @@
 "use client";
 
+import { INVESTMENTS_ENABLED } from "@/lib/product-features";
 import { createWeb3Modal, defaultWagmiConfig } from "@web3modal/wagmi/react";
 import { WagmiProvider, http } from "wagmi";
 import { sepolia } from "viem/chains";
@@ -45,10 +46,11 @@ export const wagmiConfig = defaultWagmiConfig({
         "https://ethereum-sepolia-rpc.publicnode.com",
     ),
   },
-  enableWalletConnect: isBrowser && isUsableWalletConnectProjectId,
-  enableInjected: isBrowser,
-  enableEIP6963: isBrowser,
-  enableCoinbase: isBrowser,
+  enableWalletConnect:
+    INVESTMENTS_ENABLED && isBrowser && isUsableWalletConnectProjectId,
+  enableInjected: INVESTMENTS_ENABLED && isBrowser,
+  enableEIP6963: INVESTMENTS_ENABLED && isBrowser,
+  enableCoinbase: INVESTMENTS_ENABLED && isBrowser,
   // KEIBO owns authentication. Embedded email/social auth adds an iframe-backed
   // connector whose authorization check can stall Wagmi reconnect on page load.
   auth: { email: false, socials: [] },
@@ -77,6 +79,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (
+      !INVESTMENTS_ENABLED ||
       web3ModalInitialized ||
       typeof window === "undefined" ||
       !isUsableWalletConnectProjectId
@@ -99,7 +102,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <WagmiProvider config={wagmiConfig}>
+    <WagmiProvider config={wagmiConfig} reconnectOnMount={INVESTMENTS_ENABLED}>
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     </WagmiProvider>
   );
