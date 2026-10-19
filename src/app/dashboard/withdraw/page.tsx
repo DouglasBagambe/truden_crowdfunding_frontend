@@ -2,6 +2,8 @@
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { INVESTMENTS_ENABLED } from "@/lib/product-features";
+import { WalletView } from "@/components/dashboard/WalletView";
 import Link from "next/link";
 import { CheckCircle2, Loader2, RefreshCw } from "lucide-react";
 import Footer from "@/components/layout/Footer";
@@ -34,6 +36,26 @@ type ProjectResponse = {
 type Release = { id: string };
 
 export default function WithdrawPage() {
+  if (!INVESTMENTS_ENABLED)
+    return (
+      <div className="min-h-screen bg-[var(--background)] pt-24">
+        <Navbar />
+        <main className="mx-auto max-w-4xl px-5 py-10">
+          <Link
+            href="/dashboard?tab=wallet"
+            className="mb-5 inline-flex text-sm font-semibold"
+          >
+            ← Back to Wallet
+          </Link>
+          <WalletView />
+        </main>
+        <Footer />
+      </div>
+    );
+  return <LegacyWithdrawPage />;
+}
+
+function LegacyWithdrawPage() {
   const query = useSearchParams();
   const { user } = useAuth();
   const canReview = user?.roles?.some((role: string) =>

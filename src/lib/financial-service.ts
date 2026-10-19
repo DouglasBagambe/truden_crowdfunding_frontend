@@ -1,5 +1,49 @@
 import { apiClient } from "./api-client";
 
+export type CreatorWallet = {
+  balances: {
+    currency: string;
+    availableMinor: string;
+    heldMinor: string;
+    paidMinor: string;
+  }[];
+  transfers: {
+    id: string;
+    project_id: string;
+    currency: string;
+    owner_proceeds_minor: string;
+    created_at: string;
+  }[];
+};
+export async function getCreatorWallet(): Promise<CreatorWallet> {
+  return (await apiClient.get<CreatorWallet>("/financial/wallet")).data;
+}
+export async function transferCampaignToWallet(
+  projectId: string,
+  idempotencyKey: string,
+) {
+  return (
+    await apiClient.post(
+      "/financial/wallet/transfers",
+      { projectId },
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    )
+  ).data;
+}
+export async function withdrawCreatorWallet(
+  destinationId: string,
+  idempotencyKey: string,
+  expectedAmountMinor: string,
+) {
+  return (
+    await apiClient.post(
+      "/financial/wallet/withdrawals",
+      { destinationId, expectedAmountMinor },
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    )
+  ).data;
+}
+
 export interface PaymentIntentRequest {
   acceptedAgreements?: string[];
   projectId: string;

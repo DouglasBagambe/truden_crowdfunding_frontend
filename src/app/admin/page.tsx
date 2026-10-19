@@ -1153,7 +1153,7 @@ export default function AdminPage() {
                                     href={`/dashboard/withdraw?projectId=${id}`}
                                     className="text-sm font-semibold text-[var(--primary)] underline"
                                   >
-                                    Review charity milestones and funds
+                                    View campaign Wallet
                                   </Link>
                                 )}
                               <h3 className="font-black text-base leading-tight">

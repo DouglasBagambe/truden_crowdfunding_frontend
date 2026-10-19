@@ -228,11 +228,14 @@ export default function CreateProjectPage() {
       ) {
         errors.targetAmount = "Enter a funding target greater than 0.";
       }
-      if (!formData.milestones || formData.milestones.length === 0) {
+      if (
+        formData.type === ProjectType.ROI &&
+        (!formData.milestones || formData.milestones.length === 0)
+      ) {
         errors.milestones =
           "Add at least one milestone for the campaign payout schedule.";
       }
-      if (formData.milestones?.length) {
+      if (formData.type === ProjectType.ROI && formData.milestones?.length) {
         if (
           formData.milestones.some(
             (milestone) =>
@@ -322,6 +325,7 @@ export default function CreateProjectPage() {
       }
       if (payload.type === ProjectType.CHARITY) {
         delete payload.industry;
+        delete payload.milestones;
       } else {
         delete payload.category;
         delete payload.subcategory;
@@ -1016,7 +1020,7 @@ export default function CreateProjectPage() {
                 </div>
               </div>
 
-              {(formData.type === ProjectType.CHARITY || canCreateRoi) && (
+              {formData.type === ProjectType.ROI && canCreateRoi && (
                 <div className="space-y-6">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="font-black text-xl text-gray-900 tracking-tight">
@@ -1579,20 +1583,24 @@ export default function CreateProjectPage() {
                   <p>
                     Funding starts: {displayDate(formData.fundingStartDate)}
                   </p>
-                  <h3 className="font-bold">Milestones</h3>
-                  {formData.milestones?.length ? (
-                    formData.milestones.map((milestone, index) => (
-                      <div key={index}>
-                        <h4>{milestone.title}</h4>
-                        <p>{milestone.description}</p>
-                        <p>
-                          {displayDate(milestone.dueDate)} ·{" "}
-                          {milestone.payoutPercentage || 0}% of goal
-                        </p>
-                      </div>
-                    ))
-                  ) : (
-                    <p>No milestones provided</p>
+                  {formData.type === ProjectType.ROI && (
+                    <>
+                      <h3 className="font-bold">Milestones</h3>
+                      {formData.milestones?.length ? (
+                        formData.milestones.map((milestone, index) => (
+                          <div key={index}>
+                            <h4>{milestone.title}</h4>
+                            <p>{milestone.description}</p>
+                            <p>
+                              {displayDate(milestone.dueDate)} ·{" "}
+                              {milestone.payoutPercentage || 0}% of goal
+                            </p>
+                          </div>
+                        ))
+                      ) : (
+                        <p>No milestones provided</p>
+                      )}
+                    </>
                   )}
                   {!!formData.useOfFunds?.length && (
                     <>

@@ -599,8 +599,8 @@ export function KYCView() {
         )}
         {creatorStatus === "VERIFIED" && (
           <p className="text-sm">
-            Creator approved. Charity releases also require approved milestone
-            evidence and settled funds.
+            Creator approved. Approved charity campaigns can transfer settled
+            funds to Wallet.
           </p>
         )}
       </section>

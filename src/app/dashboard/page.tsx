@@ -34,6 +34,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { filterVisibleProjects, isCharityProject } from "@/lib/roi-access";
 import toast from "react-hot-toast";
+import { INVESTMENTS_ENABLED } from "@/lib/product-features";
 
 interface Project {
   id: string;
@@ -123,6 +124,10 @@ export default function DashboardPage() {
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get("create") === "true") {
+        if (!INVESTMENTS_ENABLED) {
+          router.replace("/dashboard/create-project");
+          return;
+        }
         setIsCreateModalOpen(true);
         window.history.replaceState({}, "", "/dashboard");
       }
@@ -131,7 +136,7 @@ export default function DashboardPage() {
         window.history.replaceState({}, "", "/dashboard");
       }
     }
-  }, [hasRoiAccess]);
+  }, [hasRoiAccess, router]);
 
   useEffect(() => {
     if (!hasRoiAccess && ["investments", "nfts"].includes(activeTab)) {
@@ -664,17 +669,24 @@ export default function DashboardPage() {
                                     >
                                       View →
                                     </Link>
-                                    {isCharity ||
-                                    (!isCharity &&
+                                    {isCharity ? (
+                                      <button
+                                        type="button"
+                                        className="button_secondary px-3 py-1.5 text-xs"
+                                        onClick={() => setActiveTab("wallet")}
+                                      >
+                                        Transfer to wallet
+                                      </button>
+                                    ) : !isCharity &&
                                       raised > 0 &&
-                                      raised >= target) ? (
+                                      raised >= target ? (
                                       <Link
-                                        href={`/dashboard/withdraw?projectId=${pId}&projectName=${pName}&type=${isCharity ? "CHARITY" : "ROI"}&amount=${raised}`}
+                                        href={`/dashboard/withdraw?projectId=${pId}&projectName=${pName}&type=ROI&amount=${raised}`}
                                         className="chip-base chip-success rounded-lg text-xs font-black hover:brightness-95 transition-all flex items-center gap-1"
                                       >
                                         <Wallet size={14} />{" "}
                                         {isCharity
-                                          ? "Wallet & withdrawals"
+                                          ? "Transfer to wallet"
                                           : "Withdraw Funds"}
                                       </Link>
                                     ) : null}

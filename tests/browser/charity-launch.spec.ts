@@ -151,7 +151,7 @@ test("first Create Campaign Back is enabled and returns to dashboard; investment
   await expect(page).toHaveURL(/\/dashboard$/);
 });
 
-test("charity creation submits the reviewed milestone schedule to the backend", async ({
+test("charity creation requires no milestones and submits no milestone schedule", async ({
   page,
 }) => {
   await charitySession(page);
@@ -188,47 +188,20 @@ test("charity creation submits the reviewed milestone schedule to the backend", 
     .toISOString()
     .slice(0, 10);
   await page.locator('input[type="date"]').fill(futureDate);
-  await page
-    .getByRole("button", { name: "ADD MILESTONE", exact: true })
-    .click();
-  await page
-    .getByRole("textbox", { name: "Milestone 1 title", exact: true })
-    .fill("Document sandbox results");
-  await page
-    .getByRole("textbox", {
-      name: "Milestone description (optional)",
-      exact: true,
-    })
-    .fill("Record actual test results; no fabricated evidence.");
-  await page
-    .getByRole("textbox", { name: "Milestone 1 target date", exact: true })
-    .fill(futureDate);
-  await page
-    .getByRole("spinbutton", {
-      name: "Milestone 1 allocation percentage",
-      exact: true,
-    })
-    .fill("100");
+  await expect(
+    page.getByRole("button", { name: "ADD MILESTONE", exact: true }),
+  ).toHaveCount(0);
   await next.click();
   await next.click();
   await expect(
     page.getByRole("region", { name: "Review campaign details" }),
-  ).toContainText("Document sandbox results");
+  ).not.toContainText("Milestones");
   await page
     .getByRole("button", { name: "Submit project", exact: true })
     .click();
   await expect(page).toHaveURL(/\/dashboard$/);
-  expect(submitted).toMatchObject({
-    type: "CHARITY",
-    milestones: [
-      {
-        title: "Document sandbox results",
-        description: "Record actual test results; no fabricated evidence.",
-        payoutPercentage: 100,
-        dueDate: expect.stringContaining(futureDate),
-      },
-    ],
-  });
+  expect(submitted).toMatchObject({ type: "CHARITY" });
+  expect(submitted).not.toHaveProperty("milestones");
 });
 
 test("old investment and marketplace URLs cannot expose investment actions", async ({
@@ -250,97 +223,105 @@ test("old investment and marketplace URLs cannot expose investment actions", asy
   await expect(page.getByRole("button", { name: "Invest Now" })).toHaveCount(0);
 });
 
-test("charity milestone review precedes release and settlement failure is visible", async ({
+test("campaign transfer only credits Wallet; Withdraw all queues one external payout", async ({
   page,
 }) => {
   await charitySession(page);
-  let status = "PLANNED";
-  let submits = 0,
-    reviews = 0,
-    releases = 0;
-  await page.route(`**/api/projects/${campaignId}`, (route) =>
-    route.fulfill({
+  let available = "0",
+    held = "0",
+    transfers = 0,
+    withdrawals = 0;
+  await page.route("**/api/projects/me", (r) =>
+    r.fulfill({
+      json: [
+        {
+          id: campaignId,
+          name: "My charity",
+          projectType: "CHARITY",
+          status: "APPROVED",
+        },
+      ],
+    }),
+  );
+  await page.route("**/api/financial/wallet", (r) =>
+    r.fulfill({
       json: {
-        project: { type: "CHARITY" },
-        milestones: [
+        balances: [
           {
-            id: "milestone-1",
-            title: "Test delivery",
-            status,
-            payoutPercentage: 100,
-            proofLinks:
-              status === "PLANNED" ? [] : ["https://keibo.test/evidence"],
+            currency: "UGX",
+            availableMinor: available,
+            heldMinor: held,
+            paidMinor: "0",
           },
         ],
+        transfers: [],
       },
     }),
   );
-  await page.route(
-    `**/api/projects/${campaignId}/milestones/milestone-1/submit`,
-    (route) => {
-      submits++;
-      expect(route.request().postDataJSON()).toEqual({
-        proofLinks: ["https://keibo.test/evidence"],
-      });
-      status = "IN_REVIEW";
-      return route.fulfill({ json: { status } });
-    },
+  await page.route("**/api/financial/payout-destinations", (r) =>
+    r.fulfill({
+      json: [
+        {
+          id: "dest",
+          status: "verified",
+          currency: "UGX",
+          maskedDisplay: "Mobile money •••1234",
+        },
+      ],
+    }),
   );
-  await page.route(
-    `**/api/admin/projects/${campaignId}/milestones/milestone-1/decision`,
-    (route) => {
-      reviews++;
-      expect(route.request().postDataJSON()).toMatchObject({
-        decision: "APPROVED",
-        reason: "Reviewed sandbox delivery evidence",
-      });
-      status = "APPROVED";
-      return route.fulfill({ json: { status } });
-    },
-  );
-  await page.route("**/api/wallet/withdraw", (route) => {
-    releases++;
-    return route.fulfill({
-      status: 409,
-      json: { message: "Campaign has no settled funds available" },
+  await page.route("**/api/financial/wallet/transfers", (r) => {
+    transfers++;
+    expect(r.request().postDataJSON()).toEqual({ projectId: campaignId });
+    expect(r.request().headers()["idempotency-key"]).toBeTruthy();
+    available = "9500";
+    return r.fulfill({ json: { id: "wallet-credit" } });
+  });
+  await page.route("**/api/financial/wallet/withdrawals", (r) => {
+    withdrawals++;
+    expect(r.request().postDataJSON()).toEqual({
+      destinationId: "dest",
+      expectedAmountMinor: "9500",
+    });
+    available = "0";
+    held = "9500";
+    return r.fulfill({
+      json: {
+        id: "withdrawal",
+        state: "pending",
+        keiboReference: "wallet-ref",
+      },
     });
   });
-  await page.goto(`/dashboard/withdraw?projectId=${campaignId}`);
-  await page
-    .getByRole("combobox", { name: "Campaign milestone" })
-    .selectOption("milestone-1");
-  const release = page.getByRole("button", {
-    name: "Release milestone funds",
-    exact: true,
-  });
-  await expect(release).toBeDisabled();
-  await page
-    .getByLabel("Milestone evidence URL")
-    .fill("https://keibo.test/evidence");
-  await page
-    .getByRole("button", { name: "Submit evidence for review" })
-    .click();
-  await expect(page.getByText("IN_REVIEW", { exact: true })).toBeVisible();
-  await expect(release).toBeDisabled();
-  await page
-    .getByLabel("Administrator review reason")
-    .fill("Reviewed sandbox delivery evidence");
-  await page
-    .getByRole("button", { name: "Approve milestone", exact: true })
-    .click();
-  await expect(release).toBeEnabled();
-  await release.click();
+  await page.goto("/dashboard?tab=wallet");
+  await page.getByLabel("Wallet payout destination").selectOption("dest");
   await expect(
-    page.getByText("Campaign has no settled funds available", { exact: true }),
+    page.getByRole("button", { name: "Withdraw all", exact: true }),
+  ).toBeDisabled();
+  await page
+    .getByRole("button", { name: "Transfer My charity to wallet", exact: true })
+    .dblclick();
+  await expect(
+    page.getByText(/No bank or mobile-money payment was made/),
   ).toBeVisible();
-  expect({ submits, reviews, releases }).toEqual({
-    submits: 1,
-    reviews: 1,
-    releases: 1,
-  });
+  expect(transfers).toBe(1);
+  expect(withdrawals).toBe(0);
   await expect(
-    page.getByText(/Funds released to your KEIBO payable balance/),
-  ).toHaveCount(0);
+    page.getByRole("button", { name: "Withdraw all", exact: true }),
+  ).toBeEnabled();
+  await page.getByRole("button", { name: "Withdraw all", exact: true }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Confirm Wallet withdrawal" }),
+  ).toContainText("9,500");
+  await page
+    .getByRole("button", { name: "Confirm withdrawal", exact: true })
+    .click();
+  await expect(page.getByText(/Withdrawal requested/)).toBeVisible();
+  expect(withdrawals).toBe(1);
+  await expect(
+    page.getByRole("button", { name: "Withdraw all", exact: true }),
+  ).toBeDisabled();
+  await expect(page.getByText(/Milestone/)).toHaveCount(0);
 });
 
 test("double-clicking Donate starts only one checkout and a provider error allows explicit retry", async ({
@@ -438,12 +419,12 @@ test("charity discovery has no type selector or crypto wallet controls", async (
   expect(hydrationErrors).toEqual([]);
 });
 
-test("Wallet exposes campaign withdrawals from dashboard and profile even before donations arrive", async ({
+test("Wallet is reachable from My Projects and Profile without charity milestones", async ({
   page,
 }) => {
   await charitySession(page);
-  await page.route("**/api/projects/me", (route) =>
-    route.fulfill({
+  await page.route("**/api/projects/me", (r) =>
+    r.fulfill({
       json: [
         {
           id: campaignId,
@@ -453,61 +434,39 @@ test("Wallet exposes campaign withdrawals from dashboard and profile even before
           raisedAmount: 0,
           targetAmount: 10000,
         },
-        { id: "hidden-roi", name: "Hidden investment", projectType: "ROI" },
       ],
     }),
   );
-  await page.route(`**/api/projects/${campaignId}`, (route) =>
-    route.fulfill({
-      json: {
-        project: { projectType: "CHARITY", name: "My charity" },
-        milestones: [
-          {
-            id: "planned",
-            title: "First milestone",
-            status: "PLANNED",
-            payoutPercentage: 100,
-          },
-        ],
-      },
-    }),
+  await page.route("**/api/financial/wallet", (r) =>
+    r.fulfill({ json: { balances: [], transfers: [] } }),
   );
   await page.goto("/dashboard");
   await page
     .getByRole("navigation", { name: "Dashboard sections" })
-    .getByRole("button", { name: "Wallet", exact: true })
+    .getByRole("button", { name: "My Projects", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Transfer to wallet", exact: true })
     .click();
   await expect(
     page.getByRole("heading", { name: "Wallet", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText("Hidden investment", { exact: true }),
+    page.getByRole("button", {
+      name: "Transfer My charity to wallet",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.goto(`/dashboard/withdraw?projectId=${campaignId}`);
+  await expect(
+    page.getByRole("heading", { name: "Wallet", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("combobox", { name: "Campaign milestone" }),
   ).toHaveCount(0);
-  await page
-    .getByRole("link", { name: "Withdraw from My charity", exact: true })
-    .click();
-  await expect(page).toHaveURL(
-    new RegExp(`/dashboard/withdraw\\?projectId=${campaignId}`),
-  );
-  await page
-    .getByRole("combobox", { name: "Campaign milestone" })
-    .selectOption("planned");
-  await expect(
-    page.getByRole("button", { name: "Release milestone funds", exact: true }),
-  ).toBeDisabled();
-  await expect(
-    page.getByRole("button", { name: "Request payout", exact: true }),
-  ).toBeDisabled();
-  await page.getByRole("link", { name: "Back to Wallet" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Wallet", exact: true }),
-  ).toBeVisible();
   await page.goto("/profile");
-  await expect(
-    page.getByRole("button", { name: "Payouts", exact: true }),
-  ).toHaveCount(0);
   await page.getByRole("button", { name: "Wallet", exact: true }).click();
   await expect(
-    page.getByRole("link", { name: "Withdraw from My charity", exact: true }),
+    page.getByRole("button", { name: "Withdraw all", exact: true }),
   ).toBeVisible();
 });

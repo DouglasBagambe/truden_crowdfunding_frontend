@@ -24,7 +24,7 @@ const AuthSidebar = () => {
 
           <ul className="space-y-5">
             <FeatureItem text="Support transparent campaigns with clear funding progress." />
-            <FeatureItem text="Follow meaningful milestones and campaign updates." />
+            <FeatureItem text="Follow campaign progress and updates." />
             <FeatureItem text="Manage your KEIBO account from one secure place." />
           </ul>
         </div>
@@ -40,7 +40,7 @@ const AuthSidebar = () => {
           <span>
             {INVESTMENTS_ENABLED
               ? "Smart Contract Audited"
-              : "Milestone Reviews"}
+              : "Verified Campaigns"}
           </span>
         </div>
       </div>

@@ -651,7 +651,7 @@ export default function ProjectDetailPageClient() {
               <div>
                 <div className="flex items-center gap-1 border-b border-[var(--border)] mb-6 overflow-x-auto scrollbar-hide">
                   {(["story", "timeline", "updates"] as const).map((tab) => {
-                    if (isCharity && tab === "updates") return null;
+                    if (isCharity && tab !== "story") return null;
 
                     return (
                       <button
@@ -734,7 +734,7 @@ export default function ProjectDetailPageClient() {
                 )}
 
                 {/* Timeline Tab */}
-                {activeTab === "timeline" && (
+                {!isCharity && activeTab === "timeline" && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1170,7 +1170,11 @@ export default function ProjectDetailPageClient() {
                   </div>
                   <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
                     <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                    <span>Milestone-Based Release</span>
+                    <span>
+                      {isCharity
+                        ? "Verified Creator Withdrawals"
+                        : "Milestone-Based Release"}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
                     <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
