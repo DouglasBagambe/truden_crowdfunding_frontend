@@ -11,7 +11,7 @@ function supportContact(): { href: string; label: string } | null {
       // Ignore invalid contact configuration rather than rendering an unsafe link.
     }
   }
-  const email = process.env.KEIBO_SUPPORT_EMAIL?.trim();
+  const email = process.env.KEIBO_SUPPORT_EMAIL?.trim() || "support@keibo.io";
   if (email && /^[^\s@?&#]+@[^\s@?&#]+\.[^\s@?&#]+$/.test(email))
     return { href: `mailto:${email}`, label: email };
   return null;
