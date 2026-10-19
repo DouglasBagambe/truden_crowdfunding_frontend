@@ -1,5 +1,6 @@
 "use client";
 
+import { INVESTMENTS_ENABLED } from "@/lib/product-features";
 import React, { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -127,7 +128,11 @@ export default function SettingsPage() {
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "profile", label: "Profile", icon: <User size={16} /> },
-    { id: "wallet", label: "Wallet", icon: <Wallet size={16} /> },
+    {
+      id: "wallet",
+      label: INVESTMENTS_ENABLED ? "Wallet" : "Payouts",
+      icon: <Wallet size={16} />,
+    },
     { id: "notifications", label: "Notifications", icon: <Bell size={16} /> },
     { id: "appearance", label: "Appearance", icon: <Sun size={16} /> },
     { id: "security", label: "Security", icon: <Shield size={16} /> },
@@ -240,7 +245,7 @@ export default function SettingsPage() {
                 Account settings
               </h1>
               <p className="text-[var(--text-muted)] font-medium text-sm sm:text-base">
-                Manage your account, wallet, and preferences.
+                Manage your account, payouts, and preferences.
               </p>
             </div>
 

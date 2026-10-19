@@ -229,9 +229,11 @@ export default function DPOPaymentModal({
   const [quote, setQuote] = useState<DPOQuoteResponse | null>(null);
   const [isLoadingQuote, setIsLoadingQuote] = useState(false);
   const idempotencyKey = useRef<string | null>(null);
+  const checkoutInFlight = useRef(false);
 
   useEffect(() => {
     if (!isOpen) {
+      checkoutInFlight.current = false;
       setAmount("");
       setDonorName("");
       setWalletAddress("");
@@ -397,6 +399,7 @@ export default function DPOPaymentModal({
   };
 
   const handleSubmit = async () => {
+    if (checkoutInFlight.current) return;
     const normalizedAmount = Number(amount);
     if (!projectId) {
       setError("Project reference is missing.");
@@ -427,6 +430,7 @@ export default function DPOPaymentModal({
       return;
     }
 
+    checkoutInFlight.current = true;
     try {
       setError("");
       setIsSubmitting(true);
@@ -475,6 +479,7 @@ export default function DPOPaymentModal({
         });
         return;
       }
+      checkoutInFlight.current = false;
       setError(message);
       setIsSubmitting(false);
     }

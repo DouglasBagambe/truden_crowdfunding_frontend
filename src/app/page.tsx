@@ -1,4 +1,5 @@
 "use client";
+import { INVESTMENTS_ENABLED } from "@/lib/product-features";
 import { homeCategories } from "@/lib/project-categories";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -148,35 +149,37 @@ export default function LandingPage() {
         </section>
 
         {/* ── Filter Tabs ── */}
-        <section className="bg-[var(--background)] border-b border-[var(--border)] py-5">
-          <div className="page-shell flex justify-center">
-            <div className="inline-flex gap-1 rounded-md border border-[var(--border)] bg-[var(--card)] p-1 shadow-sm">
-              {(
-                [
-                  "ALL",
-                  "CHARITY",
-                  ...(hasRoiAccess ? (["ROI"] as const) : []),
-                ] as const
-              ).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`rounded px-4 py-2 text-sm font-medium transition-colors ${
-                    visibleTab === tab
-                      ? "bg-[var(--primary)] text-white shadow-sm"
-                      : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
-                  }`}
-                >
-                  {tab === "ALL"
-                    ? "All Projects"
-                    : tab === "CHARITY"
-                      ? "Charity"
-                      : "Investments"}
-                </button>
-              ))}
+        {INVESTMENTS_ENABLED && (
+          <section className="bg-[var(--background)] border-b border-[var(--border)] py-5">
+            <div className="page-shell flex justify-center">
+              <div className="inline-flex gap-1 rounded-md border border-[var(--border)] bg-[var(--card)] p-1 shadow-sm">
+                {(
+                  [
+                    "ALL",
+                    "CHARITY",
+                    ...(hasRoiAccess ? (["ROI"] as const) : []),
+                  ] as const
+                ).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`rounded px-4 py-2 text-sm font-medium transition-colors ${
+                      visibleTab === tab
+                        ? "bg-[var(--primary)] text-white shadow-sm"
+                        : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
+                    }`}
+                  >
+                    {tab === "ALL"
+                      ? "All Projects"
+                      : tab === "CHARITY"
+                        ? "Charity"
+                        : "Investments"}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         <div className="bg-[var(--background)]">
           <div className="page-shell space-y-16 py-12 sm:py-16">

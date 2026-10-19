@@ -1,5 +1,6 @@
 "use client";
 
+import { INVESTMENTS_ENABLED } from "@/lib/product-features";
 import React from "react";
 import { ShieldCheck, Lock, CheckCircle2 } from "lucide-react";
 import { Logo } from "../common/Logo";
@@ -36,7 +37,11 @@ const AuthSidebar = () => {
         </div>
         <div className="flex items-center gap-2 text-[10px] font-semibold px-3 py-2 rounded-md bg-emerald-700 text-white w-fit">
           <ShieldCheck size={12} strokeWidth={2.5} />
-          <span>Smart Contract Audited</span>
+          <span>
+            {INVESTMENTS_ENABLED
+              ? "Smart Contract Audited"
+              : "Milestone Reviews"}
+          </span>
         </div>
       </div>
     </div>

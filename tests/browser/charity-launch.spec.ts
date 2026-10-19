@@ -262,3 +262,98 @@ test("charity milestone review precedes release and settlement failure is visibl
     page.getByText(/Funds released to your KEIBO payable balance/),
   ).toHaveCount(0);
 });
+
+test("double-clicking Donate starts only one checkout and a provider error allows explicit retry", async ({
+  page,
+}) => {
+  await charitySession(page);
+  await page.route(`**/api/projects/${campaignId}`, (route) =>
+    route.fulfill({
+      json: {
+        project: {
+          id: campaignId,
+          projectType: "CHARITY",
+          name: "Charity test cause",
+          status: "APPROVED",
+          currency: "UGX",
+          targetAmount: 10000,
+        },
+        milestones: [],
+      },
+    }),
+  );
+  await page.route("**/api/payments/dpo/quote", (route) =>
+    route.fulfill({
+      json: {
+        projectId: campaignId,
+        projectType: "CHARITY",
+        projectName: "Charity test cause",
+        currency: "UGX",
+        requestedAmount: 5000,
+        grossAmount: 5200,
+        dpoFee: 150,
+        dpoVat: 0,
+        keiboFee: 50,
+        providerNetAmount: 5050,
+        projectNetAmount: 5000,
+        roundingAdjustment: 0,
+      },
+    }),
+  );
+  let intentRequests = 0,
+    checkoutRequests = 0;
+  await page.route("**/api/financial/payment-intents", (route) => {
+    intentRequests++;
+    return route.fulfill({ json: { id: "same-intent", state: "pending" } });
+  });
+  await page.route("**/api/payments/dpo/initialize", async (route) => {
+    checkoutRequests++;
+    await route.fulfill({
+      status: 503,
+      json: { message: "Sandbox provider unavailable; no charge attempted" },
+    });
+  });
+  await page.goto(`/projects/${campaignId}`);
+  await page.getByRole("button", { name: "Donate Now", exact: true }).click();
+  await page.getByPlaceholder("e.g. 10000").fill("5000");
+  await expect(page.getByText("Total", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Donate", exact: true }).dblclick();
+  await expect(
+    page.getByText("Sandbox provider unavailable; no charge attempted"),
+  ).toBeVisible();
+  expect({ intentRequests, checkoutRequests }).toEqual({
+    intentRequests: 1,
+    checkoutRequests: 1,
+  });
+  await page.getByRole("button", { name: "Donate", exact: true }).click();
+  await expect.poll(() => checkoutRequests).toBe(2);
+});
+
+test("charity discovery has no type selector or crypto wallet controls", async ({
+  page,
+}) => {
+  const hydrationErrors: string[] = [];
+  page.on("pageerror", (error) => {
+    if (/hydration|server rendered HTML/i.test(error.message))
+      hydrationErrors.push(error.message);
+  });
+  await charitySession(page);
+  await page.goto("/");
+  await expect(
+    page.getByRole("heading", { name: "Give where it counts" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", {
+      name: /All Projects|^Charity$|Connect Wallet|Link Wallet|^Linked /,
+    }),
+  ).toHaveCount(0);
+  await page.goto("/explore");
+  await expect(page.getByText("Project Type", { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: /Connect Wallet|Link Wallet|^Linked / }),
+  ).toHaveCount(0);
+  await expect(
+    page.locator('button[aria-label="Open account menu"]'),
+  ).toHaveCount(1);
+  expect(hydrationErrors).toEqual([]);
+});

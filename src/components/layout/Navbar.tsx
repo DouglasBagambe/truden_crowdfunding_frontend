@@ -1,7 +1,13 @@
 "use client";
+import { INVESTMENTS_ENABLED } from "@/lib/product-features";
 import { homeCategories } from "@/lib/project-categories";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { canAccessROI } from "@/lib/roi-access";
@@ -35,8 +41,20 @@ function formatWalletAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
+const subscribeToHydration = () => () => {};
+const clientSnapshot = () => true;
+const serverSnapshot = () => false;
+
 const Navbar = () => {
-  const { user, logout } = useAuth();
+  const { user: sessionUser, logout } = useAuth();
+  // A cached session can resolve before a streamed header hydrates. Match the
+  // anonymous server HTML first, then render the authenticated account controls.
+  const hydrated = useSyncExternalStore(
+    subscribeToHydration,
+    clientSnapshot,
+    serverSnapshot,
+  );
+  const user = hydrated ? sessionUser : null;
   const router = useRouter();
   const pathname = usePathname();
   const { address, isConnected } = useAccount();
@@ -140,7 +158,10 @@ const Navbar = () => {
   };
 
   const navCategories = [
-    { href: "/explore", label: "All Projects" },
+    {
+      href: "/explore",
+      label: INVESTMENTS_ENABLED ? "All Projects" : "All Causes",
+    },
     ...homeCategories,
     ...(hasRoiAccess
       ? [
@@ -186,17 +207,19 @@ const Navbar = () => {
               <div className="absolute left-0 top-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                 <div className="w-56 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--card)] py-2 shadow-lg">
                   <p className="px-4 pt-1 pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
-                    Browse by type
+                    {INVESTMENTS_ENABLED ? "Browse by type" : "Browse causes"}
                   </p>
-                  <Link
-                    href="/explore"
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-[var(--secondary)] transition-colors"
-                  >
-                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[var(--secondary)] text-[var(--text-muted)]">
-                      <Layers3 size={13} />
-                    </span>
-                    All Projects
-                  </Link>
+                  {INVESTMENTS_ENABLED && (
+                    <Link
+                      href="/explore"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-[var(--secondary)] transition-colors"
+                    >
+                      <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[var(--secondary)] text-[var(--text-muted)]">
+                        <Layers3 size={13} />
+                      </span>
+                      All Projects
+                    </Link>
+                  )}
                   <Link
                     href="/explore?type=CHARITY"
                     className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-[var(--secondary)] transition-colors"
@@ -266,7 +289,7 @@ const Navbar = () => {
             </div>
           </div>
 
-          {user && (
+          {user && INVESTMENTS_ENABLED && (
             <button
               type="button"
               onClick={walletAction}
@@ -281,15 +304,17 @@ const Navbar = () => {
           <div className="hidden md:flex shrink-0 items-center gap-4">
             {user ? (
               <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={walletAction}
-                  disabled={isConnecting || walletState === "LINKING"}
-                  className="flex items-center gap-2 rounded-md bg-[var(--primary)] px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-[var(--primary-hover)] disabled:opacity-60"
-                >
-                  <Wallet size={14} />
-                  {walletLabel}
-                </button>
+                {INVESTMENTS_ENABLED && (
+                  <button
+                    type="button"
+                    onClick={walletAction}
+                    disabled={isConnecting || walletState === "LINKING"}
+                    className="flex items-center gap-2 rounded-md bg-[var(--primary)] px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-[var(--primary-hover)] disabled:opacity-60"
+                  >
+                    <Wallet size={14} />
+                    {walletLabel}
+                  </button>
+                )}
                 <div className="relative group">
                   <button
                     className="flex h-9 w-9 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--secondary)] text-[var(--primary)] transition-colors hover:border-[var(--primary)]"
