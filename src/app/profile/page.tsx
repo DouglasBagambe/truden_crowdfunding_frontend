@@ -1,6 +1,5 @@
 "use client";
 
-import { INVESTMENTS_ENABLED } from "@/lib/product-features";
 import React, { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -130,7 +129,7 @@ export default function SettingsPage() {
     { id: "profile", label: "Profile", icon: <User size={16} /> },
     {
       id: "wallet",
-      label: INVESTMENTS_ENABLED ? "Wallet" : "Payouts",
+      label: "Wallet",
       icon: <Wallet size={16} />,
     },
     { id: "notifications", label: "Notifications", icon: <Bell size={16} /> },
@@ -245,7 +244,7 @@ export default function SettingsPage() {
                 Account settings
               </h1>
               <p className="text-[var(--text-muted)] font-medium text-sm sm:text-base">
-                Manage your account, payouts, and preferences.
+                Manage your account, wallet, and preferences.
               </p>
             </div>
 

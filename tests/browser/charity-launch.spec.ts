@@ -437,3 +437,77 @@ test("charity discovery has no type selector or crypto wallet controls", async (
   ).toHaveCount(1);
   expect(hydrationErrors).toEqual([]);
 });
+
+test("Wallet exposes campaign withdrawals from dashboard and profile even before donations arrive", async ({
+  page,
+}) => {
+  await charitySession(page);
+  await page.route("**/api/projects/me", (route) =>
+    route.fulfill({
+      json: [
+        {
+          id: campaignId,
+          name: "My charity",
+          projectType: "CHARITY",
+          status: "APPROVED",
+          raisedAmount: 0,
+          targetAmount: 10000,
+        },
+        { id: "hidden-roi", name: "Hidden investment", projectType: "ROI" },
+      ],
+    }),
+  );
+  await page.route(`**/api/projects/${campaignId}`, (route) =>
+    route.fulfill({
+      json: {
+        project: { projectType: "CHARITY", name: "My charity" },
+        milestones: [
+          {
+            id: "planned",
+            title: "First milestone",
+            status: "PLANNED",
+            payoutPercentage: 100,
+          },
+        ],
+      },
+    }),
+  );
+  await page.goto("/dashboard");
+  await page
+    .getByRole("navigation", { name: "Dashboard sections" })
+    .getByRole("button", { name: "Wallet", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Wallet", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Hidden investment", { exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("link", { name: "Withdraw from My charity", exact: true })
+    .click();
+  await expect(page).toHaveURL(
+    new RegExp(`/dashboard/withdraw\\?projectId=${campaignId}`),
+  );
+  await page
+    .getByRole("combobox", { name: "Campaign milestone" })
+    .selectOption("planned");
+  await expect(
+    page.getByRole("button", { name: "Release milestone funds", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Request payout", exact: true }),
+  ).toBeDisabled();
+  await page.getByRole("link", { name: "Back to Wallet" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Wallet", exact: true }),
+  ).toBeVisible();
+  await page.goto("/profile");
+  await expect(
+    page.getByRole("button", { name: "Payouts", exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Wallet", exact: true }).click();
+  await expect(
+    page.getByRole("link", { name: "Withdraw from My charity", exact: true }),
+  ).toBeVisible();
+});

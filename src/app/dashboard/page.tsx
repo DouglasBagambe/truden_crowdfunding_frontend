@@ -7,6 +7,7 @@ import ProjectCard from "@/components/dashboard/ProjectCard";
 import RightSidebar from "@/components/dashboard/RightSidebar";
 import CreateProjectWizard from "@/components/dashboard/CreateProjectWizard";
 import { KYCView } from "@/components/dashboard/KYCView";
+import { WalletView } from "@/components/dashboard/WalletView";
 import { NFTPortfolio } from "@/components/dashboard/NFTPortfolio";
 import { motion } from "framer-motion";
 import { useProjects, useMyProjects } from "@/hooks/useProjects";
@@ -58,7 +59,8 @@ function projectType(value?: string): "ROI" | "CHARITY" | undefined {
     : undefined;
 }
 
-type DashboardTab = "investments" | "donations" | "campaigns" | "nfts" | "kyc";
+type DashboardTab =
+  "investments" | "donations" | "campaigns" | "wallet" | "nfts" | "kyc";
 
 interface KPICardProps {
   label: string;
@@ -124,8 +126,8 @@ export default function DashboardPage() {
         setIsCreateModalOpen(true);
         window.history.replaceState({}, "", "/dashboard");
       }
-      if (urlParams.get("tab") === "kyc") {
-        setActiveTab("kyc");
+      if (["kyc", "wallet"].includes(urlParams.get("tab") || "")) {
+        setActiveTab(urlParams.get("tab") as "kyc" | "wallet");
         window.history.replaceState({}, "", "/dashboard");
       }
     }
@@ -403,6 +405,11 @@ export default function DashboardPage() {
                         label: "My Projects",
                         icon: <Briefcase size={14} />,
                       },
+                      {
+                        key: "wallet",
+                        label: "Wallet",
+                        icon: <Wallet size={14} />,
+                      },
                       ...(hasRoiAccess
                         ? [
                             {
@@ -438,7 +445,10 @@ export default function DashboardPage() {
                       </button>
                     ))}
                   </nav>
-                  <div className="relative w-full">
+                  <div
+                    className="relative w-full"
+                    hidden={activeTab === "wallet"}
+                  >
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] opacity-50" />
                     <input
                       type="text"
@@ -470,6 +480,8 @@ export default function DashboardPage() {
                 )}
                 {activeTab === "kyc" ? (
                   <KYCView />
+                ) : activeTab === "wallet" ? (
+                  <WalletView />
                 ) : activeTab === "investments" || activeTab === "donations" ? (
                   <div className="space-y-6">
                     <div className="flex items-center justify-between">
@@ -652,7 +664,7 @@ export default function DashboardPage() {
                                     >
                                       View →
                                     </Link>
-                                    {(isCharity && raised > 0) ||
+                                    {isCharity ||
                                     (!isCharity &&
                                       raised > 0 &&
                                       raised >= target) ? (
@@ -660,7 +672,10 @@ export default function DashboardPage() {
                                         href={`/dashboard/withdraw?projectId=${pId}&projectName=${pName}&type=${isCharity ? "CHARITY" : "ROI"}&amount=${raised}`}
                                         className="chip-base chip-success rounded-lg text-xs font-black hover:brightness-95 transition-all flex items-center gap-1"
                                       >
-                                        <Wallet size={14} /> Withdraw Funds
+                                        <Wallet size={14} />{" "}
+                                        {isCharity
+                                          ? "Wallet & withdrawals"
+                                          : "Withdraw Funds"}
                                       </Link>
                                     ) : null}
                                   </div>

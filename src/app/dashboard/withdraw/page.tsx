@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { CheckCircle2, Loader2, RefreshCw } from "lucide-react";
 import Footer from "@/components/layout/Footer";
 import Navbar from "@/components/layout/Navbar";
@@ -201,7 +202,13 @@ export default function WithdrawPage() {
       <Navbar />
       <main className="mx-auto max-w-3xl space-y-7 px-6 py-14">
         <header>
-          <h1 className="text-3xl font-black">Creator funds</h1>
+          <Link
+            href="/dashboard?tab=wallet"
+            className="mb-4 inline-flex text-sm font-semibold text-[var(--primary)]"
+          >
+            ← Back to Wallet
+          </Link>
+          <h1 className="text-3xl font-black">Withdraw funds</h1>
           <p className="mt-2 text-[var(--text-muted)]">
             Milestone release is internal accounting. Provider payout is a
             separate request.

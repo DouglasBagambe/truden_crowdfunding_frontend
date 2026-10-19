@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import Link from "next/link";
+import { useMyProjects } from "@/hooks/useProjects";
+import { isCharityProject } from "@/lib/roi-access";
 import {
   AlertTriangle,
   ArrowDownToLine,
@@ -31,6 +34,20 @@ function money(value: number, currency: string) {
 }
 
 export function WalletView() {
+  const {
+    data: campaignsData,
+    isLoading: campaignsLoading,
+    isError: campaignsError,
+    refetch: reloadCampaigns,
+  } = useMyProjects();
+  const campaigns = (Array.isArray(campaignsData) ? campaignsData : []).filter(
+    isCharityProject,
+  ) as {
+    id?: string;
+    _id?: string;
+    name?: string;
+    status?: string;
+  }[];
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [destinations, setDestinations] = useState<PayoutDestination[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,13 +97,11 @@ export function WalletView() {
     <section className="space-y-6">
       <header className="flex flex-col justify-between gap-3 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-end">
         <div>
-          <p className="eyebrow">Financial records</p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight">
-            Money & payouts
-          </h2>
+          <p className="eyebrow">Campaign funds</p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-tight">Wallet</h2>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Payout records are sourced from KEIBO&apos;s PostgreSQL financial
-            ledger.
+            Manage campaign withdrawals and track transfers to your bank or
+            mobile money.
           </p>
         </div>
         <button
@@ -99,6 +114,67 @@ export function WalletView() {
           Refresh
         </button>
       </header>
+
+      <section
+        aria-label="Withdraw campaign funds"
+        className="card_base p-5 space-y-4"
+      >
+        <div>
+          <h3 className="text-lg font-semibold">Withdraw funds</h3>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
+            Choose your campaign to review milestones, add a payout destination,
+            and request a withdrawal. Withdrawals require verified identity,
+            approved milestone evidence, and settled donations.
+          </p>
+        </div>
+        {campaignsLoading ? (
+          <p role="status">Loading your campaigns...</p>
+        ) : campaignsError ? (
+          <div role="alert">
+            <p>Could not load your campaigns.</p>
+            <button
+              type="button"
+              className="button_secondary mt-2"
+              onClick={() => void reloadCampaigns()}
+            >
+              Retry campaigns
+            </button>
+          </div>
+        ) : campaigns.length ? (
+          <ul className="divide-y divide-[var(--border)]">
+            {campaigns.map((campaign) => {
+              const id = campaign.id || campaign._id;
+              if (!id) return null;
+              return (
+                <li
+                  key={id}
+                  className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0">
+                    <p className="font-semibold break-words">
+                      {campaign.name || "Charity campaign"}
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">
+                      {campaign.status?.replaceAll("_", " ")}
+                    </p>
+                  </div>
+                  <Link
+                    href={`/dashboard/withdraw?projectId=${encodeURIComponent(id)}`}
+                    className="button_primary shrink-0 gap-2"
+                    aria-label={`Withdraw from ${campaign.name || "charity campaign"}`}
+                  >
+                    <ArrowDownToLine size={16} /> Withdraw
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="text-sm text-[var(--text-muted)]">
+            Your charity campaigns will appear here when you create one.
+          </p>
+        )}
+      </section>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Summary
