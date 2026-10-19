@@ -151,6 +151,86 @@ test("first Create Campaign Back is enabled and returns to dashboard; investment
   await expect(page).toHaveURL(/\/dashboard$/);
 });
 
+test("charity creation submits the reviewed milestone schedule to the backend", async ({
+  page,
+}) => {
+  await charitySession(page);
+  let submitted: Record<string, unknown> | undefined;
+  await page.route("**/api/projects", async (route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    submitted = route.request().postDataJSON();
+    await route.fulfill({ json: { project: { id: campaignId } } });
+  });
+  await page.goto("/dashboard/create-project");
+  const next = page.getByRole("button", { name: "Next Step", exact: true });
+  await next.click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page
+    .getByPlaceholder("e.g. Solar Energy for Rural Schools")
+    .fill("Sandbox charity creation");
+  await page
+    .getByPlaceholder("e.g. St. Jude Primary School")
+    .fill("Sandbox test only");
+  await page
+    .getByPlaceholder(
+      "Briefly describe the impact of your project in 2 sentences...",
+    )
+    .fill("Sandbox-only workflow regression, no real donations.");
+  await next.click();
+  await page
+    .getByPlaceholder(
+      "Tell the world why you started this, the challenges you face, and the exact difference you will make. Use paragraphs for readability...",
+    )
+    .fill("This is sandbox test content, not a real charitable appeal.");
+  await next.click();
+  await page.getByRole("spinbutton").fill("10000");
+  const futureDate = new Date(Date.now() + 30 * 86400_000)
+    .toISOString()
+    .slice(0, 10);
+  await page.locator('input[type="date"]').fill(futureDate);
+  await page
+    .getByRole("button", { name: "ADD MILESTONE", exact: true })
+    .click();
+  await page
+    .getByRole("textbox", { name: "Milestone 1 title", exact: true })
+    .fill("Document sandbox results");
+  await page
+    .getByRole("textbox", {
+      name: "Milestone description (optional)",
+      exact: true,
+    })
+    .fill("Record actual test results; no fabricated evidence.");
+  await page
+    .getByRole("textbox", { name: "Milestone 1 target date", exact: true })
+    .fill(futureDate);
+  await page
+    .getByRole("spinbutton", {
+      name: "Milestone 1 allocation percentage",
+      exact: true,
+    })
+    .fill("100");
+  await next.click();
+  await next.click();
+  await expect(
+    page.getByRole("region", { name: "Review campaign details" }),
+  ).toContainText("Document sandbox results");
+  await page
+    .getByRole("button", { name: "Submit project", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  expect(submitted).toMatchObject({
+    type: "CHARITY",
+    milestones: [
+      {
+        title: "Document sandbox results",
+        description: "Record actual test results; no fabricated evidence.",
+        payoutPercentage: 100,
+        dueDate: expect.stringContaining(futureDate),
+      },
+    ],
+  });
+});
+
 test("old investment and marketplace URLs cannot expose investment actions", async ({
   page,
 }) => {

@@ -322,7 +322,6 @@ export default function CreateProjectPage() {
       }
       if (payload.type === ProjectType.CHARITY) {
         delete payload.industry;
-        delete payload.milestones;
       } else {
         delete payload.category;
         delete payload.subcategory;
