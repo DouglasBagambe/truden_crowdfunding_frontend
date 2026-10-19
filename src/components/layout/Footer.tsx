@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { INVESTMENTS_ENABLED } from "@/lib/product-features";
 import { Logo } from "../common/Logo";
 import Link from "next/link";
 
@@ -29,7 +30,9 @@ const Footer = () => {
               <FooterLink href="/explore?type=CHARITY">
                 Charity Causes
               </FooterLink>
-              <FooterLink href="/explore?type=ROI">Investments</FooterLink>
+              {INVESTMENTS_ENABLED && (
+                <FooterLink href="/explore?type=ROI">Investments</FooterLink>
+              )}
               <FooterLink href="/dashboard/create-project">
                 Start a Campaign
               </FooterLink>

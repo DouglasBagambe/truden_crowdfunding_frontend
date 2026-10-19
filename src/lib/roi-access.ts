@@ -1,3 +1,5 @@
+import { INVESTMENTS_ENABLED } from "./product-features";
+
 type MaybeProject =
   | {
       projectType?: string;
@@ -11,7 +13,7 @@ function normalize(value?: string | null) {
 }
 
 export function canAccessROI(user?: unknown) {
-  if (!user || typeof user !== "object") return false;
+  if (!INVESTMENTS_ENABLED || !user || typeof user !== "object") return false;
   const capabilities = (user as { capabilities?: unknown }).capabilities;
   return Boolean(
     capabilities &&
@@ -36,6 +38,6 @@ export function filterVisibleProjects<T extends MaybeProject>(
   projects: T[],
   hasRoiAccess: boolean,
 ) {
-  if (hasRoiAccess) return projects;
+  if (INVESTMENTS_ENABLED && hasRoiAccess) return projects;
   return projects.filter((project) => !isROIProject(project));
 }

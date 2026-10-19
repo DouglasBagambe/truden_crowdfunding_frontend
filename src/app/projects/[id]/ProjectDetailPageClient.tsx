@@ -33,6 +33,7 @@ import toast from "react-hot-toast";
 import { categoryLabel } from "@/lib/project-categories";
 import { projectService } from "@/lib/project-service";
 import { useAuth } from "@/hooks/useAuth";
+import { INVESTMENTS_ENABLED } from "@/lib/product-features";
 import { isCharityProject } from "@/lib/roi-access";
 import DPOPaymentModal from "@/components/payments/DPOPaymentModal";
 
@@ -375,7 +376,11 @@ export default function ProjectDetailPageClient() {
     );
   }
 
-  if (error || !project) {
+  if (
+    error ||
+    !project ||
+    (!INVESTMENTS_ENABLED && !isCharityProject(project))
+  ) {
     return (
       <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
         <div className="text-center space-y-6 max-w-md px-6">
@@ -646,9 +651,7 @@ export default function ProjectDetailPageClient() {
               <div>
                 <div className="flex items-center gap-1 border-b border-[var(--border)] mb-6 overflow-x-auto scrollbar-hide">
                   {(["story", "timeline", "updates"] as const).map((tab) => {
-                    // Hide timeline and updates for Charity projects
-                    if (isCharity && (tab === "timeline" || tab === "updates"))
-                      return null;
+                    if (isCharity && tab === "updates") return null;
 
                     return (
                       <button

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Loader2, RefreshCw } from "lucide-react";
 import Footer from "@/components/layout/Footer";
 import Navbar from "@/components/layout/Navbar";
+import { useAuth } from "@/hooks/useAuth";
 import { apiClient, financialErrorMessage } from "@/lib/api-client";
 import {
   createPayoutDestination,
@@ -20,6 +21,9 @@ type Milestone = {
   _id?: string;
   id?: string;
   title: string;
+  status?: string;
+  proofLinks?: string[];
+  reviewReason?: string;
   payoutPercentage?: number;
 };
 type ProjectResponse = {
@@ -30,6 +34,13 @@ type Release = { id: string };
 
 export default function WithdrawPage() {
   const query = useSearchParams();
+  const { user } = useAuth();
+  const canReview = user?.roles?.some((role: string) =>
+    ["ADMIN", "SUPERADMIN", "APPROVER"].includes(role.toUpperCase()),
+  );
+  const [evidenceUrl, setEvidenceUrl] = useState("");
+  const [reviewReason, setReviewReason] = useState("");
+  const inFlight = useRef(false);
   const projectId = query.get("projectId") || "";
   const [project, setProject] = useState<ProjectResponse>();
   const [destinations, setDestinations] = useState<PayoutDestination[]>([]);
@@ -76,6 +87,8 @@ export default function WithdrawPage() {
       .finally(() => setLoading(false));
   }, [projectId, refresh]);
   const run = async (action: () => Promise<void>) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
     try {
       setBusy(true);
       setError("");
@@ -85,9 +98,38 @@ export default function WithdrawPage() {
         financialErrorMessage(caught, "The request could not be completed."),
       );
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   };
+  const reloadCampaign = async () => {
+    const response = await apiClient.get<ProjectResponse>(
+      `/projects/${projectId}`,
+    );
+    setProject(response.data);
+  };
+  const submitEvidence = () =>
+    run(async () => {
+      await apiClient.post(
+        `/projects/${projectId}/milestones/${milestoneId}/submit`,
+        { proofLinks: [evidenceUrl] },
+      );
+      setMessage("Milestone evidence submitted for administrator review.");
+      await reloadCampaign();
+    });
+  const reviewMilestone = (decision: "APPROVED" | "REJECTED") =>
+    run(async () => {
+      await apiClient.post(
+        `/admin/projects/${projectId}/milestones/${milestoneId}/decision`,
+        { decision, reason: reviewReason },
+      );
+      setMessage(
+        decision === "APPROVED"
+          ? "Milestone approved. Funds remain subject to confirmed settlement and release checks."
+          : "Milestone returned to the creator.",
+      );
+      await reloadCampaign();
+    });
   const releaseFunds = () =>
     run(async () => {
       if (!milestoneId) throw new Error("Select a milestone.");
@@ -151,6 +193,9 @@ export default function WithdrawPage() {
     (project?.project?.type ??
       project?.project?.projectType ??
       query.get("type")) === "CHARITY";
+  const selectedMilestone = project?.milestones?.find(
+    (milestone) => (milestone.id ?? milestone._id) === milestoneId,
+  );
   return (
     <div className="min-h-screen bg-[var(--background)] pt-24">
       <Navbar />
@@ -167,10 +212,14 @@ export default function WithdrawPage() {
             <h2 className="font-bold">Release milestone funds</h2>
             <div className="mt-4 flex gap-3">
               <select
+                aria-label="Campaign milestone"
                 value={milestoneId}
                 onChange={(event) => {
                   setMilestoneId(event.target.value);
                   releaseKey.current = "";
+                  payoutKey.current = "";
+                  setRelease(undefined);
+                  setMessage("");
                 }}
                 className="min-w-0 flex-1 rounded-xl border p-3"
               >
@@ -189,12 +238,108 @@ export default function WithdrawPage() {
               </select>
               <button
                 onClick={() => void releaseFunds()}
-                disabled={busy || !milestoneId}
+                disabled={
+                  busy ||
+                  !milestoneId ||
+                  (selectedMilestone?.status !== undefined &&
+                    selectedMilestone.status !== "APPROVED")
+                }
                 className="rounded-xl bg-[var(--primary)] px-4 font-bold text-white disabled:opacity-50"
               >
                 Release milestone funds
               </button>
             </div>
+            {selectedMilestone && (
+              <div className="mt-5 space-y-3 text-sm">
+                <p>
+                  Milestone status:{" "}
+                  <strong>
+                    {selectedMilestone.status || "Awaiting review"}
+                  </strong>
+                </p>
+                {selectedMilestone.proofLinks?.map((url) => (
+                  <a
+                    key={url}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block break-all text-[var(--primary)] underline"
+                  >
+                    View creator evidence
+                  </a>
+                ))}
+                {selectedMilestone.reviewReason && (
+                  <p>Review: {selectedMilestone.reviewReason}</p>
+                )}
+                {["PLANNED", "REJECTED"].includes(
+                  selectedMilestone.status || "",
+                ) && (
+                  <form
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void submitEvidence();
+                    }}
+                    className="space-y-2"
+                  >
+                    <label className="block">
+                      Milestone evidence URL
+                      <input
+                        type="url"
+                        required
+                        value={evidenceUrl}
+                        onChange={(event) => setEvidenceUrl(event.target.value)}
+                        className="mt-1 w-full rounded-lg border bg-[var(--background)] p-3"
+                      />
+                    </label>
+                    <button
+                      disabled={busy}
+                      className="rounded-lg border px-4 py-2 font-semibold"
+                    >
+                      Submit evidence for review
+                    </button>
+                  </form>
+                )}
+                {canReview && selectedMilestone.status === "IN_REVIEW" && (
+                  <div className="space-y-2 rounded-lg border p-3">
+                    <label className="block">
+                      Administrator review reason
+                      <textarea
+                        minLength={10}
+                        value={reviewReason}
+                        onChange={(event) =>
+                          setReviewReason(event.target.value)
+                        }
+                        className="mt-1 w-full rounded-lg border bg-[var(--background)] p-3"
+                      />
+                    </label>
+                    <p>
+                      Review the creator evidence before approving. Approval
+                      does not confirm a payout.
+                    </p>
+                    <button
+                      type="button"
+                      disabled={busy || reviewReason.trim().length < 10}
+                      onClick={() => void reviewMilestone("APPROVED")}
+                      className="mr-3 rounded-lg border px-4 py-2 font-semibold"
+                    >
+                      Approve milestone
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy || reviewReason.trim().length < 10}
+                      onClick={() => void reviewMilestone("REJECTED")}
+                      className="rounded-lg border px-4 py-2 font-semibold"
+                    >
+                      Request changes
+                    </button>
+                  </div>
+                )}
+                <p className="text-[var(--text-muted)]">
+                  Release requires verified creator identity, approved evidence
+                  and funds confirmed as settled by the provider.
+                </p>
+              </div>
+            )}
             {release && (
               <p className="mt-4 text-sm text-emerald-700">
                 <CheckCircle2 className="mr-1 inline h-4 w-4" />

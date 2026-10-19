@@ -1,9 +1,12 @@
+import { INVESTMENTS_ENABLED } from "@/lib/product-features";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Ban } from "lucide-react";
 import Footer from "@/components/layout/Footer";
 import Navbar from "@/components/layout/Navbar";
 
 export default function MarketplacePage() {
+  if (!INVESTMENTS_ENABLED) redirect("/explore?type=CHARITY");
   return (
     <div className="min-h-screen bg-[var(--background)] pt-24">
       <Navbar />

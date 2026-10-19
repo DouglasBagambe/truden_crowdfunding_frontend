@@ -1,6 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 
-const REQUEST_TIMEOUT_MS = 8_000;
+// Allow the hosted UAT API to wake up without dropping session/bootstrap requests.
+const REQUEST_TIMEOUT_MS = 60_000;
 
 const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
 
@@ -39,7 +40,9 @@ export function financialErrorMessage(
   if (status === 401) return "Your session has expired. Please sign in again.";
   if (status === 403) return "You are not eligible to perform this action.";
   if (status === 409)
-    return "This request has already been processed or conflicts with the current state.";
+    return typeof data.message === "string"
+      ? data.message
+      : "This request has already been processed or conflicts with the current state.";
   if (status === 400 || status === 422)
     return typeof data.message === "string"
       ? data.message

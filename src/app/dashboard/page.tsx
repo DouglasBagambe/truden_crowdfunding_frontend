@@ -69,8 +69,12 @@ interface KPICardProps {
 
 export default function DashboardPage() {
   const { data: projectsData, isLoading } = useProjects();
-  const { data: investmentsData, isLoading: isLoadingInvestments } =
-    useInvestments();
+  const {
+    data: investmentsData,
+    isLoading: isLoadingInvestments,
+    isError: contributionsError,
+    refetch: reloadContributions,
+  } = useInvestments();
   const { user, isAuthenticated } = useAuth();
   const { hasRoiAccess } = useRoiAccess();
   const router = useRouter();
@@ -243,7 +247,7 @@ export default function DashboardPage() {
         const type = String(inv?.project?.type ?? "").toUpperCase();
         const amount = Number(inv?.amount ?? 0);
         if (!Number.isFinite(amount)) return acc;
-        if (!hasRoiAccess || type === "CHARITY") {
+        if (type === "CHARITY") {
           acc.donated += amount;
           acc.don += 1;
         } else {
@@ -254,7 +258,7 @@ export default function DashboardPage() {
       },
       { invested: 0, donated: 0, pos: 0, don: 0 },
     );
-  }, [hasRoiAccess, investmentsData]);
+  }, [investmentsData]);
 
   const totalRaised = myCampaigns.reduce(
     (sum, project) => sum + (project.raisedAmount || 0),
@@ -374,8 +378,11 @@ export default function DashboardPage() {
             {/* Main Dashboard Container */}
             <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--card)] shadow-sm transition-colors duration-300">
               <div className="border-b border-[var(--border)] px-4 sm:px-8">
-                <div className="flex min-w-0 items-center gap-4">
-                  <nav className="flex min-w-0 flex-1 gap-6 overflow-x-auto scrollbar-hide">
+                <div className="flex min-w-0 flex-col gap-3 py-3">
+                  <nav
+                    aria-label="Dashboard sections"
+                    className="flex w-full min-w-0 gap-6 overflow-x-auto"
+                  >
                     {[
                       ...(hasRoiAccess
                         ? [
@@ -431,20 +438,36 @@ export default function DashboardPage() {
                       </button>
                     ))}
                   </nav>
-                  <div className="relative hidden shrink-0 sm:block">
+                  <div className="relative w-full">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] opacity-50" />
                     <input
                       type="text"
-                      placeholder="Search..."
+                      aria-label="Search dashboard projects"
+                      placeholder="Search projects..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-40 rounded-md border border-transparent bg-[var(--background)] py-2 pl-10 pr-4 text-xs font-bold outline-none transition-all focus:border-[var(--primary)]/20 sm:w-56"
+                      className="w-full rounded-md border border-transparent bg-[var(--background)] py-2 pl-10 pr-4 text-xs font-bold outline-none transition-all focus:border-[var(--primary)]/20"
                     />
                   </div>
                 </div>
               </div>
 
               <div className="p-4 sm:p-8">
+                {contributionsError && activeTab === "donations" && (
+                  <div
+                    role="alert"
+                    className="mb-4 rounded-lg border border-amber-300 p-4 text-sm"
+                  >
+                    Donation history could not be loaded.
+                    <button
+                      type="button"
+                      onClick={() => void reloadContributions()}
+                      className="ml-3 font-semibold underline"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
                 {activeTab === "kyc" ? (
                   <KYCView />
                 ) : activeTab === "investments" || activeTab === "donations" ? (

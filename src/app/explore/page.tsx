@@ -1,5 +1,7 @@
 "use client";
 
+import { INVESTMENTS_ENABLED } from "@/lib/product-features";
+import { filterVisibleProjects } from "@/lib/roi-access";
 import React, {
   useCallback,
   useMemo,
@@ -54,12 +56,14 @@ function ExplorePageContent() {
   const initialApplied = useMemo(() => {
     const initialSearch = searchParams.get("search") || "";
     const initialCategory = normalizeCategory(
-      searchParams.get("category") || searchParams.get("industry"),
+      searchParams.get("category") ||
+        (INVESTMENTS_ENABLED ? searchParams.get("industry") : undefined),
     );
     const rawType =
       searchParams.get("type") ||
       (searchParams.has("industry") ? "ROI" : "ALL");
-    const initialType = rawType;
+    const initialType =
+      !INVESTMENTS_ENABLED && rawType === "ROI" ? "CHARITY" : rawType;
     const initialStatuses = parseStatuses(searchParams.get("statuses"));
     const initialSort = searchParams.get("sort") || "newest";
     return {
@@ -178,7 +182,11 @@ function ExplorePageContent() {
       page: currentPage,
       pageSize: 12,
       search: appliedSearch || undefined,
-      type: appliedProjectType !== "ALL" ? appliedProjectType : undefined,
+      type: !INVESTMENTS_ENABLED
+        ? "CHARITY"
+        : appliedProjectType !== "ALL"
+          ? appliedProjectType
+          : undefined,
       category:
         appliedProjectType !== "ROI" && appliedCategory !== "ALL"
           ? appliedCategory
@@ -203,7 +211,7 @@ function ExplorePageContent() {
   const { data, isLoading } = useProjects(queryParams);
   const rawProjects = (data?.projects || data?.items || []) as ExploreProject[];
 
-  const projects = rawProjects
+  const projects = filterVisibleProjects(rawProjects, INVESTMENTS_ENABLED)
     .map((project) => ({
       ...project,
       id: project.id || project._id,
@@ -397,7 +405,10 @@ function ExplorePageContent() {
                   Project Type
                 </h3>
                 <div className="space-y-3">
-                  {["ALL", "CHARITY", "ROI"].map((type) => (
+                  {(INVESTMENTS_ENABLED
+                    ? ["ALL", "CHARITY", "ROI"]
+                    : ["ALL", "CHARITY"]
+                  ).map((type) => (
                     <label
                       key={type}
                       className="flex items-center gap-3 cursor-pointer group"
@@ -571,7 +582,10 @@ function ExplorePageContent() {
                       Project Type
                     </h3>
                     <div className="space-y-3">
-                      {["ALL", "CHARITY", "ROI"].map((type) => (
+                      {(INVESTMENTS_ENABLED
+                        ? ["ALL", "CHARITY", "ROI"]
+                        : ["ALL", "CHARITY"]
+                      ).map((type) => (
                         <label
                           key={type}
                           className="flex items-center gap-3 cursor-pointer group"

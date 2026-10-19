@@ -30,11 +30,9 @@ export function CreatorProvisioning({ projectId }: { projectId: string }) {
           transactionHash?: string;
           nonce: number;
           requiresTransactionHash: boolean;
-        }>(
-          `/projects/${projectId}/provisioning/prepare`,
-          undefined,
-          { timeout: 30_000 },
-        );
+        }>(`/projects/${projectId}/provisioning/prepare`, undefined, {
+          timeout: 30_000,
+        });
         if (!address || address.toLowerCase() !== data.account.toLowerCase())
           throw new Error("Connect the verified primary creator wallet first");
         if (chainId !== data.chainId)
@@ -77,11 +75,10 @@ export function CreatorProvisioning({ projectId }: { projectId: string }) {
         message ===
         "Prepare and reserve the creator transaction before confirmation"
           ? "A stale reverted transaction recovery was cleared. Click creator setup again to prepare a fresh preflight."
-          :
-        message ||
-        (error instanceof Error
-          ? error.message
-          : "Campaign confirmation failed. Retry the saved transaction.");
+          : message ||
+            (error instanceof Error
+              ? error.message
+              : "Campaign confirmation failed. Retry the saved transaction.");
       setLastError(displayMessage);
       toast.error(displayMessage);
     } finally {

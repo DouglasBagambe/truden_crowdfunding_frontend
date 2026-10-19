@@ -1,5 +1,7 @@
 "use client";
 
+import { INVESTMENTS_ENABLED } from "@/lib/product-features";
+
 import {
   type ReactNode,
   useCallback,
@@ -295,6 +297,7 @@ export default function AdminPage() {
   }, []);
 
   const loadPayouts = useCallback(async () => {
+    if (!INVESTMENTS_ENABLED) return;
     setLoadingPayouts(true);
     try {
       const res = await apiClient.get("/wallet/admin/withdrawals/pending");
@@ -608,12 +611,16 @@ export default function AdminPage() {
       icon: <Users size={16} />,
       badge: users.length || undefined,
     },
-    {
-      key: "payouts",
-      label: "Payouts",
-      icon: <RotateCcw size={16} />,
-      badge: payouts.length || undefined,
-    },
+    ...(INVESTMENTS_ENABLED
+      ? [
+          {
+            key: "payouts" as const,
+            label: "Payouts",
+            icon: <RotateCcw size={16} />,
+            badge: payouts.length || undefined,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -743,7 +750,7 @@ export default function AdminPage() {
                     label="Approved / Live"
                     value={authoritativeApprovedCount}
                     accentClass="bg-emerald-500"
-                    note="visible to investors"
+                    note="visible to supporters"
                   />
                   <KpiCard
                     label="Total Users"
@@ -751,17 +758,19 @@ export default function AdminPage() {
                     accentClass="bg-slate-400"
                     note="registered accounts"
                   />
-                  <KpiCard
-                    label="Pending Payouts"
-                    value={payouts.length}
-                    accentClass="bg-rose-500"
-                    note={
-                      payouts.length > 0
-                        ? "awaiting disbursement"
-                        : "none pending"
-                    }
-                    alertLevel={payouts.length > 0 ? "warn" : "none"}
-                  />
+                  {INVESTMENTS_ENABLED && (
+                    <KpiCard
+                      label="Pending Payouts"
+                      value={payouts.length}
+                      accentClass="bg-rose-500"
+                      note={
+                        payouts.length > 0
+                          ? "awaiting disbursement"
+                          : "none pending"
+                      }
+                      alertLevel={payouts.length > 0 ? "warn" : "none"}
+                    />
+                  )}
                 </div>
 
                 {/* ── Two-column lower section ── */}
@@ -926,28 +935,32 @@ export default function AdminPage() {
                     </button>
                   </div>
 
-                  <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 flex items-center gap-5">
-                    <div className="shrink-0">
-                      <Bell size={20} className="text-[var(--text-muted)]" />
+                  {INVESTMENTS_ENABLED && (
+                    <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 flex items-center gap-5">
+                      <div className="shrink-0">
+                        <Bell size={20} className="text-[var(--text-muted)]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">
+                          Pending Payouts
+                        </p>
+                        <p className="mt-1 text-2xl font-black tabular-nums">
+                          {payouts.length}
+                          <span className="text-sm font-semibold text-[var(--text-muted)] ml-2">
+                            {payouts.length === 1
+                              ? "withdrawal"
+                              : "withdrawals"}
+                          </span>
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setActiveTab("payouts")}
+                        className="shrink-0 text-xs font-black text-[var(--primary)] hover:underline flex items-center gap-1"
+                      >
+                        Process <ChevronRight size={12} />
+                      </button>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">
-                        Pending Payouts
-                      </p>
-                      <p className="mt-1 text-2xl font-black tabular-nums">
-                        {payouts.length}
-                        <span className="text-sm font-semibold text-[var(--text-muted)] ml-2">
-                          {payouts.length === 1 ? "withdrawal" : "withdrawals"}
-                        </span>
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setActiveTab("payouts")}
-                      className="shrink-0 text-xs font-black text-[var(--primary)] hover:underline flex items-center gap-1"
-                    >
-                      Process <ChevronRight size={12} />
-                    </button>
-                  </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1133,6 +1146,16 @@ export default function AdminPage() {
                               </div>
                             )}
                             <div className="lg:col-span-4 space-y-2">
+                              {((p.projectType as string) ||
+                                (p.type as string)) === "CHARITY" &&
+                                status === "APPROVED" && (
+                                  <Link
+                                    href={`/dashboard/withdraw?projectId=${id}`}
+                                    className="text-sm font-semibold text-[var(--primary)] underline"
+                                  >
+                                    Review charity milestones and funds
+                                  </Link>
+                                )}
                               <h3 className="font-black text-base leading-tight">
                                 {(p.name as string) || "(Untitled)"}
                               </h3>

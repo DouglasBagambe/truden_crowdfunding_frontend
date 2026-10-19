@@ -1,4 +1,6 @@
 "use client";
+
+import { INVESTMENTS_ENABLED } from "@/lib/product-features";
 import { displayDate } from "@/lib/display-date";
 
 import { useState, useEffect } from "react";
@@ -129,7 +131,7 @@ export default function CreateProjectPage() {
   } = useAuth();
   const capabilities = user?.capabilities as
     { createCharity?: boolean; createRoi?: boolean } | undefined;
-  const canCreateRoi = capabilities?.createRoi === true;
+  const canCreateRoi = INVESTMENTS_ENABLED && capabilities?.createRoi === true;
   const [step, setStep] = useState(1);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -226,14 +228,11 @@ export default function CreateProjectPage() {
       ) {
         errors.targetAmount = "Enter a funding target greater than 0.";
       }
-      if (
-        canCreateRoi &&
-        formData.type === ProjectType.ROI &&
-        (!formData.milestones || formData.milestones.length === 0)
-      ) {
-        errors.milestones = "Add at least one milestone for ROI projects.";
+      if (!formData.milestones || formData.milestones.length === 0) {
+        errors.milestones =
+          "Add at least one milestone for the campaign payout schedule.";
       }
-      if (formData.type === ProjectType.ROI && formData.milestones?.length) {
+      if (formData.milestones?.length) {
         if (
           formData.milestones.some(
             (milestone) =>
@@ -291,7 +290,10 @@ export default function CreateProjectPage() {
     setStep(2);
   };
 
-  const prevStep = () => setStep((s) => Math.max(s - 1, 1));
+  const prevStep = () => {
+    if (step === 1) router.push("/dashboard");
+    else setStep((s) => Math.max(s - 1, 1));
+  };
 
   const handleCreate = async () => {
     const fundingEndDate = campaignDeadlineToIso(formData.fundingEndDate || "");
@@ -513,13 +515,18 @@ export default function CreateProjectPage() {
     return (
       <main className="min-h-screen bg-gray-50 pt-28 px-4">
         <section className="mx-auto max-w-xl rounded-3xl bg-white p-8 shadow-xl">
+          <Link
+            href="/dashboard"
+            className="mb-6 inline-flex items-center gap-2 text-blue-700"
+          >
+            <ArrowLeft size={18} /> Back to dashboard
+          </Link>
           <h1 className="text-3xl font-black text-gray-900">
             Become a Charity Creator
           </h1>
           <p className="mt-4 text-gray-600">
-            Enroll to create Charity campaigns. This does not approve investment
-            campaigns: ROI creation separately requires verified KYC, creator
-            verification, and backend eligibility approval.
+            Enroll to create charity campaigns and manage fundraising for your
+            cause.
           </p>
           {error && <p className="mt-4 text-rose-600">{error}</p>}
           <button
@@ -593,7 +600,9 @@ export default function CreateProjectPage() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div
+                className={`grid grid-cols-1 gap-4 ${INVESTMENTS_ENABLED ? "md:grid-cols-2" : ""}`}
+              >
                 <button
                   aria-pressed={formData.type === ProjectType.CHARITY}
                   onClick={() =>
@@ -624,41 +633,43 @@ export default function CreateProjectPage() {
                   )}
                 </button>
 
-                <button
-                  aria-pressed={formData.type === ProjectType.ROI}
-                  onClick={() =>
-                    setFormData({ ...formData, type: ProjectType.ROI })
-                  }
-                  className={`relative rounded-lg border p-5 text-left transition-colors ${
-                    formData.type === ProjectType.ROI
-                      ? "border-violet-600 bg-[var(--secondary)]"
-                      : "border-[var(--border)] bg-[var(--card)] hover:border-violet-300"
-                  }`}
-                >
-                  <div
-                    className={`mb-4 flex h-10 w-10 items-center justify-center rounded-lg ${formData.type === ProjectType.ROI ? "bg-violet-600 text-white" : "bg-violet-50 text-violet-700"}`}
+                {INVESTMENTS_ENABLED && (
+                  <button
+                    aria-pressed={formData.type === ProjectType.ROI}
+                    onClick={() =>
+                      setFormData({ ...formData, type: ProjectType.ROI })
+                    }
+                    className={`relative rounded-lg border p-5 text-left transition-colors ${
+                      formData.type === ProjectType.ROI
+                        ? "border-violet-600 bg-[var(--secondary)]"
+                        : "border-[var(--border)] bg-[var(--card)] hover:border-violet-300"
+                    }`}
                   >
-                    <TrendingUp size={20} />
-                  </div>
-                  <h3 className="text-lg font-semibold text-[var(--text-main)]">
-                    Investment
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
-                    Raise capital for an investment opportunity with financial
-                    and compliance requirements.
-                  </p>
-                  {!canCreateRoi && (
-                    <p className="mt-3 text-xs font-medium text-[var(--chip-warning-text)]">
-                      Investment creation requires completed verification and
-                      eligibility approval.
-                    </p>
-                  )}
-                  {formData.type === ProjectType.ROI && (
-                    <div className="absolute right-4 top-4 text-violet-700">
-                      <CheckCircle2 size={20} />
+                    <div
+                      className={`mb-4 flex h-10 w-10 items-center justify-center rounded-lg ${formData.type === ProjectType.ROI ? "bg-violet-600 text-white" : "bg-violet-50 text-violet-700"}`}
+                    >
+                      <TrendingUp size={20} />
                     </div>
-                  )}
-                </button>
+                    <h3 className="text-lg font-semibold text-[var(--text-main)]">
+                      Investment
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+                      Raise capital for an investment opportunity with financial
+                      and compliance requirements.
+                    </p>
+                    {!canCreateRoi && (
+                      <p className="mt-3 text-xs font-medium text-[var(--chip-warning-text)]">
+                        Investment creation requires completed verification and
+                        eligibility approval.
+                      </p>
+                    )}
+                    {formData.type === ProjectType.ROI && (
+                      <div className="absolute right-4 top-4 text-violet-700">
+                        <CheckCircle2 size={20} />
+                      </div>
+                    )}
+                  </button>
+                )}
               </div>
             </motion.div>
           )}
@@ -1006,7 +1017,7 @@ export default function CreateProjectPage() {
                 </div>
               </div>
 
-              {formData.type === ProjectType.ROI && (
+              {(formData.type === ProjectType.CHARITY || canCreateRoi) && (
                 <div className="space-y-6">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="font-black text-xl text-gray-900 tracking-tight">
@@ -1036,6 +1047,12 @@ export default function CreateProjectPage() {
                   {formData.milestones?.length
                     ? renderFieldError("milestones")
                     : null}
+                  <p className="text-sm text-gray-600">
+                    Define the delivery milestones and allocations totaling
+                    100%. Charity funds can be released only after creator
+                    evidence, administrator approval, and confirmed provider
+                    settlement.
+                  </p>
                   <div className="space-y-6">
                     {formData.milestones?.map((milestone, idx) => (
                       <div
@@ -1054,6 +1071,7 @@ export default function CreateProjectPage() {
                               Milestone {idx + 1} Title
                             </label>
                             <input
+                              aria-label={`Milestone ${idx + 1} title`}
                               type="text"
                               value={milestone.title}
                               onChange={(e) =>
@@ -1088,6 +1106,7 @@ export default function CreateProjectPage() {
                               Target Date
                             </label>
                             <input
+                              aria-label={`Milestone ${idx + 1} target date`}
                               type="date"
                               value={milestone.dueDate}
                               onChange={(e) =>
@@ -1101,7 +1120,10 @@ export default function CreateProjectPage() {
                               Budget Allocation (%)
                             </label>
                             <input
+                              aria-label={`Milestone ${idx + 1} allocation percentage`}
                               type="number"
+                              min="1"
+                              max="100"
                               value={milestone.payoutPercentage || ""}
                               onChange={(e) =>
                                 updateMilestone(
@@ -1677,7 +1699,7 @@ export default function CreateProjectPage() {
           <button
             onClick={prevStep}
             aria-label="Back"
-            disabled={step === 1 || loading}
+            disabled={loading}
             className="button_secondary gap-2"
           >
             <ArrowLeft className="w-5 h-5" />{" "}

@@ -157,9 +157,7 @@ test.describe("KEIBO financial fail-closed surfaces", () => {
     ).toBeVisible();
     status = 409;
     await release.click();
-    await expect(
-      page.getByText(/already been processed or conflicts/i),
-    ).toBeVisible();
+    await expect(page.getByText("rejected", { exact: true })).toBeVisible();
     status = 503;
     await release.click();
     await expect(

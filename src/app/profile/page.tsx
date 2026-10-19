@@ -786,7 +786,7 @@ export default function SettingsPage() {
                                       ? "Verification is under review — we will notify you."
                                       : kycStatus === "REJECTED"
                                         ? "Your submission was not approved. Please re-verify."
-                                        : "Required to withdraw funds and create investment projects."}
+                                        : "Required to request charity fund releases."}
                                 </p>
                               </div>
                               {kycStatus === "VERIFIED" ? (

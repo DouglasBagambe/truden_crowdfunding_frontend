@@ -45,9 +45,11 @@ jobs:
       - name: Validate Playwright test discovery
         run: npm run test:browser-list
       - name: Run wallet persistence regressions
-        run: PLAYWRIGHT_LOCAL=true npx playwright test tests/browser/stabilization.spec.ts --grep 'wallet rejection requires explicit retry|first explicit link becomes server-persisted'
+        run: NEXT_PUBLIC_INVESTMENTS_ENABLED=true PLAYWRIGHT_LOCAL=true npx playwright test tests/browser/stabilization.spec.ts --grep 'wallet rejection requires explicit retry|first explicit link becomes server-persisted'
       - name: Run mocked financial browser coverage
-        run: PLAYWRIGHT_LOCAL=true npx playwright test tests/browser/financial-flows.spec.ts tests/browser/uat-defects.spec.ts tests/browser/remaining-ui.spec.ts tests/browser/stabilization.spec.ts
+        run: NEXT_PUBLIC_INVESTMENTS_ENABLED=true PLAYWRIGHT_LOCAL=true npx playwright test tests/browser/financial-flows.spec.ts tests/browser/uat-defects.spec.ts tests/browser/remaining-ui.spec.ts tests/browser/stabilization.spec.ts
+      - name: Charity-first launch browser coverage
+        run: NEXT_PUBLIC_INVESTMENTS_ENABLED=false PLAYWRIGHT_LOCAL=true npx playwright test tests/browser/charity-launch.spec.ts
       - name: Webpack production build
         run: npm run build -- --webpack
       - name: Upload browser failure evidence

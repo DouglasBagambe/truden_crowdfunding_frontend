@@ -1,5 +1,7 @@
 "use client";
 
+import { INVESTMENTS_ENABLED } from "@/lib/product-features";
+
 import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
@@ -548,10 +550,10 @@ export function KYCView() {
       className="space-y-6"
     >
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 space-y-3">
-        <h3 className="font-semibold">Investment creator eligibility</h3>
+        <h3 className="font-semibold">Creator verification</h3>
         <p className="text-sm text-[var(--text-muted)]">
-          Identity status: {kycStatus}. Investment creation requires creator
-          approval and platform ROI access.
+          Identity status: {kycStatus}. Verified identity and creator approval
+          are required before charity funds can be released.
         </p>
         <p className="text-sm font-medium">
           Creator status: {creatorStatus.replace(/_/g, " ")}
@@ -597,7 +599,8 @@ export function KYCView() {
         )}
         {creatorStatus === "VERIFIED" && (
           <p className="text-sm">
-            Creator approved. Other investment gates may still apply.
+            Creator approved. Charity releases also require approved milestone
+            evidence and settled funds.
           </p>
         )}
       </section>
@@ -626,12 +629,12 @@ export function KYCView() {
             {isVerified && profile?.approvedAt
               ? `Verified on ${new Date(profile.approvedAt).toLocaleDateString()}. Valid for 12 months.`
               : isVerified
-                ? "Identity verified. Investment eligibility also depends on the campaign and account requirements."
+                ? "Identity verified. Creator approval and campaign checks apply to charity fund releases."
                 : isPending
                   ? "Your submission is being reviewed. You will be notified once complete."
                   : kycStatus === "REJECTED"
                     ? `Reason: ${profile?.rejectionReason || "Documents could not be verified. Please try again."}`
-                    : "Complete verification to invest in projects."}
+                    : "Complete verification to manage charity fund releases."}
           </p>
         </div>
         {isPending && (
@@ -685,10 +688,12 @@ export function KYCView() {
             <h4 className="font-bold text-sm">Why verify?</h4>
             <ul className="space-y-2.5">
               {[
-                "Invest in ROI projects",
-                "Access deal room documents",
-                "Higher transaction limits",
-                "Required for regulatory compliance",
+                "Verify your identity",
+                "Request charity fund releases",
+                "Protect campaign funds",
+                ...(INVESTMENTS_ENABLED
+                  ? ["Invest in ROI projects", "Access deal room documents"]
+                  : []),
               ].map((text, i) => (
                 <li
                   key={i}

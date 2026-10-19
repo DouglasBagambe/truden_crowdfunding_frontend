@@ -328,6 +328,13 @@ test("Review shows and previews selected video; Back/Next retain it without subm
   await page.getByRole("button", { name: "Next Step" }).click();
   await page.getByPlaceholder("1000000").fill("100000");
   await page.locator("input[type=date]").first().fill("2099-12-31");
+  await page.getByRole("button", { name: "ADD MILESTONE" }).click();
+  await page
+    .getByRole("textbox", { name: "Milestone 1 title" })
+    .fill("Delivery");
+  await page
+    .getByRole("spinbutton", { name: "Milestone 1 allocation percentage" })
+    .fill("100");
   await page.getByRole("button", { name: "Next Step" }).click();
   await page
     .locator("#video-url")
