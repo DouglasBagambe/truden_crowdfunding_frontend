@@ -1,5 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { campaignMediaUrl } from "../../src/lib/campaign-media";
+import { safeRedirectPath } from "../../src/lib/safe-redirect";
+
 const campaignId = "507f1f77bcf86cd799439011";
 async function charitySession(page: Page) {
   const requests: string[] = [];
@@ -469,4 +472,72 @@ test("Wallet is reachable from My Projects and Profile without charity milestone
   await expect(
     page.getByRole("button", { name: "Withdraw all", exact: true }),
   ).toBeVisible();
+});
+
+test("authentication return paths reject external and browser-normalized redirects", () => {
+  for (const path of [
+    "https://example.invalid",
+    "//example.invalid",
+    "/\\example.invalid",
+    "/\t/example.invalid",
+    "javascript:alert(1)",
+  ]) {
+    expect(safeRedirectPath(path, "/dashboard")).toBe("/dashboard");
+  }
+  expect(safeRedirectPath("/dashboard?tab=wallet")).toBe(
+    "/dashboard?tab=wallet",
+  );
+});
+
+test("Wallet payout history preserves currency and converts cents without combining balances", async ({
+  page,
+}) => {
+  await charitySession(page);
+  await page.route("**/api/financial/wallet", (r) =>
+    r.fulfill({ json: { balances: [], transfers: [] } }),
+  );
+  await page.route("**/api/financial/payouts", (r) =>
+    r.fulfill({
+      json: [
+        { id: "paid-ugx", amountMinor: "5000", currency: "UGX", state: "paid" },
+        {
+          id: "paid-usd",
+          amountMinor: "12345",
+          currency: "USD",
+          state: "paid",
+        },
+        {
+          id: "pending-usd",
+          amountMinor: "1050",
+          currency: "USD",
+          state: "processing",
+        },
+      ],
+    }),
+  );
+  await page.goto("/dashboard?tab=wallet");
+  const usd = page.getByText("Paid out · USD", { exact: true }).locator("..");
+  const ugx = page.getByText("Paid out · UGX", { exact: true }).locator("..");
+  await expect(usd).toContainText("123.45");
+  await expect(ugx).toContainText("5,000");
+  await expect(
+    page.getByText("In motion · USD", { exact: true }).locator(".."),
+  ).toContainText("10.50");
+  await expect(
+    page.getByRole("row").filter({ hasText: "paid-usd" }),
+  ).toContainText("123.45");
+});
+
+test("KEIBO uploads survive a backend move without rewriting external media", () => {
+  const path = "/api/projects/files/6ac6718422950b54565ade97";
+  expect(
+    campaignMediaUrl(`https://keibo-full-uat-api.onrender.com${path}`),
+  ).toBe(path);
+  expect(
+    campaignMediaUrl(`https://keibo-full-uat-api-po8w.onrender.com${path}`),
+  ).toBe(path);
+  expect(campaignMediaUrl(`https://example.invalid${path}`)).toBe(
+    `https://example.invalid${path}`,
+  );
+  expect(campaignMediaUrl(path)).toBe(path);
 });

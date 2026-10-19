@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { authService, AuthResponse, LoginRequest } from "../lib/auth-service";
 import { buildVerifyEmailUrl } from "../lib/email-verification";
+import { safeRedirectPath } from "../lib/safe-redirect";
 import { userService } from "../lib/user-service";
 
 interface ApiErrorBody {
@@ -68,7 +69,7 @@ export function useAuth() {
       );
       try {
         const sp = new URLSearchParams(window.location.search);
-        const next = sp.get("next") || "/";
+        const next = safeRedirectPath(sp.get("next"));
         window.location.replace(next);
       } catch {
         window.location.replace("/");
@@ -98,7 +99,7 @@ export function useAuth() {
         }
 
         const sp = new URLSearchParams(window.location.search);
-        const next = sp.get("next") || "/";
+        const next = safeRedirectPath(sp.get("next"));
         window.location.replace(
           buildVerifyEmailUrl({
             email,

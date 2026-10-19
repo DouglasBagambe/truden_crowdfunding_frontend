@@ -242,6 +242,9 @@ export const projectService = {
     return {
       ...data,
       url:
+        (typeof data.fileId === "string" && /^[a-f0-9]{24}$/i.test(data.fileId)
+          ? `${origin}/api/projects/files/${data.fileId}`
+          : "") ||
         toAbsoluteUrl(data.url) ||
         toAbsoluteUrl(data.fileUrl) ||
         toAbsoluteUrl(data.path) ||

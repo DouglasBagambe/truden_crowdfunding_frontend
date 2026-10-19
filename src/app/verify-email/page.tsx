@@ -1,5 +1,7 @@
 "use client";
 
+import { safeRedirectPath } from "@/lib/safe-redirect";
+
 import { useState, useEffect, useRef, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -24,11 +26,7 @@ function VerifyEmailContent() {
   const queryClient = useQueryClient();
 
   const emailParam = searchParams.get("email") || "";
-  const requestedNext = searchParams.get("next") || "/dashboard";
-  const nextParam =
-    requestedNext.startsWith("/") && !requestedNext.startsWith("//")
-      ? requestedNext
-      : "/dashboard";
+  const nextParam = safeRedirectPath(searchParams.get("next"), "/dashboard");
 
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(""));
   const [email, setEmail] = useState(emailParam);

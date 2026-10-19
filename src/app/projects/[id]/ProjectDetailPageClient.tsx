@@ -1,4 +1,5 @@
 "use client";
+import { campaignMediaUrl } from "@/lib/campaign-media";
 import { displayDate } from "@/lib/display-date";
 import { CreatorProvisioning } from "@/components/projects/CreatorProvisioning";
 
@@ -250,19 +251,24 @@ export default function ProjectDetailPageClient() {
   const mediaItems = project
     ? [
         ...(isDisplayableMediaUrl(project.imageUrl)
-          ? [{ type: "image" as const, url: project.imageUrl }]
+          ? [
+              {
+                type: "image" as const,
+                url: campaignMediaUrl(project.imageUrl),
+              },
+            ]
           : []),
         ...(project.galleryImages || [])
           .filter(isDisplayableMediaUrl)
           .map((url: string) => ({
             type: "image",
-            url,
+            url: campaignMediaUrl(url),
           })),
         ...(project.videoUrls || [])
           .filter((url) => resolveCampaignVideo(url) !== null)
           .map((url: string) => ({
             type: "video",
-            url,
+            url: campaignMediaUrl(url),
           })),
       ]
     : [];

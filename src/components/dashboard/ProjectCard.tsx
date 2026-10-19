@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, ImageOff } from "lucide-react";
 import Link from "next/link";
 import { categoryLabel } from "@/lib/project-categories";
+import { campaignMediaUrl } from "@/lib/campaign-media";
 import Image from "next/image";
 import { isCharityProject } from "@/lib/roi-access";
 
@@ -33,7 +34,9 @@ interface ProjectCardProps {
 
 export default function ProjectCard({ project, onClick }: ProjectCardProps) {
   const [failedImage, setFailedImage] = useState<string | null>(null);
-  const cover = project.imageUrl || project.galleryImages?.[0] || "";
+  const cover = campaignMediaUrl(
+    project.imageUrl || project.galleryImages?.[0] || "",
+  );
   const projectId = project._id || project.id;
   const projectName = project.name || project.title || "Untitled Project";
   const raised = project.raisedAmount || 0;

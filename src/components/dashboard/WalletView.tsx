@@ -17,18 +17,29 @@ import {
   type PayoutDestination,
 } from "@/lib/financial-service";
 
-function amount(payout: Payout) {
+function amount(payout: Payout): bigint {
   const raw = payout.amountMinor ?? payout.amount_minor ?? "0";
-  const value = Number(raw);
-  return Number.isFinite(value) ? value : 0;
+  return /^\d+$/.test(raw) ? BigInt(raw) : BigInt(0);
 }
 
-function money(value: number, currency: string) {
-  return new Intl.NumberFormat("en-UG", {
+// Fiat provider accounting uses whole shillings for UGX and cents otherwise.
+function money(value: bigint, currency: string) {
+  const digits = currency === "UGX" ? 0 : 2;
+  const scale = BigInt(10) ** BigInt(digits);
+  const formatter = new Intl.NumberFormat("en-UG", {
     style: "currency",
     currency,
-    maximumFractionDigits: 0,
-  }).format(value);
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+  return formatter
+    .formatToParts(value / scale)
+    .map((part) =>
+      part.type === "fraction"
+        ? (value % scale).toString().padStart(digits, "0")
+        : part.value,
+    )
+    .join("");
 }
 
 export function WalletView() {
@@ -60,22 +71,25 @@ export function WalletView() {
     void load();
   }, []);
 
-  const summary = useMemo(
-    () =>
-      payouts.reduce(
-        (total, payout) => {
-          const value = amount(payout);
-          if (payout.state === "paid") total.paid += value;
-          if (payout.state === "pending" || payout.state === "processing")
-            total.inMotion += value;
-          return total;
-        },
-        { paid: 0, inMotion: 0 },
-      ),
-    [payouts],
-  );
-
-  const currency = payouts[0]?.currency ?? destinations[0]?.currency ?? "UGX";
+  const summaries = useMemo(() => {
+    const currencies = new Map<string, { paid: bigint; inMotion: bigint }>();
+    for (const payout of payouts) {
+      const total = currencies.get(payout.currency) ?? {
+        paid: BigInt(0),
+        inMotion: BigInt(0),
+      };
+      if (payout.state === "paid") total.paid += amount(payout);
+      if (payout.state === "pending" || payout.state === "processing")
+        total.inMotion += amount(payout);
+      currencies.set(payout.currency, total);
+    }
+    if (!currencies.size)
+      currencies.set(destinations[0]?.currency ?? "UGX", {
+        paid: BigInt(0),
+        inMotion: BigInt(0),
+      });
+    return [...currencies.entries()].sort(([a], [b]) => a.localeCompare(b));
+  }, [payouts, destinations]);
 
   return (
     <section className="space-y-6">
@@ -102,16 +116,20 @@ export function WalletView() {
       <CharityWalletActions onChanged={load} />
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <Summary
-          label="Paid out"
-          value={money(summary.paid, currency)}
-          hint="Provider confirmed"
-        />
-        <Summary
-          label="In motion"
-          value={money(summary.inMotion, currency)}
-          hint="Pending or processing"
-        />
+        {summaries.map(([currency, summary]) => (
+          <div key={currency} className="contents">
+            <Summary
+              label={`Paid out · ${currency}`}
+              value={money(summary.paid, currency)}
+              hint="Provider confirmed"
+            />
+            <Summary
+              label={`In motion · ${currency}`}
+              value={money(summary.inMotion, currency)}
+              hint="Pending or processing"
+            />
+          </div>
+        ))}
         <Summary
           label="Destinations"
           value={String(destinations.length)}
