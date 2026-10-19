@@ -40,7 +40,7 @@
     "whatwg-url": "^15.1.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.55.0",
+    "@playwright/test": "^1.55.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -51,5 +51,9 @@
     "prettier": "^3.6.2",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "ws@8": "8.21.0",
+    "ws@7": "7.5.11"
   }
 }
