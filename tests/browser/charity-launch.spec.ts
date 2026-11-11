@@ -28,6 +28,15 @@ async function charitySession(page: Page) {
       });
     if (path === "/api/auth/csrf")
       return route.fulfill({ json: { csrfToken: "charity-test" } });
+    if (path === "/api/financial/availability")
+      return route.fulfill({
+        json: {
+          donationsConfigured: true,
+          payoutsConfigured: true,
+          payoutEnvironment: "live",
+          realWithdrawalsConfigured: true,
+        },
+      });
     if (path === "/api/projects/donations/me")
       return route.fulfill({
         json: [
@@ -325,6 +334,64 @@ test("campaign transfer only credits Wallet; Withdraw all queues one external pa
     page.getByRole("button", { name: "Withdraw all", exact: true }),
   ).toBeDisabled();
   await expect(page.getByText(/Milestone/)).toHaveCount(0);
+});
+
+test("Wallet explains unavailable live payouts before accepting a withdrawal", async ({
+  page,
+}) => {
+  await charitySession(page);
+  await page.route("**/api/financial/availability", (r) =>
+    r.fulfill({
+      json: {
+        donationsConfigured: true,
+        payoutsConfigured: true,
+        payoutEnvironment: "test",
+        realWithdrawalsConfigured: false,
+      },
+    }),
+  );
+  await page.route("**/api/financial/wallet", (r) =>
+    r.fulfill({
+      json: {
+        balances: [
+          {
+            currency: "UGX",
+            availableMinor: "475",
+            heldMinor: "0",
+            paidMinor: "0",
+          },
+        ],
+        transfers: [],
+      },
+    }),
+  );
+  await page.route("**/api/financial/payout-destinations", (r) =>
+    r.fulfill({
+      json: [
+        {
+          id: "test-destination",
+          status: "verified",
+          currency: "UGX",
+          maskedDisplay: "Mobile money •••1234",
+        },
+      ],
+    }),
+  );
+  await page.goto("/dashboard?tab=wallet");
+  await expect(
+    page.getByText("Bank and mobile-money withdrawals are not available yet.", {
+      exact: false,
+    }),
+  ).toBeVisible();
+  await page
+    .getByLabel("Wallet payout destination")
+    .selectOption("test-destination");
+  await expect(
+    page.getByRole("button", { name: "Withdraw all", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Add bank or mobile money", exact: true }),
+  ).toBeDisabled();
 });
 
 test("double-clicking Donate starts only one checkout and a provider error allows explicit retry", async ({

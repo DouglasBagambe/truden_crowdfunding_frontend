@@ -7,10 +7,12 @@ import { financialErrorMessage } from "@/lib/api-client";
 import {
   createPayoutDestination,
   getCreatorWallet,
+  getFinancialAvailability,
   getPayoutDestinations,
   transferCampaignToWallet,
   withdrawCreatorWallet,
   type CreatorWallet,
+  type FinancialAvailability,
   type PayoutDestination,
 } from "@/lib/financial-service";
 
@@ -40,6 +42,7 @@ export function CharityWalletActions({
     isCharityProject,
   ) as { id?: string; _id?: string; name?: string; status?: string }[];
   const [wallet, setWallet] = useState<CreatorWallet>();
+  const [availability, setAvailability] = useState<FinancialAvailability>();
   const [destinations, setDestinations] = useState<PayoutDestination[]>([]);
   const [destinationId, setDestinationId] = useState("");
   const [loading, setLoading] = useState(true);
@@ -60,15 +63,19 @@ export function CharityWalletActions({
   const load = async () => {
     setLoading(true);
     try {
-      const [nextWallet, nextDestinations] = await Promise.all([
-        getCreatorWallet(),
-        getPayoutDestinations(),
-      ]);
+      const [nextWallet, nextDestinations, nextAvailability] =
+        await Promise.all([
+          getCreatorWallet(),
+          getPayoutDestinations(),
+          getFinancialAvailability(),
+        ]);
       setWallet(nextWallet);
       setDestinations(nextDestinations);
+      setAvailability(nextAvailability);
       setError("");
     } catch (caught) {
       setWallet(undefined);
+      setAvailability(undefined);
       setError(
         financialErrorMessage(caught, "Wallet could not be loaded. Try again."),
       );
@@ -138,6 +145,18 @@ export function CharityWalletActions({
         className="card_base space-y-4 p-5"
         aria-label="Wallet withdrawal"
       >
+        {!loading &&
+          availability &&
+          !availability.realWithdrawalsConfigured && (
+            <p
+              role="status"
+              className="rounded-lg border border-amber-300 p-4 text-sm"
+            >
+              Bank and mobile-money withdrawals are not available yet. You can
+              transfer eligible campaign funds to Wallet while KEIBO completes
+              payout setup.
+            </p>
+          )}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h3 className="text-lg font-semibold">Available to withdraw</h3>
@@ -209,6 +228,7 @@ export function CharityWalletActions({
               loading ||
               busy ||
               !wallet ||
+              !availability?.realWithdrawalsConfigured ||
               !destination ||
               BigInt(available) <= BigInt(0)
             }
@@ -219,7 +239,7 @@ export function CharityWalletActions({
           <button
             type="button"
             className="button_secondary"
-            disabled={busy}
+            disabled={busy || !availability?.realWithdrawalsConfigured}
             onClick={() => setShowDestination(!showDestination)}
           >
             Add bank or mobile money

@@ -1,5 +1,17 @@
 import { apiClient } from "./api-client";
 
+export type FinancialAvailability = {
+  donationsConfigured: boolean;
+  payoutsConfigured: boolean;
+  payoutEnvironment: "test" | "live" | "unknown";
+  realWithdrawalsConfigured: boolean;
+};
+
+export async function getFinancialAvailability(): Promise<FinancialAvailability> {
+  return (await apiClient.get<FinancialAvailability>("/financial/availability"))
+    .data;
+}
+
 export type CreatorWallet = {
   balances: {
     currency: string;
