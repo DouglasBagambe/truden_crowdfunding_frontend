@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { CharityWalletActions } from "./CharityWalletActions";
 import {
@@ -48,7 +48,7 @@ export function WalletView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -65,11 +65,23 @@ export function WalletView() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
+
+  const hasActivePayout = payouts.some(
+    (p) =>
+      (p.state === "pending" || p.state === "processing") &&
+      p.processingStatus !== "review_required",
+  );
+
+  useEffect(() => {
+    if (!hasActivePayout) return;
+    const timer = window.setInterval(() => void load(), 10_000);
+    return () => window.clearInterval(timer);
+  }, [hasActivePayout, load]);
 
   const summaries = useMemo(() => {
     const currencies = new Map<string, { paid: bigint; inMotion: bigint }>();
@@ -79,7 +91,10 @@ export function WalletView() {
         inMotion: BigInt(0),
       };
       if (payout.state === "paid") total.paid += amount(payout);
-      if (payout.state === "pending" || payout.state === "processing")
+      if (
+        (payout.state === "pending" || payout.state === "processing") &&
+        payout.processingStatus !== "review_required"
+      )
         total.inMotion += amount(payout);
       currencies.set(payout.currency, total);
     }
@@ -114,6 +129,18 @@ export function WalletView() {
       </header>
 
       <CharityWalletActions onChanged={load} />
+
+      {payouts.some((p) => p.processingStatus === "review_required") && (
+        <div
+          role="alert"
+          className="rounded-lg border border-amber-300 p-4 text-sm"
+        >
+          A withdrawal has stopped and needs admin review. Funds remain reserved
+          to prevent duplicate payment. See Payout activity below for the failed
+          step and available error details. Do not submit a replacement for that
+          withdrawal.
+        </div>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-3">
         {summaries.map(([currency, summary]) => (
@@ -200,7 +227,22 @@ export function WalletView() {
                         "Verified destination"}
                     </td>
                     <td>
-                      <State state={payout.state} />
+                      <State state={payout.processingStatus || payout.state} />
+                      {payout.errorMessage && (
+                        <div className="mt-2 max-w-sm whitespace-normal text-xs text-[var(--text-muted)]">
+                          <p>{payout.errorMessage}</p>
+                          <p className="mt-1">
+                            Step:{" "}
+                            {payout.failureStage?.replaceAll("_", " ") ||
+                              "payout processing"}{" "}
+                            · Code: {payout.errorCode || "unknown"}
+                          </p>
+                          <p>
+                            Funds remain reserved. Admin review is required
+                            before any replacement payment.
+                          </p>
+                        </div>
+                      )}
                     </td>
                     <td className="text-right font-semibold tabular-nums">
                       {money(amount(payout), payout.currency)}
@@ -288,12 +330,14 @@ function State({ state }: { state: string }) {
   const tone =
     state === "paid" || state === "verified"
       ? "chip-success"
-      : state === "failed" || state === "disabled"
+      : state === "failed" ||
+          state === "disabled" ||
+          state === "review_required"
         ? "chip-danger"
         : "chip-warning";
   return (
     <span className={`chip-base ${tone} px-2 py-0.5 text-[10px] capitalize`}>
-      {state}
+      {state.replaceAll("_", " ")}
     </span>
   );
 }

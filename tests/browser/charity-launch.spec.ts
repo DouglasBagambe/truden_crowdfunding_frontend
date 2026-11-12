@@ -791,6 +791,59 @@ test("Wallet payout history preserves currency and converts cents without combin
   ).toContainText("123.45");
 });
 
+test("stopped withdrawal shows safe diagnostics without claiming payment or offering retry", async ({
+  page,
+}) => {
+  await charitySession(page);
+  await page.route("**/api/financial/wallet", (r) =>
+    r.fulfill({
+      json: {
+        balances: [
+          {
+            currency: "UGX",
+            availableMinor: "0",
+            heldMinor: "475",
+            paidMinor: "0",
+          },
+        ],
+        transfers: [],
+      },
+    }),
+  );
+  await page.route("**/api/financial/payouts", (r) =>
+    r.fulfill({
+      json: [
+        {
+          id: "stopped-payout",
+          keibo_reference: "KEIBO-WALLET-stopped",
+          amount_minor: "475",
+          currency: "UGX",
+          state: "pending",
+          processingStatus: "review_required",
+          failureStage: "provider_submission",
+          errorCode: "PROVIDER_PERMANENT",
+          errorMessage:
+            "Flutterwave transfer submission failed (HTTP 400): Amount is below the provider minimum.",
+        },
+      ],
+    }),
+  );
+  await page.goto("/dashboard?tab=wallet");
+  await expect(
+    page.getByRole("alert").filter({ hasText: "withdrawal has stopped" }),
+  ).toBeVisible();
+  const row = page.getByRole("row").filter({ hasText: "KEIBO-WALLET-stopped" });
+  await expect(row).toContainText("review required");
+  await expect(row).toContainText("HTTP 400");
+  await expect(row).toContainText("provider submission");
+  await expect(row).toContainText("PROVIDER_PERMANENT");
+  await expect(row).toContainText("Funds remain reserved");
+  await expect(
+    page.getByText("In motion · UGX", { exact: true }).locator(".."),
+  ).toContainText("0");
+  await expect(row.getByRole("button")).toHaveCount(0);
+});
+
 test("KEIBO uploads survive a backend move without rewriting external media", () => {
   const path = "/api/projects/files/6ac6718422950b54565ade97";
   expect(

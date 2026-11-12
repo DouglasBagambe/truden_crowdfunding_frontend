@@ -103,6 +103,10 @@ export interface Payout {
   amount_minor?: string;
   currency: string;
   state: PayoutState;
+  processingStatus?: PayoutState | "review_required" | "retry_scheduled";
+  failureStage?: string;
+  errorCode?: string;
+  errorMessage?: string;
   keiboReference?: string;
   keibo_reference?: string;
   maskedDisplay?: string;
