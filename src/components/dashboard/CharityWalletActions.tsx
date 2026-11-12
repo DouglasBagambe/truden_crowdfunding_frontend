@@ -157,9 +157,11 @@ export function CharityWalletActions({
               role="status"
               className="rounded-lg border border-amber-300 p-4 text-sm"
             >
-              Bank and mobile-money withdrawals are not available yet. You can
-              transfer eligible campaign funds to Wallet while KEIBO completes
-              payout setup.
+              Bank and mobile-money withdrawals are disabled.{" "}
+              {availability.payoutEnvironment === "test"
+                ? "Flutterwave is running in test mode."
+                : "Live payout configuration is unavailable."}{" "}
+              Internal campaign-to-Wallet transfers are separate.
             </p>
           )}
         <div className="flex flex-wrap items-start justify-between gap-3">
