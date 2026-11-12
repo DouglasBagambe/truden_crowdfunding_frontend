@@ -394,6 +394,101 @@ test("Wallet explains unavailable live payouts before accepting a withdrawal", a
   ).toBeDisabled();
 });
 
+for (const availabilityFailure of ["disabled", "unreachable"] as const) {
+  test(`Wallet fails closed for open withdrawal and destination forms when payouts become ${availabilityFailure}`, async ({
+    page,
+  }) => {
+    await charitySession(page);
+    let payoutsAvailable = true;
+    let externalRequests = 0;
+    await page.route("**/api/financial/availability", (route) => {
+      if (!payoutsAvailable && availabilityFailure === "unreachable") {
+        return route.fulfill({ status: 503, json: { message: "Unavailable" } });
+      }
+      return route.fulfill({
+        json: {
+          donationsConfigured: true,
+          payoutsConfigured: true,
+          payoutEnvironment: payoutsAvailable ? "live" : "test",
+          realWithdrawalsConfigured: payoutsAvailable,
+        },
+      });
+    });
+    await page.route("**/api/financial/wallet", (route) =>
+      route.fulfill({
+        json: {
+          balances: [
+            {
+              currency: "UGX",
+              availableMinor: "475",
+              heldMinor: "0",
+              paidMinor: "0",
+            },
+          ],
+          transfers: [],
+        },
+      }),
+    );
+    await page.route("**/api/financial/payout-destinations", (route) => {
+      if (route.request().method() !== "GET") {
+        externalRequests++;
+        return route.fulfill({ status: 500, json: {} });
+      }
+      return route.fulfill({
+        json: [
+          {
+            id: "dest",
+            status: "verified",
+            currency: "UGX",
+            maskedDisplay: "Mobile money •••1234",
+          },
+        ],
+      });
+    });
+    await page.route("**/api/financial/wallet/withdrawals", (route) => {
+      externalRequests++;
+      return route.fulfill({ status: 500, json: {} });
+    });
+    await page.goto("/dashboard?tab=wallet");
+    await page.getByLabel("Wallet payout destination").selectOption("dest");
+    await page
+      .getByRole("button", { name: "Withdraw all", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Add bank or mobile money", exact: true })
+      .click();
+    const confirm = page.getByRole("button", {
+      name: "Confirm withdrawal",
+      exact: true,
+    });
+    const save = page.getByRole("button", {
+      name: "Save destination",
+      exact: true,
+    });
+    await expect(confirm).toBeEnabled();
+    await expect(save).toBeEnabled();
+    payoutsAvailable = false;
+    await page
+      .getByRole("button", { name: "Refresh wallet", exact: true })
+      .click();
+    if (availabilityFailure === "disabled") {
+      await expect(
+        page.getByText(
+          "Bank and mobile-money withdrawals are not available yet.",
+          { exact: false },
+        ),
+      ).toBeVisible();
+    } else {
+      await expect(
+        page.getByText("Unavailable", { exact: true }),
+      ).toBeVisible();
+    }
+    await expect(confirm).toBeDisabled();
+    await expect(save).toBeDisabled();
+    expect(externalRequests).toBe(0);
+  });
+}
+
 test("double-clicking Donate starts only one checkout and a provider error allows explicit retry", async ({
   page,
 }) => {

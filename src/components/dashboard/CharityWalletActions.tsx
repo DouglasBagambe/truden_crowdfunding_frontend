@@ -126,6 +126,11 @@ export function CharityWalletActions({
     });
   const withdraw = () =>
     run(async () => {
+      if (!availability?.realWithdrawalsConfigured) {
+        throw new Error(
+          "Bank and mobile-money withdrawals are not available yet.",
+        );
+      }
       if (!destination) throw new Error("Select a verified destination.");
       withdrawKeys.current[destination.id] ||= crypto.randomUUID();
       const result = await withdrawCreatorWallet(
@@ -261,7 +266,9 @@ export function CharityWalletActions({
               <button
                 type="button"
                 className="button_primary"
-                disabled={busy}
+                disabled={
+                  loading || busy || !availability?.realWithdrawalsConfigured
+                }
                 onClick={() => void withdraw()}
               >
                 Confirm withdrawal
@@ -283,6 +290,11 @@ export function CharityWalletActions({
             onSubmit={(event) => {
               event.preventDefault();
               void run(async () => {
+                if (!availability?.realWithdrawalsConfigured) {
+                  throw new Error(
+                    "Bank and mobile-money withdrawals are not available yet.",
+                  );
+                }
                 const added = await createPayoutDestination({
                   ...form,
                   idempotencyKey: crypto.randomUUID(),
@@ -345,7 +357,13 @@ export function CharityWalletActions({
                 }
               />
             </label>
-            <button type="submit" className="button_primary" disabled={busy}>
+            <button
+              type="submit"
+              className="button_primary"
+              disabled={
+                loading || busy || !availability?.realWithdrawalsConfigured
+              }
+            >
               Save destination
             </button>
           </form>
