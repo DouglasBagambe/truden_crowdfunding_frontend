@@ -132,6 +132,10 @@ export function CharityWalletActions({
         );
       }
       if (!destination) throw new Error("Select a verified destination.");
+      if (currency === "UGX" && BigInt(available) < BigInt(1000))
+        throw new Error(
+          "Flutterwave withdrawals require at least UGX 1,000. No funds were reserved. Transfer fees are separate.",
+        );
       withdrawKeys.current[destination.id] ||= crypto.randomUUID();
       const result = await withdrawCreatorWallet(
         destination.id,
@@ -141,7 +145,7 @@ export function CharityWalletActions({
       delete withdrawKeys.current[destination.id];
       setReview(false);
       setMessage(
-        `Withdrawal requested. Funds are reserved while the provider processes it. Reference: ${result.keiboReference || result.id}`,
+        `Withdrawal queued, not yet paid. Check Payout activity for processing status or errors. Funds are reserved. Reference: ${result.keiboReference || result.id}`,
       );
     });
   return (
@@ -177,6 +181,8 @@ export function CharityWalletActions({
             <p className="mt-1 text-sm text-[var(--text-muted)]">
               Combined funds transferred from your campaigns. Withdraw all
               available funds in the selected destination currency.
+              {currency === "UGX" &&
+                " Minimum withdrawal: UGX 1,000. Provider transfer fees are separate; they are not automatically deducted from the amount shown here."}
             </p>
           </div>
           <button
