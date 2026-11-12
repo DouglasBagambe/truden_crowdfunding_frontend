@@ -328,7 +328,7 @@ test("campaign transfer only credits Wallet; Withdraw all queues one external pa
   await page
     .getByRole("button", { name: "Confirm withdrawal", exact: true })
     .click();
-  await expect(page.getByText(/Withdrawal requested/)).toBeVisible();
+  await expect(page.getByText(/Withdrawal queued, not yet paid/)).toBeVisible();
   expect(withdrawals).toBe(1);
   await expect(
     page.getByRole("button", { name: "Withdraw all", exact: true }),
