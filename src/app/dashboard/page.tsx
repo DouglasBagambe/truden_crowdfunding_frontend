@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import ProjectCard from "@/components/dashboard/ProjectCard";
@@ -15,6 +15,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useInvestments } from "@/hooks/useInvestments";
 import { useRoiAccess } from "@/hooks/useRoiAccess";
 import { authService } from "@/lib/auth-service";
+import { financialErrorMessage } from "@/lib/api-client";
+import { transferCampaignToWallet } from "@/lib/financial-service";
 import { buildVerifyEmailUrl } from "@/lib/email-verification";
 import {
   Search,
@@ -86,6 +88,43 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<DashboardTab>("donations");
   const [isStartingVerification, setIsStartingVerification] = useState(false);
+  const [transferringCampaign, setTransferringCampaign] = useState("");
+  const [walletTransferError, setWalletTransferError] = useState("");
+  const [walletTransferNotice, setWalletTransferNotice] = useState("");
+  const transferInFlight = useRef(false);
+  const transferKeys = useRef<Record<string, string>>({});
+
+  const handleCampaignTransfer = async (projectId: string) => {
+    if (transferInFlight.current) return;
+    transferInFlight.current = true;
+    setTransferringCampaign(projectId);
+    setWalletTransferError("");
+    setWalletTransferNotice("");
+    try {
+      // Keep the same key after an uncertain response so a retry cannot
+      // duplicate a transfer that the server may already have committed.
+      transferKeys.current[projectId] ||= crypto.randomUUID();
+      await transferCampaignToWallet(
+        projectId,
+        transferKeys.current[projectId],
+      );
+      delete transferKeys.current[projectId];
+      setWalletTransferNotice(
+        "Campaign funds transferred to Wallet after the existing campaign fee. No bank or mobile-money payment was made.",
+      );
+      setActiveTab("wallet");
+    } catch (error: unknown) {
+      setWalletTransferError(
+        financialErrorMessage(
+          error,
+          "Campaign funds could not be transferred. Please retry.",
+        ),
+      );
+    } finally {
+      transferInFlight.current = false;
+      setTransferringCampaign("");
+    }
+  };
 
   const handleTriggerCreate = () => {
     router.push("/dashboard/create-project");
@@ -468,6 +507,22 @@ export default function DashboardPage() {
               </div>
 
               <div className="p-4 sm:p-8">
+                {walletTransferError && activeTab === "campaigns" && (
+                  <p
+                    role="alert"
+                    className="mb-4 rounded-lg border border-amber-300 p-4 text-sm"
+                  >
+                    {walletTransferError}
+                  </p>
+                )}
+                {walletTransferNotice && activeTab === "wallet" && (
+                  <p
+                    role="status"
+                    className="mb-4 rounded-lg border border-emerald-300 p-4 text-sm"
+                  >
+                    {walletTransferNotice}
+                  </p>
+                )}
                 {contributionsError && activeTab === "donations" && (
                   <div
                     role="alert"
@@ -673,9 +728,19 @@ export default function DashboardPage() {
                                       <button
                                         type="button"
                                         className="button_secondary px-3 py-1.5 text-xs"
-                                        onClick={() => setActiveTab("wallet")}
+                                        disabled={
+                                          !pId ||
+                                          Boolean(transferringCampaign) ||
+                                          project.status !== "APPROVED"
+                                        }
+                                        onClick={() => {
+                                          if (pId)
+                                            void handleCampaignTransfer(pId);
+                                        }}
                                       >
-                                        Transfer to wallet
+                                        {transferringCampaign === pId
+                                          ? "Transferring…"
+                                          : "Transfer to wallet"}
                                       </button>
                                     ) : !isCharity &&
                                       raised > 0 &&
@@ -691,6 +756,13 @@ export default function DashboardPage() {
                                       </Link>
                                     ) : null}
                                   </div>
+                                  {isCharity && (
+                                    <p className="mt-2 text-xs text-[var(--text-muted)]">
+                                      Transfers settled funds after the campaign
+                                      fee. No bank or mobile-money payment is
+                                      made.
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                             </div>

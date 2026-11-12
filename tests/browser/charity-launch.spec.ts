@@ -379,7 +379,7 @@ test("Wallet explains unavailable live payouts before accepting a withdrawal", a
   );
   await page.goto("/dashboard?tab=wallet");
   await expect(
-    page.getByText("Bank and mobile-money withdrawals are not available yet.", {
+    page.getByText("Bank and mobile-money withdrawals are disabled.", {
       exact: false,
     }),
   ).toBeVisible();
@@ -473,10 +473,9 @@ for (const availabilityFailure of ["disabled", "unreachable"] as const) {
       .click();
     if (availabilityFailure === "disabled") {
       await expect(
-        page.getByText(
-          "Bank and mobile-money withdrawals are not available yet.",
-          { exact: false },
-        ),
+        page.getByText("Bank and mobile-money withdrawals are disabled.", {
+          exact: false,
+        }),
       ).toBeVisible();
     } else {
       await expect(
@@ -584,7 +583,7 @@ test("charity discovery has no type selector or crypto wallet controls", async (
   expect(hydrationErrors).toEqual([]);
 });
 
-test("Wallet is reachable from My Projects and Profile without charity milestones", async ({
+test("My Projects transfers funds once before opening Wallet, independently of payout setup", async ({
   page,
 }) => {
   await charitySession(page);
@@ -596,14 +595,46 @@ test("Wallet is reachable from My Projects and Profile without charity milestone
           name: "My charity",
           projectType: "CHARITY",
           status: "APPROVED",
-          raisedAmount: 0,
+          raisedAmount: 500,
           targetAmount: 10000,
         },
       ],
     }),
   );
+  let transfers = 0;
+  await page.route("**/api/financial/availability", (r) =>
+    r.fulfill({
+      json: {
+        donationsConfigured: true,
+        payoutsConfigured: true,
+        payoutEnvironment: "test",
+        realWithdrawalsConfigured: false,
+      },
+    }),
+  );
+  await page.route("**/api/financial/wallet/transfers", async (r) => {
+    transfers++;
+    expect(r.request().postDataJSON()).toEqual({ projectId: campaignId });
+    expect(r.request().headers()["idempotency-key"]).toBeTruthy();
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    return r.fulfill({
+      json: { id: "wallet-credit", ownerProceedsMinor: "475" },
+    });
+  });
   await page.route("**/api/financial/wallet", (r) =>
-    r.fulfill({ json: { balances: [], transfers: [] } }),
+    r.fulfill({
+      json: {
+        balances: [
+          {
+            currency: "UGX",
+            availableMinor: transfers ? "475" : "0",
+            heldMinor: "0",
+            paidMinor: "0",
+          },
+        ],
+        transfers: [],
+      },
+    }),
   );
   await page.goto("/dashboard");
   await page
@@ -612,9 +643,19 @@ test("Wallet is reachable from My Projects and Profile without charity milestone
     .click();
   await page
     .getByRole("button", { name: "Transfer to wallet", exact: true })
-    .click();
+    .dblclick();
+  await expect(
+    page.getByText(
+      "Campaign funds transferred to Wallet after the existing campaign fee. No bank or mobile-money payment was made.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  expect(transfers).toBe(1);
   await expect(
     page.getByRole("heading", { name: "Wallet", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/Flutterwave is running in test mode/),
   ).toBeVisible();
   await expect(
     page.getByRole("button", {
@@ -634,6 +675,66 @@ test("Wallet is reachable from My Projects and Profile without charity milestone
   await expect(
     page.getByRole("button", { name: "Withdraw all", exact: true }),
   ).toBeVisible();
+});
+
+test("rejected My Projects transfer stays on campaigns and retries with the same idempotency key", async ({
+  page,
+}) => {
+  await charitySession(page);
+  await page.route("**/api/projects/me", (r) =>
+    r.fulfill({
+      json: [
+        {
+          id: campaignId,
+          name: "My charity",
+          projectType: "CHARITY",
+          status: "APPROVED",
+        },
+      ],
+    }),
+  );
+  const keys: string[] = [];
+  await page.route("**/api/financial/wallet/transfers", (r) => {
+    keys.push(r.request().headers()["idempotency-key"]);
+    return keys.length === 1
+      ? r.fulfill({
+          status: 409,
+          json: {
+            message:
+              "No settled campaign funds are available to transfer to Wallet",
+          },
+        })
+      : r.fulfill({ json: { id: "wallet-credit" } });
+  });
+  await page.route("**/api/financial/wallet", (r) =>
+    r.fulfill({ json: { balances: [], transfers: [] } }),
+  );
+  await page.goto("/dashboard");
+  await page
+    .getByRole("navigation", { name: "Dashboard sections" })
+    .getByRole("button", { name: "My Projects", exact: true })
+    .click();
+  const transfer = page.getByRole("button", {
+    name: "Transfer to wallet",
+    exact: true,
+  });
+  await transfer.click();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "No settled campaign funds" }),
+  ).toContainText(
+    "No settled campaign funds are available to transfer to Wallet",
+  );
+  await expect(
+    page.getByRole("heading", { name: "Wallet", exact: true }),
+  ).toHaveCount(0);
+  await expect(transfer).toBeEnabled();
+  await transfer.click();
+  await expect(
+    page.getByRole("heading", { name: "Wallet", exact: true }),
+  ).toBeVisible();
+  expect(keys).toHaveLength(2);
+  expect(keys[0]).toBeTruthy();
+  expect(keys[1]).toBe(keys[0]);
 });
 
 test("authentication return paths reject external and browser-normalized redirects", () => {
