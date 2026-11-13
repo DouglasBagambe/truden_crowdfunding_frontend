@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import {
+  CampaignFundsStatus,
+  hasTransferableFunds,
+  type CampaignFund,
+} from "./CampaignFundsStatus";
 import { useMyProjects } from "@/hooks/useProjects";
 import { isCharityProject } from "@/lib/roi-access";
 import { financialErrorMessage } from "@/lib/api-client";
@@ -29,8 +34,10 @@ function displayMinor(value: string, currency: string) {
 
 export function CharityWalletActions({
   onChanged,
+  refreshToken = 0,
 }: {
   onChanged: () => Promise<void>;
+  refreshToken?: number;
 }) {
   const {
     data: projects,
@@ -40,7 +47,13 @@ export function CharityWalletActions({
   } = useMyProjects();
   const campaigns = (Array.isArray(projects) ? projects : []).filter(
     isCharityProject,
-  ) as { id?: string; _id?: string; name?: string; status?: string }[];
+  ) as {
+    id?: string;
+    _id?: string;
+    name?: string;
+    status?: string;
+    walletFunds?: CampaignFund[];
+  }[];
   const [wallet, setWallet] = useState<CreatorWallet>();
   const [availability, setAvailability] = useState<FinancialAvailability>();
   const [destinations, setDestinations] = useState<PayoutDestination[]>([]);
@@ -85,7 +98,7 @@ export function CharityWalletActions({
   };
   useEffect(() => {
     void load();
-  }, []);
+  }, [refreshToken]);
   const run = async (action: () => Promise<void>) => {
     if (inFlight.current) return;
     inFlight.current = true;
@@ -95,6 +108,7 @@ export function CharityWalletActions({
     try {
       await action();
       await load();
+      await reloadCampaigns();
       await onChanged();
     } catch (caught) {
       setError(
@@ -205,11 +219,21 @@ export function CharityWalletActions({
         {wallet?.balances
           ?.filter((b) => BigInt(b.heldMinor) > BigInt(0))
           .map((b) => (
-            <p key={b.currency} className="text-sm text-[var(--text-muted)]">
-              {displayMinor(b.heldMinor, b.currency)} reserved for withdrawals.
-              Failed transfers remain reserved for review to prevent duplicate
-              payment.
-            </p>
+            <div
+              key={b.currency}
+              role="status"
+              className="rounded-lg border border-amber-300 p-4 text-sm"
+            >
+              <p className="font-semibold">
+                Reserved for withdrawals:{" "}
+                {displayMinor(b.heldMinor, b.currency)}
+              </p>
+              <p>
+                This is separate from your available balance. Reserved does not
+                mean paid. A stopped withdrawal remains reserved until its
+                provider outcome is checked, to prevent duplicate payment.
+              </p>
+            </div>
           ))}
         <label className="block space-y-2 text-sm font-semibold">
           Withdraw to
@@ -433,12 +457,17 @@ export function CharityWalletActions({
                     <p className="text-xs text-[var(--text-muted)]">
                       {c.status?.replaceAll("_", " ")}
                     </p>
+                    <CampaignFundsStatus funds={c.walletFunds} />
                   </div>
                   <button
                     type="button"
                     aria-label={`Transfer ${c.name} to wallet`}
                     className="button_secondary shrink-0 px-3 py-1.5 text-xs"
-                    disabled={busy || c.status !== "APPROVED"}
+                    disabled={
+                      busy ||
+                      c.status !== "APPROVED" ||
+                      !hasTransferableFunds(c.walletFunds)
+                    }
                     onClick={() => void transfer(id)}
                   >
                     Transfer to wallet

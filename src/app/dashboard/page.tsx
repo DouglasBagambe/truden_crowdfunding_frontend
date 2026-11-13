@@ -8,6 +8,11 @@ import RightSidebar from "@/components/dashboard/RightSidebar";
 import CreateProjectWizard from "@/components/dashboard/CreateProjectWizard";
 import { KYCView } from "@/components/dashboard/KYCView";
 import { WalletView } from "@/components/dashboard/WalletView";
+import {
+  CampaignFundsStatus,
+  hasTransferableFunds,
+  type CampaignFund,
+} from "@/components/dashboard/CampaignFundsStatus";
 import { NFTPortfolio } from "@/components/dashboard/NFTPortfolio";
 import { motion } from "framer-motion";
 import { useProjects, useMyProjects } from "@/hooks/useProjects";
@@ -39,6 +44,7 @@ import toast from "react-hot-toast";
 import { INVESTMENTS_ENABLED } from "@/lib/product-features";
 
 interface Project {
+  walletFunds?: CampaignFund[];
   id: string;
   _id?: string;
   name?: string;
@@ -109,6 +115,7 @@ export default function DashboardPage() {
         transferKeys.current[projectId],
       );
       delete transferKeys.current[projectId];
+      await reloadMyProjects();
       setWalletTransferNotice(
         "Campaign funds transferred to Wallet after the existing campaign fee. No bank or mobile-money payment was made.",
       );
@@ -189,7 +196,7 @@ export default function DashboardPage() {
   );
 
   // My campaigns: use the dedicated /projects/me endpoint that includes DRAFTs
-  const { data: myProjectsData } = useMyProjects();
+  const { data: myProjectsData, refetch: reloadMyProjects } = useMyProjects();
 
   const myCampaigns = useMemo(() => {
     const campaigns = (
@@ -731,6 +738,9 @@ export default function DashboardPage() {
                                         disabled={
                                           !pId ||
                                           Boolean(transferringCampaign) ||
+                                          !hasTransferableFunds(
+                                            project.walletFunds,
+                                          ) ||
                                           project.status !== "APPROVED"
                                         }
                                         onClick={() => {
@@ -757,11 +767,16 @@ export default function DashboardPage() {
                                     ) : null}
                                   </div>
                                   {isCharity && (
-                                    <p className="mt-2 text-xs text-[var(--text-muted)]">
-                                      Transfers settled funds after the campaign
-                                      fee. No bank or mobile-money payment is
-                                      made.
-                                    </p>
+                                    <div>
+                                      <CampaignFundsStatus
+                                        funds={project.walletFunds}
+                                      />
+                                      <p className="mt-2 text-xs text-[var(--text-muted)]">
+                                        Transfers settled funds after the
+                                        campaign fee. No bank or mobile-money
+                                        payment is made.
+                                      </p>
+                                    </div>
                                   )}
                                 </div>
                               </div>

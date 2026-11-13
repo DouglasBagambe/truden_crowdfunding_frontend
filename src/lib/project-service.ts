@@ -1,6 +1,9 @@
 import { apiClient } from "./api-client";
 
-type QueryParams = Record<string, string | number | boolean | undefined>;
+type QueryParams = Record<
+  string,
+  string | string[] | number | boolean | undefined
+>;
 
 function hasHttpStatus(error: unknown, statuses: number[]): boolean {
   if (

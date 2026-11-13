@@ -103,6 +103,7 @@ function getDisplayName(user: unknown): string {
   const currentUser = user as {
     profile?: { firstName?: string; lastName?: string; displayName?: string };
     firstName?: string;
+    displayName?: string;
     lastName?: string;
     name?: string;
     fullName?: string;
@@ -116,11 +117,11 @@ function getDisplayName(user: unknown): string {
   const combined = `${firstName} ${lastName}`.trim();
 
   return (
-    combined ||
     currentUser?.profile?.displayName ||
+    currentUser?.displayName ||
+    combined ||
     currentUser?.name ||
     currentUser?.fullName ||
-    currentUser?.email ||
     ""
   );
 }
@@ -223,6 +224,7 @@ export default function DPOPaymentModal({
 
   const [amount, setAmount] = useState("");
   const [donorName, setDonorName] = useState("");
+  const [donateAnonymously, setDonateAnonymously] = useState(false);
   const [walletAddress, setWalletAddress] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -236,6 +238,7 @@ export default function DPOPaymentModal({
       checkoutInFlight.current = false;
       setAmount("");
       setDonorName("");
+      setDonateAnonymously(false);
       setWalletAddress("");
       setError("");
       setIsSubmitting(false);
@@ -274,7 +277,6 @@ export default function DPOPaymentModal({
       setIsLoadingQuote(false);
       return;
     }
-
     let cancelled = false;
     const timer = window.setTimeout(async () => {
       try {
@@ -413,6 +415,10 @@ export default function DPOPaymentModal({
       setError("ROI investments are currently restricted.");
       return;
     }
+    if (isCharity && !donateAnonymously && !donorName.trim()) {
+      setError("Enter your public donor name or choose Donate anonymously.");
+      return;
+    }
     if (!isAuthenticated) {
       router.push(
         `/login?next=${encodeURIComponent(window.location.pathname)}`,
@@ -448,7 +454,11 @@ export default function DPOPaymentModal({
         amount: normalizedAmount,
         currency,
         paymentMethod: "card",
-        donorName: isCharity ? donorName.trim() || "Anonymous" : undefined,
+        donorName: isCharity
+          ? donateAnonymously
+            ? "Anonymous"
+            : donorName.trim()
+          : undefined,
         walletAddress: isROI ? walletAddress.trim() : undefined,
       });
 
@@ -550,16 +560,29 @@ export default function DPOPaymentModal({
                         Donor Name
                       </label>
                       <span className="text-[10px] font-medium text-[var(--text-muted)]">
-                        Leave blank for anonymous
+                        Shown publicly unless anonymous
                       </span>
                     </div>
                     <input
                       type="text"
                       value={donorName}
+                      aria-label="Public donor name"
+                      disabled={donateAnonymously}
+                      maxLength={100}
                       onChange={(event) => setDonorName(event.target.value)}
                       placeholder="Anonymous"
                       className="input_field"
                     />
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={donateAnonymously}
+                        onChange={(event) =>
+                          setDonateAnonymously(event.target.checked)
+                        }
+                      />
+                      Donate anonymously
+                    </label>
                   </div>
                 )}
 
