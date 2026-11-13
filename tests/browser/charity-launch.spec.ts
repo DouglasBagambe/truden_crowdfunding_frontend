@@ -564,7 +564,7 @@ test("double-clicking Donate starts only one checkout and a provider error allow
   expect(submittedNames).toEqual(["Public Donor", "Anonymous"]);
 });
 
-test("paid but unsettled campaign funds explain raised total and cannot trigger a wallet transfer", async ({
+test("paid campaign funds with unknown provider fee cannot trigger a wallet transfer", async ({
   page,
 }) => {
   await charitySession(page);
@@ -617,7 +617,7 @@ test("paid but unsettled campaign funds explain raised total and cannot trigger 
     .getByRole("navigation", { name: "Dashboard sections" })
     .getByRole("button", { name: "My Projects", exact: true })
     .click();
-  await expect(page.getByText(/Paid, awaiting DPO settlement:/)).toContainText(
+  await expect(page.getByText(/Payment confirmed; provider fee still being verified:/)).toContainText(
     "2,001",
   );
   await expect(
@@ -636,7 +636,7 @@ test("paid but unsettled campaign funds explain raised total and cannot trigger 
   await expect(page.getByText(/Reserved for withdrawals:/)).toContainText(
     "475",
   );
-  await expect(page.getByText(/Paid, awaiting DPO settlement:/)).toContainText(
+  await expect(page.getByText(/Payment confirmed; provider fee still being verified:/)).toContainText(
     "2,001",
   );
   expect(transfers).toBe(0);

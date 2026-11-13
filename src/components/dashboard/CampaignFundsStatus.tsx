@@ -32,15 +32,13 @@ export function CampaignFundsStatus({ funds }: { funds?: CampaignFund[] }) {
       {funds.map((fund) => (
         <div key={fund.currency}>
           <p>
-            Settled, ready to transfer:{" "}
+            Confirmed, ready to transfer:{" "}
             {format(fund.transferableMinor, fund.currency)} before campaign fee.
           </p>
           {BigInt(fund.awaitingSettlementMinor) > BigInt(0) && (
             <p role="status">
-              Paid, awaiting DPO settlement:{" "}
-              {format(fund.awaitingSettlementMinor, fund.currency)}. Included in
-              raised total, not yet transferable. Final provider fees may change
-              this amount.
+              Payment confirmed; provider fee still being verified:{" "}
+              {format(fund.awaitingSettlementMinor, fund.currency)}.
             </p>
           )}
           {BigInt(fund.transferredMinor) > BigInt(0) && (
