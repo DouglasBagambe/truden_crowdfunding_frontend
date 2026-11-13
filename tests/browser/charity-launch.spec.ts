@@ -617,9 +617,9 @@ test("paid campaign funds with unknown provider fee cannot trigger a wallet tran
     .getByRole("navigation", { name: "Dashboard sections" })
     .getByRole("button", { name: "My Projects", exact: true })
     .click();
-  await expect(page.getByText(/Payment confirmed; provider fee still being verified:/)).toContainText(
-    "2,001",
-  );
+  await expect(
+    page.getByText(/Payment confirmed; provider fee still being verified:/),
+  ).toContainText("2,001");
   await expect(
     page.getByRole("button", { name: "Transfer to wallet", exact: true }),
   ).toBeDisabled();
@@ -636,9 +636,9 @@ test("paid campaign funds with unknown provider fee cannot trigger a wallet tran
   await expect(page.getByText(/Reserved for withdrawals:/)).toContainText(
     "475",
   );
-  await expect(page.getByText(/Payment confirmed; provider fee still being verified:/)).toContainText(
-    "2,001",
-  );
+  await expect(
+    page.getByText(/Payment confirmed; provider fee still being verified:/),
+  ).toContainText("2,001");
   expect(transfers).toBe(0);
   await page.screenshot({
     path: test.info().outputPath("wallet-fund-location.png"),
