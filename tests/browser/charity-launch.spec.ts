@@ -20,6 +20,8 @@ async function charitySession(page: Page) {
       return route.fulfill({
         json: {
           id: "creator",
+          firstName: "Public",
+          lastName: "Donor",
           roles: ["INNOVATOR", "ADMIN"],
           emailVerifiedAt: "2026-10-01",
           kycStatus: "VERIFIED",
@@ -527,12 +529,14 @@ test("double-clicking Donate starts only one checkout and a provider error allow
   );
   let intentRequests = 0,
     checkoutRequests = 0;
+  const submittedNames: string[] = [];
   await page.route("**/api/financial/payment-intents", (route) => {
     intentRequests++;
     return route.fulfill({ json: { id: "same-intent", state: "pending" } });
   });
   await page.route("**/api/payments/dpo/initialize", async (route) => {
     checkoutRequests++;
+    submittedNames.push(route.request().postDataJSON().donorName);
     await route.fulfill({
       status: 503,
       json: { message: "Sandbox provider unavailable; no charge attempted" },
@@ -540,6 +544,9 @@ test("double-clicking Donate starts only one checkout and a provider error allow
   });
   await page.goto(`/projects/${campaignId}`);
   await page.getByRole("button", { name: "Donate Now", exact: true }).click();
+  await expect(
+    page.getByRole("textbox", { name: "Public donor name" }),
+  ).toHaveValue("Public Donor");
   await page.getByPlaceholder("e.g. 10000").fill("5000");
   await expect(page.getByText("Total", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Donate", exact: true }).dblclick();
@@ -550,8 +557,93 @@ test("double-clicking Donate starts only one checkout and a provider error allow
     intentRequests: 1,
     checkoutRequests: 1,
   });
+  expect(submittedNames).toEqual(["Public Donor"]);
+  await page.getByRole("checkbox", { name: "Donate anonymously" }).check();
   await page.getByRole("button", { name: "Donate", exact: true }).click();
   await expect.poll(() => checkoutRequests).toBe(2);
+  expect(submittedNames).toEqual(["Public Donor", "Anonymous"]);
+});
+
+test("paid but unsettled campaign funds explain raised total and cannot trigger a wallet transfer", async ({
+  page,
+}) => {
+  await charitySession(page);
+  await page.route("**/api/projects/me", (route) =>
+    route.fulfill({
+      json: [
+        {
+          id: campaignId,
+          name: "Awaiting settlement charity",
+          type: "CHARITY",
+          projectType: "CHARITY",
+          status: "APPROVED",
+          currency: "UGX",
+          raisedAmount: 2501,
+          targetAmount: 10000,
+          walletFunds: [
+            {
+              currency: "UGX",
+              awaitingSettlementMinor: "2001",
+              transferableMinor: "0",
+              transferredMinor: "500",
+            },
+          ],
+        },
+      ],
+    }),
+  );
+  await page.route("**/api/financial/wallet", (route) =>
+    route.fulfill({
+      json: {
+        balances: [
+          {
+            currency: "UGX",
+            availableMinor: "0",
+            heldMinor: "475",
+            paidMinor: "0",
+          },
+        ],
+        transfers: [],
+      },
+    }),
+  );
+  let transfers = 0;
+  await page.route("**/api/financial/wallet/transfers", (route) => {
+    transfers++;
+    return route.fulfill({ status: 500 });
+  });
+  await page.goto("/dashboard?tab=campaigns");
+  await page
+    .getByRole("navigation", { name: "Dashboard sections" })
+    .getByRole("button", { name: "My Projects", exact: true })
+    .click();
+  await expect(page.getByText(/Paid, awaiting DPO settlement:/)).toContainText(
+    "2,001",
+  );
+  await expect(
+    page.getByRole("button", { name: "Transfer to wallet", exact: true }),
+  ).toBeDisabled();
+  await page
+    .getByRole("navigation", { name: "Dashboard sections" })
+    .getByRole("button", { name: "Wallet", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", {
+      name: "Transfer Awaiting settlement charity to wallet",
+      exact: true,
+    }),
+  ).toBeDisabled();
+  await expect(page.getByText(/Reserved for withdrawals:/)).toContainText(
+    "475",
+  );
+  await expect(page.getByText(/Paid, awaiting DPO settlement:/)).toContainText(
+    "2,001",
+  );
+  expect(transfers).toBe(0);
+  await page.screenshot({
+    path: test.info().outputPath("wallet-fund-location.png"),
+    fullPage: true,
+  });
 });
 
 test("charity discovery has no type selector or crypto wallet controls", async ({
@@ -795,6 +887,28 @@ test("stopped withdrawal shows safe diagnostics without claiming payment or offe
   page,
 }) => {
   await charitySession(page);
+  let providerChecks = 0;
+  let replacementPayments = 0;
+  await page.route(
+    "**/api/financial/payouts/stopped-payout/provider-evidence",
+    (route) => {
+      providerChecks++;
+      expect(route.request().method()).toBe("GET");
+      return route.fulfill({
+        json: {
+          outcome: "NO_MATCHING_TRANSFER",
+          reference: "KEIBO-WALLET-stopped",
+          checkedAt: new Date().toISOString(),
+          message:
+            "No matching transfer was returned for this reference. Admin reconciliation is required. No payment or balance change was made.",
+        },
+      });
+    },
+  );
+  await page.route("**/api/financial/wallet/withdrawals", (route) => {
+    replacementPayments++;
+    return route.fulfill({ status: 500 });
+  });
   await page.route("**/api/financial/wallet", (r) =>
     r.fulfill({
       json: {
@@ -842,6 +956,15 @@ test("stopped withdrawal shows safe diagnostics without claiming payment or offe
     page.getByText("In motion · UGX", { exact: true }).locator(".."),
   ).toContainText("0");
   await expect(row.getByRole("button")).toHaveCount(0);
+  expect(providerChecks).toBe(0);
+  await page
+    .getByRole("button", { name: "Check provider status", exact: true })
+    .click();
+  await expect(
+    page.getByText(/No matching transfer was returned/),
+  ).toBeVisible();
+  expect(providerChecks).toBe(1);
+  expect(replacementPayments).toBe(0);
 });
 
 test("KEIBO uploads survive a backend move without rewriting external media", () => {

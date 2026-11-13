@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { CharityWalletActions } from "./CharityWalletActions";
+import { financialErrorMessage } from "@/lib/api-client";
 import {
   AlertTriangle,
   ArrowDownToLine,
@@ -13,6 +14,7 @@ import {
 import {
   getPayoutDestinations,
   getPayouts,
+  getPayoutProviderEvidence,
   type Payout,
   type PayoutDestination,
 } from "@/lib/financial-service";
@@ -46,7 +48,31 @@ export function WalletView() {
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [destinations, setDestinations] = useState<PayoutDestination[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshToken, setRefreshToken] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [checkingProvider, setCheckingProvider] = useState("");
+  const [providerChecks, setProviderChecks] = useState<Record<string, string>>(
+    {},
+  );
+
+  const checkProvider = async (id: string) => {
+    if (checkingProvider) return;
+    setCheckingProvider(id);
+    try {
+      const result = await getPayoutProviderEvidence(id);
+      setProviderChecks((current) => ({ ...current, [id]: result.message }));
+    } catch (caught) {
+      setProviderChecks((current) => ({
+        ...current,
+        [id]: financialErrorMessage(
+          caught,
+          "Provider status could not be verified. No payment or balance change was made.",
+        ),
+      }));
+    } finally {
+      setCheckingProvider("");
+    }
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -58,6 +84,7 @@ export function WalletView() {
       ]);
       setPayouts(nextPayouts);
       setDestinations(nextDestinations);
+      setRefreshToken((token) => token + 1);
     } catch {
       setError(
         "Financial records could not be loaded right now. No legacy balance is shown.",
@@ -128,8 +155,6 @@ export function WalletView() {
         </button>
       </header>
 
-      <CharityWalletActions onChanged={load} />
-
       {payouts.some((p) => p.processingStatus === "review_required") && (
         <div
           role="alert"
@@ -139,8 +164,44 @@ export function WalletView() {
           to prevent duplicate payment. See Payout activity below for the failed
           step and available error details. Do not submit a replacement for that
           withdrawal.
+          {payouts
+            .filter((p) => p.processingStatus === "review_required")
+            .map((p) => (
+              <div key={p.id} className="mt-3 break-words">
+                <p className="font-semibold">
+                  {money(amount(p), p.currency)} · Review required · not
+                  confirmed paid
+                </p>
+                <p>
+                  {p.errorMessage || "The provider outcome needs verification."}
+                </p>
+                <p>
+                  Reference: {p.keiboReference || p.keibo_reference || p.id}
+                </p>
+                <button
+                  type="button"
+                  className="button_secondary mt-2"
+                  disabled={Boolean(checkingProvider)}
+                  onClick={() => void checkProvider(p.id)}
+                >
+                  {checkingProvider === p.id
+                    ? "Checking provider…"
+                    : "Check provider status"}
+                </button>
+                <p className="mt-1 text-xs">
+                  Read-only. This does not retry or send a payment.
+                </p>
+                {providerChecks[p.id] && (
+                  <p role="status" className="mt-2">
+                    {providerChecks[p.id]}
+                  </p>
+                )}
+              </div>
+            ))}
         </div>
       )}
+
+      <CharityWalletActions onChanged={load} refreshToken={refreshToken} />
 
       <div className="grid gap-3 sm:grid-cols-3">
         {summaries.map(([currency, summary]) => (

@@ -207,6 +207,22 @@ export async function getPayout(id: string): Promise<Payout> {
   return response.data;
 }
 
+export type PayoutProviderEvidence = {
+  reference: string;
+  checkedAt: string;
+  outcome: string;
+  message: string;
+};
+export async function getPayoutProviderEvidence(
+  id: string,
+): Promise<PayoutProviderEvidence> {
+  return (
+    await apiClient.get<PayoutProviderEvidence>(
+      `/financial/payouts/${encodeURIComponent(id)}/provider-evidence`,
+    )
+  ).data;
+}
+
 export async function authorizeReceipt(settlementId: string) {
   const response = await apiClient.post(
     `/financial/receipts/${settlementId}/authorize`,
